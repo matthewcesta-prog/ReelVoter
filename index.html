@@ -213,7 +213,7 @@
     position:absolute;inset:0;
     z-index:1;
     pointer-events:none;
-    background:radial-gradient(ellipse at center, transparent 25%, var(--bg) 100%);
+    background:radial-gradient(ellipse 65% 75% at center, transparent 0%, var(--bg) 92%);
   }
   .banner-content{
     position:relative;z-index:2;
@@ -287,8 +287,15 @@
   .detail-hero-bg{
     position:absolute;inset:-30px;
     background-size:cover;background-position:center 15%;
-    filter:blur(35px) brightness(0.35) grayscale(1);
+    filter:blur(16px) brightness(0.55) grayscale(1);
     transform:scale(1.15);
+  }
+  .detail-hero::before{
+    content:'';
+    position:absolute;inset:0;
+    z-index:1;
+    pointer-events:none;
+    background:radial-gradient(ellipse 65% 75% at center, transparent 0%, var(--bg) 92%);
   }
   .detail-hero-inner{
     position:relative;z-index:2;
@@ -311,29 +318,73 @@
   }
   @media (min-width:1000px){ .detail-title{font-size:2rem;} }
   .detail-meta{color:rgba(255,255,255,0.75);font-size:0.85rem;margin-top:6px;}
-  .detail-body{max-width:920px;margin:0 auto;padding:28px 24px 60px;}
-  .detail-row{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:28px;}
-  .detail-score-block{
-    display:flex;align-items:center;gap:14px;
-    background:var(--surface);border:1px solid var(--line);
-    border-radius:8px;padding:16px 20px;
+  .detail-body{max-width:1100px;margin:0 auto;padding:32px 24px 60px;}
+  .detail-layout{
+    display:flex;
+    gap:36px;
+    align-items:flex-start;
+    flex-wrap:wrap;
   }
-  .detail-score-num{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:800;font-size:1.8rem;color:var(--white);}
-  .detail-vote-meta{font-size:0.78rem;color:var(--muted);margin-top:2px;}
-  .detail-split{flex:1;min-width:220px;}
-  .detail-split-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;}
+  .detail-tier-scale{
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    min-width:140px;
+    order:1;
+  }
+  .dts-item{opacity:0.28;}
+  .dts-label{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:800;font-size:1.7rem;color:var(--white);
+    line-height:1;text-transform:uppercase;letter-spacing:-0.01em;
+  }
+  .dts-sub{font-size:0.78rem;color:var(--muted);font-style:italic;margin-top:2px;}
+  .dts-item.dts-active{opacity:1;}
+  .dts-item.dts-active .dts-label{color:var(--tier-color);}
+  .dts-item.dts-active .dts-sub{color:var(--tier-color);opacity:0.85;}
+  .detail-poster-col{
+    display:flex;flex-direction:column;align-items:center;text-align:center;
+    min-width:220px;order:2;
+  }
+  .detail-poster-big{
+    width:220px;border-radius:6px;
+    box-shadow:0 12px 34px rgba(0,0,0,0.55);
+    filter:grayscale(1) contrast(1.05);
+  }
+  .detail-score-big{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:800;font-size:2.2rem;color:var(--white);margin-top:12px;
+  }
+  .detail-poster-col .detail-vote-meta{margin-top:2px;}
+  .detail-vote-meta{font-size:0.78rem;color:var(--muted);}
+  .detail-poster-col #detailSplitWrap{width:100%;max-width:240px;margin-top:16px;}
+  .detail-split-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;text-align:left;}
   .split-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
-  .split-bar-row .sb-label{width:44px;font-size:0.72rem;color:var(--muted);flex-shrink:0;}
+  .split-bar-row .sb-label{width:44px;font-size:0.72rem;color:var(--muted);flex-shrink:0;text-align:left;}
   .split-bar-track{flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;}
   .split-bar-fill{height:100%;background:var(--white);}
   .split-bar-row .sb-count{width:24px;text-align:right;font-size:0.72rem;color:var(--muted);flex-shrink:0;}
-  .detail-section{margin-bottom:24px;}
-  .detail-section h4{
-    font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;
-    color:var(--muted);margin:0 0 8px;
+  .detail-info-col{
+    flex:1;min-width:260px;order:3;
+    display:flex;flex-direction:column;gap:18px;
   }
-  .detail-section p{font-size:0.9rem;line-height:1.6;color:var(--text);margin:0;}
-  .detail-rate-btn{margin-top:8px;}
+  .detail-field{font-size:0.92rem;line-height:1.6;color:var(--text);}
+  .detail-field b{
+    display:block;
+    font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;
+    color:var(--muted);margin-bottom:4px;font-weight:700;
+  }
+  .detail-rate-btn{margin-top:8px;align-self:flex-start;}
+  @media (max-width:820px){
+    .detail-layout{flex-direction:column;align-items:center;}
+    .detail-tier-scale{
+      flex-direction:row;flex-wrap:wrap;justify-content:center;
+      gap:16px;order:3;width:100%;
+    }
+    .detail-poster-col{order:1;}
+    .detail-info-col{order:2;align-items:flex-start;}
+    .detail-rate-btn{align-self:center;}
+  }
 
   .how-it-works-list{
     list-style:none;
@@ -911,11 +962,22 @@
     <div id="signInPrompt" style="display:none;text-align:center;">
       <h3 style="margin:0 0 6px;">Sign in to rate a movie</h3>
       <p class="panel-sub">One real person, one real vote. Browsing is free — rating just needs a quick sign-in.</p>
-      <div class="field">
-        <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
+      <div id="emailStep">
+        <div class="field">
+          <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
+        </div>
+        <div class="modal-actions" style="justify-content:center;">
+          <button class="btn btn-primary" id="sendCodeBtn">Send code</button>
+        </div>
       </div>
-      <div class="modal-actions" style="justify-content:center;">
-        <button class="btn btn-primary" id="sendMagicLinkBtn">Send sign-in link</button>
+      <div id="codeStep" style="display:none;">
+        <div class="field">
+          <input type="text" id="loginCode" placeholder="6-digit code" autocomplete="one-time-code" inputmode="numeric" maxlength="6">
+        </div>
+        <div class="modal-actions" style="justify-content:center;">
+          <button class="btn btn-primary" id="verifyCodeBtn">Verify code</button>
+        </div>
+        <button class="duel-skip" id="resendCodeBtn" style="margin-top:10px;">Use a different email</button>
       </div>
       <p id="loginStatus" class="panel-sub" style="margin-top:14px;"></p>
     </div>
@@ -1082,20 +1144,66 @@
     el('signInPrompt').style.display = signedIn ? 'none' : 'block';
     el('voteFlow').style.display = signedIn ? 'block' : 'none';
     el('myRatingsHeading').style.display = 'none'; // render() will re-show this if there's anything to show
-    if(signedIn) el('userEmailDisplay').textContent = currentUser.email || '';
+    if(signedIn){
+      el('userEmailDisplay').textContent = currentUser.email || '';
+    } else {
+      // Reset the sign-in prompt back to the email step, in case it was left
+      // mid-code-entry from a previous session.
+      el('emailStep').style.display = 'block';
+      el('codeStep').style.display = 'none';
+      el('loginEmail').value = '';
+      el('loginCode').value = '';
+      el('loginStatus').textContent = '';
+      pendingSignInEmail = null;
+    }
   }
 
-  el('sendMagicLinkBtn').addEventListener('click', async () => {
+  let pendingSignInEmail = null;
+
+  el('sendCodeBtn').addEventListener('click', async () => {
     const email = el('loginEmail').value.trim();
     if(!email){ el('loginEmail').focus(); return; }
     el('loginStatus').textContent = 'Sending...';
-    const { error } = await supabaseClient.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.href }
+    // No emailRedirectTo — this requests a one-time code instead of a clickable link,
+    // which sidesteps email providers (Gmail included) silently "pre-clicking" magic
+    // links to scan them, consuming a link before the person ever sees it.
+    const { error } = await supabaseClient.auth.signInWithOtp({ email });
+    if(error){
+      el('loginStatus').textContent = 'Something went wrong: ' + error.message;
+      return;
+    }
+    pendingSignInEmail = email;
+    el('emailStep').style.display = 'none';
+    el('codeStep').style.display = 'block';
+    el('loginStatus').textContent = 'Check your email for a 6-digit code.';
+    el('loginCode').focus();
+  });
+
+  el('verifyCodeBtn').addEventListener('click', async () => {
+    const code = el('loginCode').value.trim();
+    if(!code){ el('loginCode').focus(); return; }
+    if(!pendingSignInEmail){ el('loginStatus').textContent = 'Please request a code first.'; return; }
+    el('loginStatus').textContent = 'Verifying...';
+    const { error } = await supabaseClient.auth.verifyOtp({
+      email: pendingSignInEmail,
+      token: code,
+      type: 'email'
     });
-    el('loginStatus').textContent = error
-      ? ('Something went wrong: ' + error.message)
-      : 'Check your email for a sign-in link.';
+    if(error){
+      el('loginStatus').textContent = 'That code didn\'t work: ' + error.message;
+      return;
+    }
+    // A successful verify triggers onAuthStateChange, which handles the rest.
+    el('loginStatus').textContent = '';
+  });
+
+  el('resendCodeBtn').addEventListener('click', () => {
+    pendingSignInEmail = null;
+    el('loginCode').value = '';
+    el('codeStep').style.display = 'none';
+    el('emailStep').style.display = 'block';
+    el('loginStatus').textContent = '';
+    el('loginEmail').focus();
   });
 
   el('signOutBtn').addEventListener('click', async () => {
@@ -1352,11 +1460,15 @@
   }
 
   // ---- Movie Detail Overlay ----
+  const TIER_SUBTITLE = { Bad: 'Skip it.', OK: 'Take it or leave it.', Good: 'Worth a watch.', Great: 'The Reel Deal.' };
+  const TIER_ORDER_DESC = ['Great', 'Good', 'OK', 'Bad'];
+
   async function openMovieDetail(movie){
     if(!movie) return;
     const modal = el('movieDetailModal');
     const content = el('detailContent');
     const hasRealSignal_ = hasRealSignal(movie);
+    const currentTier = scoreToTier(movie.score);
 
     content.innerHTML = `
       <div class="detail-hero">
@@ -1370,25 +1482,30 @@
         </div>
       </div>
       <div class="detail-body">
-        <div class="detail-row">
-          <div class="detail-score-block">
-            ${tierIcon(scoreToTier(movie.score))}
-            <div>
-              <div class="detail-score-num">${scoreToTier(movie.score)} · ${(movie.score||5).toFixed(1)}</div>
-              <div class="detail-vote-meta">${hasRealSignal_ ? `ranked by ${uniqueVoterCount(movie.id)} ${uniqueVoterCount(movie.id)===1?'person':'people'}` : 'IMDb baseline — not yet ReelVoted'}</div>
-            </div>
+        <div class="detail-layout">
+          <div class="detail-tier-scale">
+            ${TIER_ORDER_DESC.map(t => `
+              <div class="dts-item${t === currentTier ? ' dts-active' : ''}" style="${t===currentTier ? `--tier-color:${TIER_VISUAL[t].color};` : ''}">
+                <div class="dts-label">${t}</div>
+                <div class="dts-sub">${TIER_SUBTITLE[t]}</div>
+              </div>
+            `).join('')}
           </div>
-          <div class="detail-split" id="detailSplitWrap"></div>
+          <div class="detail-poster-col">
+            <img class="detail-poster-big" src="${escapeHtml(movie.poster||'')}" alt="">
+            <div class="detail-score-big">${(movie.score||5).toFixed(1)}</div>
+            <div class="detail-vote-meta">${hasRealSignal_ ? `ranked by ${uniqueVoterCount(movie.id)} ${uniqueVoterCount(movie.id)===1?'person':'people'}` : 'IMDb baseline — not yet ReelVoted'}</div>
+            <div id="detailSplitWrap"></div>
+          </div>
+          <div class="detail-info-col">
+            <div class="detail-field"><b>GENRE:</b> <span>${escapeHtml(movie.genre)}</span></div>
+            <div class="detail-field" id="detailPlotField" style="display:none;"><b>BRIEF:</b> <span id="detailPlotText"></span></div>
+            <div class="detail-field" id="detailStarringField" style="display:none;"><b>STARRING:</b> <span id="detailStarringText"></span></div>
+            <div class="detail-field" id="detailDirectorField" style="display:none;"><b>DIRECTOR:</b> <span id="detailDirectorText"></span></div>
+            <div class="detail-field" id="detailWritersField" style="display:none;"><b>WRITERS:</b> <span id="detailWritersText"></span></div>
+            <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">Rate It</button>
+          </div>
         </div>
-        <div class="detail-section" id="detailPlotSection" style="display:none;">
-          <h4>Synopsis</h4>
-          <p id="detailPlotText"></p>
-        </div>
-        <div class="detail-section" id="detailCrewSection" style="display:none;">
-          <h4>Director & Cast</h4>
-          <p id="detailCrewText"></p>
-        </div>
-        <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">Rate It</button>
       </div>
     `;
 
@@ -1404,15 +1521,19 @@
         const data = await r.json();
         if(data && data.Plot && data.Plot !== 'N/A'){
           el('detailPlotText').textContent = data.Plot;
-          el('detailPlotSection').style.display = 'block';
+          el('detailPlotField').style.display = 'block';
         }
-        const crewBits = [];
-        if(data.Director && data.Director !== 'N/A') crewBits.push('Directed by ' + data.Director);
-        if(data.Actors && data.Actors !== 'N/A') crewBits.push('Starring ' + data.Actors);
-        if(data.Runtime && data.Runtime !== 'N/A') crewBits.push(data.Runtime);
-        if(crewBits.length){
-          el('detailCrewText').textContent = crewBits.join(' · ');
-          el('detailCrewSection').style.display = 'block';
+        if(data && data.Actors && data.Actors !== 'N/A'){
+          el('detailStarringText').textContent = data.Actors;
+          el('detailStarringField').style.display = 'block';
+        }
+        if(data && data.Director && data.Director !== 'N/A'){
+          el('detailDirectorText').textContent = data.Director;
+          el('detailDirectorField').style.display = 'block';
+        }
+        if(data && data.Writer && data.Writer !== 'N/A'){
+          el('detailWritersText').textContent = data.Writer;
+          el('detailWritersField').style.display = 'block';
         }
       }catch(e){ /* detail fetch failed — still show what we have */ }
     }
@@ -1514,19 +1635,59 @@
     return byActivity.concat(fallback).slice(0, limit);
   }
 
+  async function getOrCreateDefaultBannerMovie(){
+    const existing = movies.find(m => m.title.toLowerCase().includes('odyssey'));
+    if(existing) return existing;
+
+    try{
+      const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&s=${encodeURIComponent('The Odyssey')}&type=movie`);
+      const data = await r.json();
+      if(!data || !data.Search || !data.Search.length) return null;
+      const item = data.Search[0];
+
+      const detailR = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(item.imdbID)}`);
+      const detail = await detailR.json();
+
+      let genre = 'Other';
+      if(detail && detail.Genre){
+        const first = detail.Genre.split(',')[0].trim().toLowerCase();
+        genre = OMDB_GENRE_MAP[first] || 'Other';
+      }
+      const poster = (detail && detail.Poster && detail.Poster !== 'N/A') ? detail.Poster : (item.Poster !== 'N/A' ? item.Poster : '');
+      const imdbRating = (detail && detail.imdbRating && detail.imdbRating !== 'N/A') ? parseFloat(detail.imdbRating) : null;
+
+      const movie = {
+        id: crypto.randomUUID(), title: item.Title, year: item.Year, genre, poster,
+        score: imdbRating != null ? imdbRating : 5.0,
+        weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
+        votes: 1, imdb_id: item.imdbID, imdb_rating: imdbRating
+      };
+      if(currentUser){
+        movie.user_id = currentUser.id;
+        movies.push(movie);
+        await saveMovies();
+      }
+      return movie;
+    }catch(e){ return null; }
+  }
+
   function renderTrending(){
     renderBanner();
     renderPosterGrid();
   }
 
-  function renderBanner(){
+  async function renderBanner(){
     const wrap = el('bannerWrap');
     if(carouselInterval){ clearInterval(carouselInterval); carouselInterval = null; }
 
-    const featured = getFeaturedMovies(6);
+    let featured = getFeaturedMovies(6);
     if(featured.length === 0){
-      wrap.innerHTML = `<div class="banner-empty">No activity yet — cast a comparison vote to see trending films here.</div>`;
-      return;
+      const fallbackMovie = await getOrCreateDefaultBannerMovie();
+      if(!fallbackMovie || !fallbackMovie.poster){
+        wrap.innerHTML = `<div class="banner-empty">No activity yet — cast a comparison vote to see trending films here.</div>`;
+        return;
+      }
+      featured = [fallbackMovie];
     }
 
     wrap.innerHTML = `
@@ -1540,9 +1701,9 @@
       </div>
     `;
     el('bannerContent').addEventListener('click', () => openMovieDetail(featured[carouselIndex]));
+    carouselIndex = 0;
 
     if(featured.length > 1){
-      carouselIndex = 0;
       carouselInterval = setInterval(() => {
         carouselIndex = (carouselIndex + 1) % featured.length;
         const m = featured[carouselIndex];
@@ -2067,23 +2228,6 @@
   });
 
   (async function initAuth(){
-    // Surface any error Supabase put in the redirect URL (expired/used link, etc.)
-    const url = new URL(window.location.href);
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    const errDesc = url.searchParams.get('error_description') || hashParams.get('error_description');
-    if(errDesc){
-      el('loginStatus').textContent = 'Sign-in link problem: ' + decodeURIComponent(errDesc.replace(/\+/g,' '));
-    }
-
-    // Explicitly handle "?code=" redirects (PKCE flow) as a robust fallback,
-    // in case automatic session detection doesn't catch it.
-    const code = url.searchParams.get('code');
-    if(code){
-      const { error } = await supabaseClient.auth.exchangeCodeForSession(window.location.href);
-      if(error) el('loginStatus').textContent = 'Sign-in failed: ' + error.message;
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
     const { data: { session } } = await supabaseClient.auth.getSession();
     currentUser = session ? session.user : null;
     updateAuthUI();
