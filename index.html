@@ -91,7 +91,8 @@
     top:0;
     z-index:40;
     display:flex;
-    align-items:center;
+    align-items:flex-start;
+    justify-content:space-between;
     gap:20px;
     background:rgba(26,25,24,0.92);
     backdrop-filter:blur(8px);
@@ -99,7 +100,9 @@
     padding:12px 24px;
     margin:-32px -20px 0;
   }
-  .nav-left{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .nav-left{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
+  .nav-left-row{display:flex;align-items:center;gap:14px;}
+  .nav-logo-wordmark{display:flex;align-items:center;gap:8px;}
   .nav-logo{width:32px;height:32px;}
   .nav-wordmark{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -109,6 +112,13 @@
   }
   .nw-gold{color:#c9852c;}
   .nw-white{color:var(--white);}
+  .nav-signout-under{align-self:flex-start;margin-left:2px;}
+  .nav-right{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    flex-wrap:nowrap;
+  }
   .nav-links{display:flex;gap:18px;flex-shrink:0;}
   .nav-link{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -117,28 +127,22 @@
     color:var(--muted);
     text-decoration:none;
     letter-spacing:0.02em;
+    white-space:nowrap;
   }
   .nav-link:hover{color:var(--text);}
-  .nav-right{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    margin-left:auto;
-    flex-wrap:nowrap;
-  }
   .nav-search{position:relative;width:180px;}
   .nav-search input{
     width:100%;
     background:var(--surface);
-    border:1px solid var(--line);
-    color:var(--muted);
+    border:1px solid var(--muted);
+    color:var(--white);
     padding:7px 12px;
     border-radius:20px;
     font-size:0.78rem;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
   }
-  .nav-search input:focus{outline:none;border-color:var(--muted);color:var(--text);}
-  .nav-search input::placeholder{color:var(--muted);}
+  .nav-search input::placeholder{color:rgba(255,255,255,0.65);}
+  .nav-search input:focus{outline:none;border-color:var(--white);}
   @media (max-width:700px){
     .top-nav{gap:10px;padding:10px 14px;flex-wrap:wrap;}
     .nav-links{display:none;}
@@ -200,9 +204,16 @@
     position:absolute;inset:-30px;
     background-size:cover;
     background-position:center 20%;
-    filter:blur(35px) brightness(0.4) grayscale(1);
+    filter:blur(16px) brightness(0.55) grayscale(1);
     transform:scale(1.15);
     transition:opacity 0.5s ease;
+  }
+  .banner::before{
+    content:'';
+    position:absolute;inset:0;
+    z-index:1;
+    pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 25%, var(--bg) 100%);
   }
   .banner-content{
     position:relative;z-index:2;
@@ -239,7 +250,7 @@
     grid-template-columns:repeat(3, 1fr);
     gap:8px;
     max-width:640px;
-    margin:24px auto 0;
+    margin:24px auto 40px;
   }
   @media (min-width:1000px){
     .poster-grid{grid-template-columns:repeat(6, 1fr);max-width:900px;}
@@ -845,32 +856,36 @@
 
   <nav class="top-nav">
     <div class="nav-left">
-      <svg class="nav-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle cx="50" cy="50" r="46" stroke="#c9852c" stroke-width="4"/>
-        <circle cx="50" cy="50" r="9" fill="#c9852c"/>
-        <circle cx="50" cy="19" r="9" fill="#c9852c"/>
-        <circle cx="81" cy="50" r="9" fill="#c9852c"/>
-        <circle cx="50" cy="81" r="9" fill="#c9852c"/>
-        <circle cx="19" cy="50" r="9" fill="#c9852c"/>
-      </svg>
-      <span class="nav-wordmark"><span class="nw-white">Reel</span><span class="nw-white">Voter</span></span>
-    </div>
-    <div class="nav-links">
-      <a href="#myRatingsHeading" class="nav-link">My Ratings</a>
-      <a href="#votePanel" class="nav-link">Vote a Reel</a>
+      <div class="nav-left-row">
+        <div class="nav-logo-wordmark" id="navHomeBtn" style="cursor:pointer;">
+          <svg class="nav-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" stroke="#c9852c" stroke-width="4"/>
+            <circle cx="50" cy="50" r="9" fill="#c9852c"/>
+            <circle cx="50" cy="19" r="9" fill="#c9852c"/>
+            <circle cx="81" cy="50" r="9" fill="#c9852c"/>
+            <circle cx="50" cy="81" r="9" fill="#c9852c"/>
+            <circle cx="19" cy="50" r="9" fill="#c9852c"/>
+          </svg>
+          <span class="nav-wordmark"><span class="nw-white">Reel</span><span class="nw-white">Voter</span></span>
+        </div>
+        <span class="top-bar-user" id="signedInBar" style="display:none;">
+          <span id="userEmailDisplay"></span>
+          <svg class="verified-check" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
+      </div>
+      <button id="signOutBtn" class="top-bar-signout nav-signout-under" style="display:none;">Sign out</button>
     </div>
     <div class="nav-right">
-      <span class="top-bar-user" id="signedInBar" style="display:none;">
-        <span id="userEmailDisplay"></span>
-        <svg class="verified-check" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-      <button id="signOutBtn" class="top-bar-signout" style="display:none;">Sign out</button>
-      <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
+      <div class="nav-links">
+        <a href="#myRatingsHeading" class="nav-link">My Ratings</a>
+        <a href="#votePanel" class="nav-link">Rate a Movie</a>
+      </div>
       <div class="nav-search">
-        <input type="text" id="topSearchInput" placeholder="Look up a ReelVote..." autocomplete="off">
+        <input type="text" id="topSearchInput" placeholder="Search a movie rating..." autocomplete="off">
         <div id="topSearchResults" class="search-results" style="display:none;"></div>
       </div>
     </div>
@@ -881,7 +896,7 @@
     <div class="banner" id="bannerWrap">
       <div class="banner-empty">No activity yet — cast a comparison vote to see trending films here.</div>
     </div>
-    <div class="hero-overlay">
+    <div class="hero-overlay" id="heroOverlay">
       <p class="hero-tagline">Credible, simplified movie reviews.</p>
       <p class="hero-subline">No fancy critic reviews. Just real votes, by real people.</p>
       <button class="btn btn-primary" id="howItWorksBtn">How ReelVoter Works</button>
@@ -1092,6 +1107,10 @@
     setTimeout(() => el('loginEmail').focus(), 400);
   });
 
+  el('navHomeBtn').addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   el('howItWorksBtn').addEventListener('click', () => {
     el('howItWorksModal').style.display = 'flex';
   });
@@ -1257,6 +1276,7 @@
     el('totalCount').textContent = myMovies.length;
     el('emptyAll').style.display = (currentUser && myMovies.length === 0) ? 'block' : 'none';
     el('myRatingsHeading').style.display = myMovies.length > 0 ? 'flex' : 'none';
+    el('heroOverlay').style.display = (currentUser && myMovies.length > 0) ? 'none' : 'flex';
 
     renderTrending();
 
@@ -1336,7 +1356,7 @@
     if(!movie) return;
     const modal = el('movieDetailModal');
     const content = el('detailContent');
-    const hasRealSignal = (movie.weight || 0) > (movie.imdb_rating != null ? IMDB_PRIOR_WEIGHT : 0);
+    const hasRealSignal_ = hasRealSignal(movie);
 
     content.innerHTML = `
       <div class="detail-hero">
@@ -1355,7 +1375,7 @@
             ${tierIcon(scoreToTier(movie.score))}
             <div>
               <div class="detail-score-num">${scoreToTier(movie.score)} · ${(movie.score||5).toFixed(1)}</div>
-              <div class="detail-vote-meta">${hasRealSignal ? `ranked by ${uniqueVoterCount(movie.id)} ${uniqueVoterCount(movie.id)===1?'person':'people'}` : 'IMDb baseline — not yet ReelVoted'}</div>
+              <div class="detail-vote-meta">${hasRealSignal_ ? `ranked by ${uniqueVoterCount(movie.id)} ${uniqueVoterCount(movie.id)===1?'person':'people'}` : 'IMDb baseline — not yet ReelVoted'}</div>
             </div>
           </div>
           <div class="detail-split" id="detailSplitWrap"></div>
@@ -1464,8 +1484,14 @@
   let carouselInterval = null;
   let carouselIndex = 0;
 
+  function hasRealSignal(movie){
+    return (movie.weight || 0) > (movie.imdb_rating != null ? IMDB_PRIOR_WEIGHT : 0);
+  }
+
   function getFeaturedMovies(limit){
-    // Most recently active movies, by latest vote timestamp involving them
+    // Most recently active movies, by latest vote timestamp involving them.
+    // Only movies with a genuine ReelVote behind them qualify — a searched-but-
+    // never-rated IMDb baseline shouldn't show up as if it were "trending."
     const latest = {};
     votesLog.forEach(v => {
       const t = new Date(v.created_at || 0).getTime();
@@ -1476,15 +1502,13 @@
     const byActivity = Object.entries(latest)
       .sort((a,b) => b[1] - a[1])
       .map(([id]) => movies.find(m => m.id === id))
-      .filter(m => m && m.poster);
+      .filter(m => m && m.poster && hasRealSignal(m));
 
     if(byActivity.length >= limit) return byActivity.slice(0, limit);
 
-    // Not enough real vote activity yet — fill in with whatever's in the catalog,
-    // best-baseline first, so the site isn't empty before real traffic exists.
     const usedIds = new Set(byActivity.map(m => m.id));
     const fallback = movies
-      .filter(m => m.poster && !usedIds.has(m.id))
+      .filter(m => m.poster && hasRealSignal(m) && !usedIds.has(m.id))
       .sort((a,b) => (b.score||5) - (a.score||5));
 
     return byActivity.concat(fallback).slice(0, limit);
@@ -2034,47 +2058,12 @@
   function showTopSearchResult(target){
     el('topSearchResults').style.display = 'none';
     el('topSearchInput').value = '';
-
-    const hasRealSignal = (target.weight || 0) > (target.imdb_rating != null ? IMDB_PRIOR_WEIGHT : 0);
-
-    if(!hasRealSignal){
-      el('topSearchCard').innerHTML = `
-        <div class="top-search-card">
-          ${target.poster ? `<img src="${escapeHtml(target.poster)}" alt="">` : ''}
-          <div>
-            <div class="ts-title">${escapeHtml(target.title)}</div>
-            <div class="ts-meta">IMDb baseline — not yet ReelVoted</div>
-          </div>
-          <span style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-left:auto;">
-            ${tierIcon(scoreToTier(target.score))}<span class="tier-badge">${scoreToTier(target.score)}</span><span class="dt-score">${(target.score||5).toFixed(1)}</span>
-          </span>
-        </div>
-      `;
-      const card1 = el('topSearchCard').querySelector('.top-search-card');
-      if(card1){ card1.style.cursor = 'pointer'; card1.addEventListener('click', () => openMovieDetail(target)); }
-      return;
-    }
-
-    const genreList = movies.filter(m => m.genre === target.genre).sort((a,b) => b.score - a.score);
-    const rank = genreList.findIndex(m => m.id === target.id) + 1;
-    el('topSearchCard').innerHTML = `
-      <div class="top-search-card">
-        ${target.poster ? `<img src="${escapeHtml(target.poster)}" alt="">` : ''}
-        <div>
-          <div class="ts-title">${escapeHtml(target.title)}</div>
-          <div class="ts-meta">#${rank} of ${genreList.length} in ${escapeHtml(target.genre)} · ranked by ${uniqueVoterCount(target.id)} ${uniqueVoterCount(target.id) === 1 ? 'person' : 'people'}</div>
-        </div>
-        <span style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-left:auto;">
-          ${tierIcon(scoreToTier(target.score))}<span class="tier-badge">${scoreToTier(target.score)}</span><span class="dt-score">${(target.score||5).toFixed(1)}</span>
-        </span>
-      </div>
-    `;
-    const card2 = el('topSearchCard').querySelector('.top-search-card');
-    if(card2){ card2.style.cursor = 'pointer'; card2.addEventListener('click', () => openMovieDetail(target)); }
+    el('topSearchCard').innerHTML = '';
+    openMovieDetail(target);
   }
 
   document.addEventListener('click', (e) => {
-    if(!e.target.closest('.top-search')) el('topSearchResults').style.display = 'none';
+    if(!e.target.closest('.nav-search')) el('topSearchResults').style.display = 'none';
   });
 
   (async function initAuth(){
