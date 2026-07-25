@@ -152,7 +152,7 @@
     color:var(--muted);
     white-space:nowrap;
   }
-  .verified-check{color:var(--text);flex-shrink:0;}
+  .verified-check{color:#c9852c;flex-shrink:0;}
   .top-bar-signout{
     background:none;
     border:none;
@@ -246,6 +246,83 @@
   }
   .poster-cell{border-radius:6px;overflow:hidden;aspect-ratio:2/3;background:var(--surface);}
   .poster-cell img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
+
+  .detail-overlay{align-items:flex-start;overflow-y:auto;padding:0;}
+  .detail-panel{
+    background:var(--bg);
+    width:100%;
+    min-height:100vh;
+    max-width:none;
+    border-radius:0;
+    padding:0;
+    position:relative;
+    animation:fadeSlideIn 0.25s ease;
+  }
+  .detail-close{
+    position:fixed;top:16px;right:16px;z-index:10;
+    background:rgba(0,0,0,0.6);
+    border:none;color:var(--white);
+    width:36px;height:36px;border-radius:50%;
+    font-size:1.4rem;line-height:1;cursor:pointer;
+  }
+  .detail-hero{
+    position:relative;
+    height:280px;
+    overflow:hidden;
+    display:flex;align-items:flex-end;
+    background:var(--surface);
+  }
+  @media (min-width:1000px){ .detail-hero{height:380px;} }
+  .detail-hero-bg{
+    position:absolute;inset:-30px;
+    background-size:cover;background-position:center 15%;
+    filter:blur(35px) brightness(0.35) grayscale(1);
+    transform:scale(1.15);
+  }
+  .detail-hero-inner{
+    position:relative;z-index:2;
+    display:flex;align-items:flex-end;gap:20px;
+    padding:24px;
+    max-width:920px;margin:0 auto;width:100%;
+  }
+  .detail-poster{
+    width:110px;flex-shrink:0;border-radius:6px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.6);
+    filter:grayscale(1) contrast(1.05);
+  }
+  @media (min-width:1000px){ .detail-poster{width:150px;} }
+  .detail-title-block{padding-bottom:6px;}
+  .detail-title{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:800;font-size:1.5rem;color:var(--white);
+    text-shadow:0 2px 10px rgba(0,0,0,0.6);
+    margin:0;
+  }
+  @media (min-width:1000px){ .detail-title{font-size:2rem;} }
+  .detail-meta{color:rgba(255,255,255,0.75);font-size:0.85rem;margin-top:6px;}
+  .detail-body{max-width:920px;margin:0 auto;padding:28px 24px 60px;}
+  .detail-row{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:28px;}
+  .detail-score-block{
+    display:flex;align-items:center;gap:14px;
+    background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;padding:16px 20px;
+  }
+  .detail-score-num{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;font-weight:800;font-size:1.8rem;color:var(--white);}
+  .detail-vote-meta{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+  .detail-split{flex:1;min-width:220px;}
+  .detail-split-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:8px;}
+  .split-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+  .split-bar-row .sb-label{width:44px;font-size:0.72rem;color:var(--muted);flex-shrink:0;}
+  .split-bar-track{flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;}
+  .split-bar-fill{height:100%;background:var(--white);}
+  .split-bar-row .sb-count{width:24px;text-align:right;font-size:0.72rem;color:var(--muted);flex-shrink:0;}
+  .detail-section{margin-bottom:24px;}
+  .detail-section h4{
+    font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;
+    color:var(--muted);margin:0 0 8px;
+  }
+  .detail-section p{font-size:0.9rem;line-height:1.6;color:var(--text);margin:0;}
+  .detail-rate-btn{margin-top:8px;}
 
   .how-it-works-list{
     list-style:none;
@@ -776,7 +853,7 @@
         <circle cx="50" cy="81" r="9" fill="#c9852c"/>
         <circle cx="19" cy="50" r="9" fill="#c9852c"/>
       </svg>
-      <span class="nav-wordmark"><span class="nw-gold">Reel</span><span class="nw-white">Voter</span></span>
+      <span class="nav-wordmark"><span class="nw-white">Reel</span><span class="nw-white">Voter</span></span>
     </div>
     <div class="nav-links">
       <a href="#myRatingsHeading" class="nav-link">My Ratings</a>
@@ -891,6 +968,14 @@
     <b id="totalCount">0</b> titles ranked
   </div>
 
+</div>
+
+<!-- MOVIE DETAIL OVERLAY -->
+<div class="modal-overlay detail-overlay" id="movieDetailModal" style="display:none;">
+  <div class="detail-panel">
+    <button class="detail-close" id="closeDetailBtn">&times;</button>
+    <div id="detailContent"></div>
+  </div>
 </div>
 
 <!-- HOW IT WORKS MODAL -->
@@ -1222,6 +1307,8 @@
             </div>
           </div>
         `;
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => openMovieDetail(m));
         block.appendChild(row);
       });
 
@@ -1243,6 +1330,136 @@
     if(score >= 5) return 'OK';
     return 'Bad';
   }
+
+  // ---- Movie Detail Overlay ----
+  async function openMovieDetail(movie){
+    if(!movie) return;
+    const modal = el('movieDetailModal');
+    const content = el('detailContent');
+    const hasRealSignal = (movie.weight || 0) > (movie.imdb_rating != null ? IMDB_PRIOR_WEIGHT : 0);
+
+    content.innerHTML = `
+      <div class="detail-hero">
+        <div class="detail-hero-bg" style="background-image:url('${escapeHtml(movie.poster||'')}')"></div>
+        <div class="detail-hero-inner">
+          ${movie.poster ? `<img class="detail-poster" src="${escapeHtml(movie.poster)}" alt="">` : ''}
+          <div class="detail-title-block">
+            <h2 class="detail-title">${escapeHtml(movie.title)}</h2>
+            <div class="detail-meta">${escapeHtml(movie.year||'')} · ${escapeHtml(movie.genre)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-row">
+          <div class="detail-score-block">
+            ${tierIcon(scoreToTier(movie.score))}
+            <div>
+              <div class="detail-score-num">${scoreToTier(movie.score)} · ${(movie.score||5).toFixed(1)}</div>
+              <div class="detail-vote-meta">${hasRealSignal ? `ranked by ${uniqueVoterCount(movie.id)} ${uniqueVoterCount(movie.id)===1?'person':'people'}` : 'IMDb baseline — not yet ReelVoted'}</div>
+            </div>
+          </div>
+          <div class="detail-split" id="detailSplitWrap"></div>
+        </div>
+        <div class="detail-section" id="detailPlotSection" style="display:none;">
+          <h4>Synopsis</h4>
+          <p id="detailPlotText"></p>
+        </div>
+        <div class="detail-section" id="detailCrewSection" style="display:none;">
+          <h4>Director & Cast</h4>
+          <p id="detailCrewText"></p>
+        </div>
+        <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">Rate It</button>
+      </div>
+    `;
+
+    el('detailRateBtn').onclick = () => startRateFromDetail(movie);
+    modal.style.display = 'flex';
+    window.scrollTo(0,0);
+
+    renderTierSplit(movie.id);
+
+    if(movie.imdb_id){
+      try{
+        const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(movie.imdb_id)}&plot=short`);
+        const data = await r.json();
+        if(data && data.Plot && data.Plot !== 'N/A'){
+          el('detailPlotText').textContent = data.Plot;
+          el('detailPlotSection').style.display = 'block';
+        }
+        const crewBits = [];
+        if(data.Director && data.Director !== 'N/A') crewBits.push('Directed by ' + data.Director);
+        if(data.Actors && data.Actors !== 'N/A') crewBits.push('Starring ' + data.Actors);
+        if(data.Runtime && data.Runtime !== 'N/A') crewBits.push(data.Runtime);
+        if(crewBits.length){
+          el('detailCrewText').textContent = crewBits.join(' · ');
+          el('detailCrewSection').style.display = 'block';
+        }
+      }catch(e){ /* detail fetch failed — still show what we have */ }
+    }
+  }
+
+  async function renderTierSplit(movieId){
+    const wrap = el('detailSplitWrap');
+    let rows = [];
+    try{
+      const { data, error } = await supabaseClient.from('user_ratings').select('tier').eq('movie_id', movieId);
+      if(!error) rows = data || [];
+    }catch(e){ /* leave split empty on failure */ }
+
+    const counts = { Great:0, Good:0, OK:0, Bad:0 };
+    rows.forEach(r => { if(counts[r.tier] != null) counts[r.tier]++; });
+    const total = Math.max(1, counts.Great + counts.Good + counts.OK + counts.Bad);
+
+    wrap.innerHTML = `
+      <div class="detail-split-label">Vote Split</div>
+      ${['Great','Good','OK','Bad'].map(t => `
+        <div class="split-bar-row">
+          <span class="sb-label">${t}</span>
+          <div class="split-bar-track"><div class="split-bar-fill" style="width:${(counts[t]/total*100)}%;"></div></div>
+          <span class="sb-count">${counts[t]}</span>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  function startRateFromDetail(movie){
+    el('movieDetailModal').style.display = 'none';
+    if(!currentUser){
+      el('votePanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => el('loginEmail').focus(), 400);
+      return;
+    }
+    selectedResult = {
+      title: movie.title, year: movie.year, poster: movie.poster,
+      imdbID: movie.imdb_id, imdbRating: movie.imdb_rating,
+      existingMovie: movie
+    };
+    el('genreInput').value = movie.genre;
+    updateGenreDisplay();
+    updateContinueState();
+    el('confirmPanel').style.display = 'block';
+    el('selectedPreviewWrap').innerHTML = `
+      <div class="selected-preview">
+        ${movie.poster ? `<img src="${escapeHtml(movie.poster)}" alt="">` : ''}
+        <div><div class="sp-title">${escapeHtml(movie.title)}</div><div class="sp-year">${escapeHtml(movie.year||'')}</div></div>
+        <button id="clearSelectionBtn" type="button">clear</button>
+      </div>
+    `;
+    el('clearSelectionBtn').addEventListener('click', () => {
+      selectedResult = null;
+      el('selectedPreviewWrap').innerHTML = '';
+      el('confirmPanel').style.display = 'none';
+      document.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('selected'));
+      selectedTier = null;
+      updateContinueState();
+    });
+    el('votePanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  el('closeDetailBtn').addEventListener('click', () => { el('movieDetailModal').style.display = 'none'; });
+  el('movieDetailModal').addEventListener('click', (e) => {
+    if(e.target.id === 'movieDetailModal') el('movieDetailModal').style.display = 'none';
+  });
 
   let carouselInterval = null;
   let carouselIndex = 0;
@@ -1290,7 +1507,7 @@
 
     wrap.innerHTML = `
       <div class="banner-bg" id="bannerBg" style="background-image:url('${escapeHtml(featured[0].poster)}')"></div>
-      <div class="banner-content">
+      <div class="banner-content" id="bannerContent" style="cursor:pointer;">
         <img class="banner-poster" id="bannerPoster" src="${escapeHtml(featured[0].poster)}" alt="">
         <div class="banner-caption">
           <span class="banner-title" id="bannerTitle">${escapeHtml(featured[0].title)}</span>
@@ -1298,6 +1515,7 @@
         </div>
       </div>
     `;
+    el('bannerContent').addEventListener('click', () => openMovieDetail(featured[carouselIndex]));
 
     if(featured.length > 1){
       carouselIndex = 0;
@@ -1327,12 +1545,18 @@
     wrap.innerHTML = `
       <div class="poster-grid">
         ${featured.map(m => `
-          <div class="poster-cell" title="${escapeHtml(m.title)}">
+          <div class="poster-cell" title="${escapeHtml(m.title)}" data-movie-id="${escapeHtml(m.id)}" style="cursor:pointer;">
             <img src="${escapeHtml(m.poster)}" alt="${escapeHtml(m.title)}">
           </div>
         `).join('')}
       </div>
     `;
+    wrap.querySelectorAll('.poster-cell').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const m = movies.find(x => x.id === cell.dataset.movieId);
+        if(m) openMovieDetail(m);
+      });
+    });
   }
 
   // Fill count + color per tier — the only place color appears on the whole site,
@@ -1826,6 +2050,8 @@
           </span>
         </div>
       `;
+      const card1 = el('topSearchCard').querySelector('.top-search-card');
+      if(card1){ card1.style.cursor = 'pointer'; card1.addEventListener('click', () => openMovieDetail(target)); }
       return;
     }
 
@@ -1843,6 +2069,8 @@
         </span>
       </div>
     `;
+    const card2 = el('topSearchCard').querySelector('.top-search-card');
+    if(card2){ card2.style.cursor = 'pointer'; card2.addEventListener('click', () => openMovieDetail(target)); }
   }
 
   document.addEventListener('click', (e) => {
