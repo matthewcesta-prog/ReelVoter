@@ -135,9 +135,10 @@
   .nav-logo{width:32px;height:32px;}
   .nav-wordmark{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-weight:900;
+    font-weight:700;
     font-size:1.35rem;
-    letter-spacing:-0.03em;
+    letter-spacing:-0.01em;
+    color:var(--white);
   }
   .nw-gold{color:#c9852c;}
   .nw-white{color:var(--white);}
@@ -968,7 +969,7 @@
             <circle cx="50" cy="81" r="9" fill="#c9852c"/>
             <circle cx="19" cy="50" r="9" fill="#c9852c"/>
           </svg>
-          <span class="nav-wordmark"><span class="nw-white">Reel</span><span class="nw-white">Voter</span></span>
+          <span class="nav-wordmark">reelvoter</span>
         </div>
         <div class="nav-user-col">
           <span class="top-bar-user" id="signedInBar" style="display:none;">
@@ -1136,7 +1137,7 @@
         <div class="tier-options tier-4" id="tierOptions">
           <button class="tier-btn" data-tier="bad" style="--tier-color:#c0392b;"><span class="tier-btn-icon" data-tier-icon="Bad"></span><span class="tier-btn-label">Bad</span></button>
           <button class="tier-btn" data-tier="ok" style="--tier-color:#f2f2f2;"><span class="tier-btn-icon" data-tier-icon="OK"></span><span class="tier-btn-label">OK</span></button>
-          <button class="tier-btn" data-tier="good" style="--tier-color:#c0c0c0;"><span class="tier-btn-icon" data-tier-icon="Good"></span><span class="tier-btn-label">Good</span></button>
+          <button class="tier-btn" data-tier="good" style="--tier-color:#4caf50;"><span class="tier-btn-icon" data-tier-icon="Good"></span><span class="tier-btn-label">Good</span></button>
           <button class="tier-btn" data-tier="great" style="--tier-color:#d4af37;"><span class="tier-btn-icon" data-tier-icon="Great"></span><span class="tier-btn-label">Great</span></button>
         </div>
       </div>
@@ -1864,7 +1865,7 @@
   const TIER_VISUAL = {
     'Bad':   { filled: 1, color: '#c0392b' },
     'OK':    { filled: 2, color: '#f2f2f2' },
-    'Good':  { filled: 3, color: '#c0c0c0' },
+    'Good':  { filled: 3, color: '#4caf50' },
     'Great': { filled: 4, color: '#d4af37' }
   };
 
