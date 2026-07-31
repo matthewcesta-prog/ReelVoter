@@ -1013,8 +1013,7 @@
       <div class="explainer-grid">
         <div class="explainer-tile">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M2 12c2.5-5 6.5-8 10-8s7.5 3 10 8c-2.5 5-6.5 8-10 8s-7.5-3-10-8z" stroke="currentColor" stroke-width="1.6"/>
-            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M12 3v18M6 7l-3 6a3 3 0 006 0l-3-6zM18 7l-3 6a3 3 0 006 0l-3-6zM4 7h16M9 21h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <p><b>No Stars. No Critics. No Performance.</b> Just a real head-to-head vote and a simple answer: Bad, OK, Good, or Great.</p>
         </div>
@@ -1027,9 +1026,7 @@
         </div>
         <div class="explainer-tile">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="3" y="15" width="4" height="6" stroke="currentColor" stroke-width="1.6"/>
-            <rect x="10" y="10" width="4" height="11" stroke="currentColor" stroke-width="1.6"/>
-            <rect x="17" y="5" width="4" height="16" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
           <p><b>A Record, Not a Diary.</b> Sort it, filter it, own it — not a wall of essays for people to scroll past.</p>
         </div>
@@ -1093,7 +1090,7 @@
     </div>
     <div id="genreContainer"></div>
     <div id="emptyAll" class="empty-state" style="display:none;">
-      No movies yet. Cast the first real vote to start this genre's leaderboard.
+      <span id="emptyAllText">No movies yet. Cast the first real vote to start this genre's leaderboard.</span>
     </div>
 
     <div id="recsContainer"></div>
@@ -1111,6 +1108,7 @@
     <button class="detail-close" id="closeDetailBtn">&times;</button>
     <div id="detailContent"></div>
     <div id="detailRateWidget" class="detail-rate-widget" style="display:none;">
+      <p class="panel-sub" id="rateWidgetLine" style="text-align:center;margin:0 0 16px;"></p>
       <div class="field">
         <label>Genre</label>
         <div style="position:relative">
@@ -1153,7 +1151,7 @@
   <div class="duel-modal">
     <div class="duel-heading">
       <div class="eyebrow" id="duelGenreLabel">Comedy</div>
-      <h3>Vote</h3>
+      <h3 id="duelHeadingText">Vote</h3>
     </div>
     <div class="duel-cards">
       <button class="ticket" id="ticketA"></button>
@@ -1488,7 +1486,9 @@
     const myMovies = movies.filter(m => myRatings[m.id]);
 
     el('totalCount').textContent = myMovies.length;
-    el('emptyAll').style.display = (currentUser && myMovies.length === 0) ? 'block' : 'none';
+    const showEmptyAll = currentUser && myMovies.length === 0;
+    el('emptyAll').style.display = showEmptyAll ? 'block' : 'none';
+    if(showEmptyAll) el('emptyAllText').textContent = pickRandomLine(EMPTY_STATE_LINES);
     const hasAny = myMovies.length > 0;
     el('myRatingsHeading').style.display = hasAny ? 'flex' : 'none';
     el('myRatingsControls').style.display = hasAny ? 'flex' : 'none';
@@ -1690,6 +1690,26 @@
     `;
   }
 
+  const RATE_WIDGET_LINES = [
+    "Got an opinion? Prove it.",
+    "Your taste, on the record.",
+    "Nobody cares what a critic thinks. What do YOU think?",
+    "Stop scrolling Rotten Tomatoes like it means something. Vote.",
+    "Say it with your chest — pick a tier."
+  ];
+  const DUEL_HEADING_LINES = [
+    "Two movies enter. One leaves with your respect.",
+    "Pick a side. There's no wrong answer, but there is a better one.",
+    "This is the fun part.",
+    "One of these deserves better than the other. You decide."
+  ];
+  const EMPTY_STATE_LINES = [
+    "No movies yet. Cast the first real vote to start this genre's leaderboard.",
+    "Nothing here yet — somebody has to start the leaderboard.",
+    "Blank slate. Go fix that."
+  ];
+  function pickRandomLine(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+
   function startRateFromDetail(movie){
     if(!currentUser){
       openSignInModal();
@@ -1703,6 +1723,7 @@
     el('genreInput').value = movie.genre;
     updateGenreDisplay();
     updateContinueState();
+    el('rateWidgetLine').textContent = pickRandomLine(RATE_WIDGET_LINES);
     el('detailRateWidget').style.display = 'block';
     el('detailRateWidget').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -2090,6 +2111,7 @@
     const opponent = pending.opponent;
 
     el('duelGenreLabel').textContent = pending.genre;
+    el('duelHeadingText').textContent = pickRandomLine(DUEL_HEADING_LINES);
     const tA = el('ticketA');
     const tB = el('ticketB');
     tA.innerHTML = `
