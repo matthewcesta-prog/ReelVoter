@@ -174,8 +174,8 @@
   .nav-search input:focus{outline:none;border-color:var(--white);}
   @media (max-width:700px){
     .top-nav{gap:10px;padding:10px 14px;flex-wrap:wrap;}
-    .nav-links{display:none;}
-    .nav-search{width:120px;}
+    .nav-right{width:100%;justify-content:space-between;margin-top:10px;}
+    .nav-search{flex:1;width:auto;max-width:none;margin-left:14px;}
   }
   .top-bar-user{
     display:flex;
@@ -318,6 +318,9 @@
   }
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
   .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:80px 24px 60px;}
+  @media (max-width:480px){
+    .detail-body{padding-top:110px;}
+  }
   .detail-layout{
     display:flex;
     gap:36px;
