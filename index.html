@@ -336,6 +336,13 @@
     align-items:flex-start;
     justify-content:center;
     flex-wrap:wrap;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:32px;
+  }
+  @media (max-width:700px){
+    .detail-layout{padding:20px 16px;gap:22px;border-radius:10px;}
   }
   .detail-tier-scale{
     display:flex;
@@ -388,6 +395,23 @@
     color:var(--muted);margin-bottom:4px;font-weight:700;
   }
   .detail-rate-btn{margin-top:8px;align-self:flex-start;}
+  .rated-status{
+    display:flex;align-items:center;gap:8px;
+    margin-top:10px;
+  }
+  .rated-status-text{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.85rem;color:var(--text);
+  }
+  .rated-status-text b{color:var(--white);letter-spacing:0.02em;}
+  .detail-update-link{
+    background:none;border:none;
+    color:var(--muted);font-size:0.75rem;
+    text-decoration:underline;cursor:pointer;
+    margin-top:6px;padding:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    align-self:flex-start;
+  }
   .detail-rate-widget{
     max-width:420px;
     margin:24px auto 40px;
@@ -1463,6 +1487,9 @@
   // The result: a rating dominates immediately, a single vote can't override it, but sustained
   // wins/losses can genuinely push a score across a tier boundary over time.
   const TIER_ANCHOR = { bad: 2.5, ok: 6.0, good: 8.0, great: 9.5 };
+  function tierAnchorNumber(tierLabel){
+    return tierLabel ? (TIER_ANCHOR[tierLabel.toLowerCase()] != null ? TIER_ANCHOR[tierLabel.toLowerCase()] : null) : null;
+  }
   const RATING_WEIGHT = 3;
   const VOTE_WEIGHT = 1;
   const NUDGE_AMOUNT = 0.4;
@@ -1568,6 +1595,7 @@
             <span class="dt-label">Your Vote</span>
             ${tierIcon(myRatings[m.id])}
             <span class="tier-badge">${myRatings[m.id]}</span>
+            <span class="dt-score">${tierAnchorNumber(myRatings[m.id]).toFixed(1)}</span>
           </div>
           <div class="dt-col">
             <span class="dt-label">ReelVote</span>
@@ -1639,7 +1667,15 @@
                 <div class="dts-sub">${TIER_SUBTITLE[t]}</div>
               </div>
             `).join('')}
-            <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">${myRatings[movie.id] ? 'Update Your Rating' : 'Rate It'}</button>
+            ${myRatings[movie.id] ? `
+              <div class="rated-status">
+                ${tierIcon(myRatings[movie.id])}
+                <span class="rated-status-text">Rated <b>${myRatings[movie.id].toUpperCase()}</b> · ${tierAnchorNumber(myRatings[movie.id]).toFixed(1)}</span>
+              </div>
+              <button class="detail-update-link" id="detailRateBtn">Update your rating</button>
+            ` : `
+              <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">Rate It</button>
+            `}
           </div>
           <div class="detail-center-col">
             <div class="detail-poster-block">
@@ -1649,7 +1685,6 @@
             <div class="detail-score-block">
               <div class="detail-score-big">${(movie.score||5).toFixed(1)}</div>
               <div class="detail-vote-meta">${hasRealSignal_ ? `ranked by ${uniqueVoterCount(movie.id)} ${uniqueVoterCount(movie.id)===1?'person':'people'}` : 'IMDb baseline — not yet ReelVoted'}</div>
-              ${myRatings[movie.id] ? `<div class="detail-vote-meta" style="margin-top:4px;color:var(--text);">Your rating: <b>${myRatings[movie.id]}</b></div>` : ''}
               <div id="detailSplitWrap"></div>
             </div>
           </div>
@@ -1817,40 +1852,78 @@
     return byActivity.concat(fallback).slice(0, limit);
   }
 
-  async function getOrCreateDefaultBannerMovie(){
-    const existing = movies.find(m => m.title.toLowerCase().includes('odyssey'));
+  function findExistingMovie(imdbID, title){
+    if(imdbID){
+      const byId = movies.find(m => m.imdb_id === imdbID);
+      if(byId) return byId;
+    }
+    if(title){
+      const byTitle = movies.find(m => m.title.toLowerCase() === title.toLowerCase());
+      if(byTitle) return byTitle;
+    }
+    return null;
+  }
+
+  const pendingMovieCreations = new Map();
+
+  async function getOrCreateMovieByTitle(title, fallbackGenre){
+    const key = title.toLowerCase();
+    const existing = findExistingMovie(null, title);
     if(existing) return existing;
+    if(pendingMovieCreations.has(key)) return pendingMovieCreations.get(key);
 
-    try{
-      const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&s=${encodeURIComponent('The Odyssey')}&type=movie`);
-      const data = await r.json();
-      if(!data || !data.Search || !data.Search.length) return null;
-      const item = data.Search[0];
+    const promise = (async () => {
+      try{
+        const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&s=${encodeURIComponent(title)}&type=movie`);
+        const data = await r.json();
+        if(!data || !data.Search || !data.Search.length) return null;
+        const item = data.Search[0];
 
-      const detailR = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(item.imdbID)}`);
-      const detail = await detailR.json();
+        // Re-check now that we know the real imdbID, in case a concurrent call
+        // (e.g. the trending banner and a live search) already created this
+        // exact movie while this fetch was in flight.
+        const alreadyKnown = findExistingMovie(item.imdbID, item.Title);
+        if(alreadyKnown) return alreadyKnown;
 
-      let genre = 'Other';
-      if(detail && detail.Genre){
-        const first = detail.Genre.split(',')[0].trim().toLowerCase();
-        genre = OMDB_GENRE_MAP[first] || 'Other';
-      }
-      const poster = (detail && detail.Poster && detail.Poster !== 'N/A') ? detail.Poster : (item.Poster !== 'N/A' ? item.Poster : '');
-      const imdbRating = (detail && detail.imdbRating && detail.imdbRating !== 'N/A') ? parseFloat(detail.imdbRating) : null;
+        const detailR = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(item.imdbID)}`);
+        const detail = await detailR.json();
 
-      const movie = {
-        id: crypto.randomUUID(), title: item.Title, year: item.Year, genre, poster,
-        score: imdbRating != null ? imdbRating : 5.0,
-        weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
-        votes: 1, imdb_id: item.imdbID, imdb_rating: imdbRating
-      };
-      movies.push(movie);
-      if(currentUser){
-        movie.user_id = currentUser.id;
-        await saveMovies();
-      }
-      return movie;
-    }catch(e){ return null; }
+        let genre = fallbackGenre || 'Other';
+        if(detail && detail.Genre){
+          const first = detail.Genre.split(',')[0].trim().toLowerCase();
+          genre = OMDB_GENRE_MAP[first] || genre;
+        }
+        const poster = (detail && detail.Poster && detail.Poster !== 'N/A') ? detail.Poster : (item.Poster !== 'N/A' ? item.Poster : '');
+        const imdbRating = (detail && detail.imdbRating && detail.imdbRating !== 'N/A') ? parseFloat(detail.imdbRating) : null;
+
+        const movie = {
+          id: crypto.randomUUID(), title: item.Title, year: item.Year, genre, poster,
+          score: imdbRating != null ? imdbRating : 5.0,
+          weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
+          votes: 1, imdb_id: item.imdbID, imdb_rating: imdbRating
+        };
+
+        // Last check right before committing — closes the narrowest race window.
+        const finalCheck = findExistingMovie(movie.imdb_id, movie.title);
+        if(finalCheck) return finalCheck;
+
+        movies.push(movie);
+        if(currentUser){
+          movie.user_id = currentUser.id;
+          await saveMovies();
+        }
+        return movie;
+      }catch(e){ return null; }
+    })();
+
+    pendingMovieCreations.set(key, promise);
+    const result = await promise;
+    pendingMovieCreations.delete(key);
+    return result;
+  }
+
+  async function getOrCreateDefaultBannerMovie(){
+    return getOrCreateMovieByTitle('The Odyssey', null);
   }
 
   function renderTrending(){
@@ -2022,35 +2095,8 @@
   }
 
   async function openRecommendation(title, genre){
-    const existing = movies.find(m => m.title.toLowerCase() === title.toLowerCase());
-    if(existing){ navigateTo(existing.id); return; }
-
-    try{
-      const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&t=${encodeURIComponent(title)}`);
-      const data = await r.json();
-      if(!data || data.Response === 'False') return;
-
-      let mappedGenre = genre;
-      if(data.Genre){
-        const first = data.Genre.split(',')[0].trim().toLowerCase();
-        mappedGenre = OMDB_GENRE_MAP[first] || genre;
-      }
-      const poster = (data.Poster && data.Poster !== 'N/A') ? data.Poster : null;
-      const imdbRating = (data.imdbRating && data.imdbRating !== 'N/A') ? parseFloat(data.imdbRating) : null;
-
-      const movie = {
-        id: crypto.randomUUID(), title: data.Title || title, year: data.Year || '', genre: mappedGenre, poster,
-        score: imdbRating != null ? imdbRating : 5.0,
-        weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
-        votes: 1, imdb_id: data.imdbID || null, imdb_rating: imdbRating
-      };
-      movies.push(movie);
-      if(currentUser){
-        movie.user_id = currentUser.id;
-        await saveMovies();
-      }
-      navigateTo(movie.id);
-    }catch(e){ /* silent failure — chip just won't navigate */ }
+    const movie = await getOrCreateMovieByTitle(title, genre);
+    if(movie) navigateTo(movie.id);
   }
 
   async function fetchPosterForTitle(title){
@@ -2331,22 +2377,33 @@
     el('topSearchResults').style.display = 'none';
     el('topSearchInput').value = '';
 
-    let genre = 'Other', imdbRating = null;
-    try{
-      const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(imdbID)}`);
-      const data = await r.json();
-      if(data && data.Genre){
-        const first = data.Genre.split(',')[0].trim().toLowerCase();
-        genre = OMDB_GENRE_MAP[first] || 'Other';
-      }
-      if(data && data.Poster && data.Poster !== 'N/A') poster = data.Poster;
-      if(data && data.imdbRating && data.imdbRating !== 'N/A') imdbRating = parseFloat(data.imdbRating);
-    }catch(e){ /* fall back to search-result data */ }
+    const already = findExistingMovie(imdbID, title);
+    if(already){ showTopSearchResult(already); return; }
 
-    // In case of a race, someone else may have already added this exact film
-    let target = movies.find(m => m.imdb_id === imdbID);
-    if(!target){
-      target = {
+    if(pendingMovieCreations.has(imdbID)){
+      const target = await pendingMovieCreations.get(imdbID);
+      if(target) showTopSearchResult(target);
+      return;
+    }
+
+    const promise = (async () => {
+      let genre = 'Other', imdbRating = null;
+      try{
+        const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(imdbID)}`);
+        const data = await r.json();
+        if(data && data.Genre){
+          const first = data.Genre.split(',')[0].trim().toLowerCase();
+          genre = OMDB_GENRE_MAP[first] || 'Other';
+        }
+        if(data && data.Poster && data.Poster !== 'N/A') poster = data.Poster;
+        if(data && data.imdbRating && data.imdbRating !== 'N/A') imdbRating = parseFloat(data.imdbRating);
+      }catch(e){ /* fall back to search-result data */ }
+
+      // Re-check in case a concurrent call already created this exact film.
+      const recheck = findExistingMovie(imdbID, title);
+      if(recheck) return recheck;
+
+      const target = {
         id: crypto.randomUUID(),
         title, year, genre, poster,
         score: imdbRating != null ? imdbRating : 5.0,
@@ -2362,9 +2419,13 @@
       }
       // If nobody's signed in, this stays a temporary, unsaved preview — it won't
       // persist in the shared catalog until a signed-in person searches or rates it.
-    }
+      return target;
+    })();
 
-    showTopSearchResult(target);
+    pendingMovieCreations.set(imdbID, promise);
+    const target = await promise;
+    pendingMovieCreations.delete(imdbID);
+    if(target) showTopSearchResult(target);
   }
 
   function showTopSearchResult(target){
