@@ -19,6 +19,7 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
+  html{overflow-x:hidden;width:100%;}
   body{
     background:
       radial-gradient(ellipse 900px 500px at 50% -10%, rgba(255,255,255,0.035), transparent 60%),
@@ -28,6 +29,8 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     min-height:100vh;
     position:relative;
+    overflow-x:hidden;
+    width:100%;
   }
   body::before{
     content:'';
@@ -174,8 +177,9 @@
   .nav-search input:focus{outline:none;border-color:var(--white);}
   @media (max-width:700px){
     .top-nav{gap:10px;padding:10px 14px;}
+    .nav-left-row{flex-direction:column;align-items:flex-start;gap:4px;}
     .nav-right{flex-direction:column;align-items:flex-end;gap:8px;}
-    .nav-search{order:1;width:150px;}
+    .nav-search{order:1;width:200px;}
     .nav-links{order:2;}
     .nav-search input, .field input, .field select{font-size:16px;}
   }
@@ -307,7 +311,7 @@
     font-size:1.4rem;line-height:1;cursor:pointer;
   }
   @media (max-width:700px){
-    .detail-close{top:132px;}
+    .detail-close{top:158px;}
   }
   .detail-hero-fullbg{
     position:absolute;inset:0;
@@ -324,7 +328,7 @@
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
   .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:130px 24px 60px;}
   @media (max-width:700px){
-    .detail-body{padding-top:190px;}
+    .detail-body{padding-top:215px;}
   }
   .detail-layout{
     display:flex;
@@ -399,16 +403,18 @@
   }
   .detail-rate-widget .detail-rate-btn{align-self:center;}
   @media (max-width:820px){
-    .detail-layout{flex-direction:column;align-items:center;}
-    .detail-center-col{display:contents;}
-    .detail-poster-block{order:1;}
-    .detail-tier-scale{
-      flex-direction:row;flex-wrap:wrap;justify-content:center;
-      gap:16px;order:2;width:100%;
-    }
-    .detail-score-block{order:3;}
-    .detail-info-col{order:4;align-items:flex-start;}
-    .detail-rate-btn{align-self:center;}
+    .detail-tier-scale{gap:14px;min-width:88px;}
+    .dts-label{font-size:1.2rem;}
+    .dts-sub{font-size:0.66rem;}
+    .detail-poster-big{width:160px;}
+    .detail-info-col{align-items:flex-start;}
+  }
+  @media (max-width:480px){
+    .detail-tier-scale{min-width:76px;gap:11px;}
+    .dts-label{font-size:1rem;}
+    .dts-sub{font-size:0.6rem;}
+    .detail-poster-big{width:130px;}
+    .detail-rate-btn{padding:9px 16px;font-size:0.85rem;}
   }
 
   .how-it-works-list{
@@ -443,6 +449,12 @@
     text-align:center;
     margin:0 0 16px;
   }
+  .cheeky-line{
+    color:#c9852c !important;
+    font-style:italic;
+    font-weight:600;
+  }
+  .duel-heading .cheeky-line{font-size:1.5rem;}
   .tier-options.tier-4{flex-direction:row;gap:8px;}
   .tier-options.tier-4 .tier-btn{flex:1;text-align:center;}
   .tier-badge{
@@ -1101,7 +1113,7 @@
     </div>
     <div id="genreContainer"></div>
     <div id="emptyAll" class="empty-state" style="display:none;">
-      <span id="emptyAllText">No movies yet. Cast the first real vote to start this genre's leaderboard.</span>
+      <span id="emptyAllText" class="cheeky-line">No movies yet. Cast the first real vote to start this genre's leaderboard.</span>
     </div>
 
     <div id="recsContainer"></div>
@@ -1119,7 +1131,7 @@
     <button class="detail-close" id="closeDetailBtn">&times;</button>
     <div id="detailContent"></div>
     <div id="detailRateWidget" class="detail-rate-widget" style="display:none;">
-      <p class="panel-sub" id="rateWidgetLine" style="text-align:center;margin:0 0 16px;"></p>
+      <p class="cheeky-line" id="rateWidgetLine" style="text-align:center;margin:0 0 16px;"></p>
       <div class="field">
         <label>Genre</label>
         <div style="position:relative">
@@ -1162,7 +1174,7 @@
   <div class="duel-modal">
     <div class="duel-heading">
       <div class="eyebrow" id="duelGenreLabel">Comedy</div>
-      <h3 id="duelHeadingText">Vote</h3>
+      <h3 id="duelHeadingText" class="cheeky-line">Vote</h3>
     </div>
     <div class="duel-cards">
       <button class="ticket" id="ticketA"></button>
@@ -1627,6 +1639,7 @@
                 <div class="dts-sub">${TIER_SUBTITLE[t]}</div>
               </div>
             `).join('')}
+            <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">${myRatings[movie.id] ? 'Update Your Rating' : 'Rate It'}</button>
           </div>
           <div class="detail-center-col">
             <div class="detail-poster-block">
@@ -1646,7 +1659,6 @@
             <div class="detail-field" id="detailStarringField" style="display:none;"><b>STARRING:</b> <span id="detailStarringText"></span></div>
             <div class="detail-field" id="detailDirectorField" style="display:none;"><b>DIRECTOR:</b> <span id="detailDirectorText"></span></div>
             <div class="detail-field" id="detailWritersField" style="display:none;"><b>WRITERS:</b> <span id="detailWritersText"></span></div>
-            <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">${myRatings[movie.id] ? 'Update Your Rating' : 'Rate It'}</button>
           </div>
         </div>
       </div>
@@ -1711,18 +1723,35 @@
     "Your taste, on the record.",
     "Nobody cares what a critic thinks. What do YOU think?",
     "Stop scrolling Rotten Tomatoes like it means something. Vote.",
-    "Say it with your chest — pick a tier."
+    "Say it with your chest — pick a tier.",
+    "No hiding behind a star rating. Commit.",
+    "You watched it. Now own an opinion about it.",
+    "Four options. That's it. If you need more nuance, write a thesis.",
+    "Be honest. Nobody's grading this — except everyone else who votes.",
+    "This is the whole app. This one click.",
+    "Somewhere, a critic is writing 800 words about this. You get one tap.",
+    "Your couch, your two hours, your call."
   ];
   const DUEL_HEADING_LINES = [
     "Two movies enter. One leaves with your respect.",
     "Pick a side. There's no wrong answer, but there is a better one.",
     "This is the fun part.",
-    "One of these deserves better than the other. You decide."
+    "One of these deserves better than the other. You decide.",
+    "No ties in real life. Pick one.",
+    "May the better movie win.",
+    "Choose wisely — one of these is about to get bragging rights.",
+    "This is basically a courtroom. You're the jury.",
+    "Head to head. No notes, just a winner.",
+    "Somebody's about to lose. Make it count."
   ];
   const EMPTY_STATE_LINES = [
     "No movies yet. Cast the first real vote to start this genre's leaderboard.",
     "Nothing here yet — somebody has to start the leaderboard.",
-    "Blank slate. Go fix that."
+    "Blank slate. Go fix that.",
+    "This genre is a ghost town. Be the first resident.",
+    "Empty. Embarrassingly empty. Fix it.",
+    "Zero votes. Zero excuses.",
+    "Somebody has to go first. Might as well be you."
   ];
   function pickRandomLine(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 
