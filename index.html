@@ -1491,8 +1491,6 @@
     return tierLabel ? (TIER_ANCHOR[tierLabel.toLowerCase()] != null ? TIER_ANCHOR[tierLabel.toLowerCase()] : null) : null;
   }
   const RATING_WEIGHT = 3;
-  const VOTE_WEIGHT = 1;
-  const NUDGE_AMOUNT = 0.4;
   const IMDB_PRIOR_WEIGHT = 2;
 
   function blendScore(movie, targetValue, weight){
@@ -1507,9 +1505,16 @@
     blendScore(movie, TIER_ANCHOR[tierKey] != null ? TIER_ANCHOR[tierKey] : 6.0, RATING_WEIGHT);
   }
 
-  function applyComparisonNudge(movie, won){
-    const target = won ? Math.min(10, movie.score + NUDGE_AMOUNT) : Math.max(0, movie.score - NUDGE_AMOUNT);
-    blendScore(movie, target, VOTE_WEIGHT);
+  const ELO_D = 3;    // rating-gap divisor: how much a skill gap affects the expected outcome
+  const ELO_K = 0.5;  // max movement from a single match
+
+  function applyEloUpdate(movieA, movieB, aWon){
+    const scoreA = movieA.score != null ? movieA.score : 5.0;
+    const scoreB = movieB.score != null ? movieB.score : 5.0;
+    const expectedA = 1 / (1 + Math.pow(10, (scoreB - scoreA) / ELO_D));
+    const actualA = aWon ? 1 : 0;
+    movieA.score = Math.max(0, Math.min(10, scoreA + ELO_K * (actualA - expectedA)));
+    movieB.score = Math.max(0, Math.min(10, scoreB + ELO_K * ((1 - actualA) - (1 - expectedA))));
   }
 
   async function logVotes(rows){
@@ -2148,15 +2153,6 @@
     const { title, year, poster, imdbID, imdbRating, existingMovie } = selectedResult;
     const genre = el('genreInput').value;
 
-    // Re-rating replaces your anchor vote directly, no duel — a comparison nudge's
-    // effect depends on the score at the exact moment it was applied, so once it's
-    // blended in there's no clean way to undo just your prior nudge later. Only a
-    // brand-new rating goes through the calibration duel.
-    if(existingMovie && myRatings[existingMovie.id]){
-      finalizeInsert(title, year, genre, poster, imdbID, imdbRating, existingMovie, selectedTier, null);
-      return;
-    }
-
     const candidates = movies.filter(m => m.genre === genre && (!existingMovie || m.id !== existingMovie.id));
 
     if(candidates.length === 0){
@@ -2289,8 +2285,7 @@
 
     if(comparison && comparison.result !== 'tie'){
       const won = comparison.result === 'win';
-      applyComparisonNudge(movie, won);
-      applyComparisonNudge(comparison.opponent, !won);
+      applyEloUpdate(movie, comparison.opponent, won);
       comparison.opponent.votes = (comparison.opponent.votes || 1) + 1;
     }
 
