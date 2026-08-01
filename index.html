@@ -125,9 +125,7 @@
     align-items:flex-start;
     justify-content:space-between;
     gap:20px;
-    background:rgba(26,25,24,0.92);
-    backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--line);
+    background:var(--bg);
     padding:12px 24px;
     margin:-32px -20px 0;
   }
@@ -2153,7 +2151,7 @@
     el('continueAddBtn').disabled = !(selectedResult && selectedTier);
   }
 
-  el('continueAddBtn').addEventListener('click', () => {
+  el('continueAddBtn').addEventListener('click', async () => {
     if(!selectedResult){ return; }
     if(!selectedTier){ return; }
 
@@ -2166,18 +2164,20 @@
       const pool = (CURATED[genre] || []).filter(c => c.title !== title);
       if(pool.length > 0){
         const seed = pool[Math.floor(Math.random() * pool.length)];
-        const seedMovie = {
-          id: crypto.randomUUID(), user_id: currentUser.id,
-          title: seed.title, year: seed.year, genre, poster: null, score: 5, weight: 0, votes: 1, imdb_id: null
-        };
-        movies.push(seedMovie);
-        pending = {
-          title, year, genre, poster, imdbID, imdbRating, existingMovie, tier: selectedTier,
-          newId: existingMovie ? existingMovie.id : crypto.randomUUID(),
-          opponent: seedMovie, excludeIds: [seedMovie.id]
-        };
-        runDuelStep();
-        return;
+        el('continueAddBtn').disabled = true;
+        const seedMovie = await getOrCreateMovieByTitle(seed.title, genre);
+        el('continueAddBtn').disabled = false;
+        if(seedMovie){
+          pending = {
+            title, year, genre, poster, imdbID, imdbRating, existingMovie, tier: selectedTier,
+            newId: existingMovie ? existingMovie.id : crypto.randomUUID(),
+            opponent: seedMovie, excludeIds: [seedMovie.id]
+          };
+          runDuelStep();
+          return;
+        }
+        // Seed fetch failed (e.g. network issue) — fall through to a direct
+        // rating rather than leaving the person stuck with no way forward.
       }
       // No curated option for this genre (e.g. "Other") — nothing to compare against yet.
       finalizeInsert(title, year, genre, poster, imdbID, imdbRating, existingMovie, selectedTier, null);
