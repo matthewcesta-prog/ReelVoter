@@ -5,6 +5,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ReelVoter — Rank Your Movies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#1a1918;
@@ -66,7 +69,7 @@
     align-items:center;
   }
   .hero-tagline{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     color:var(--white);
     margin:0;
     font-size:1.8rem;
@@ -77,11 +80,12 @@
   }
   @media (min-width:1000px){ .hero-tagline{font-size:2.3rem;} }
   .hero-subline{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-style:italic;
     color:rgba(255,255,255,0.75);
     margin:8px 0 0;
     font-size:0.9rem;
-    font-weight:500;
+    font-weight:400;
     text-shadow:0 1px 8px rgba(0,0,0,0.7);
   }
   @media (max-width:400px){
@@ -115,7 +119,8 @@
   .explainer-tile p{
     font-size:0.85rem;line-height:1.5;color:var(--text);margin:0;
   }
-  .explainer-tile p b{color:var(--white);}
+  .et-heading{font-weight:700;color:var(--white);margin-bottom:4px !important;}
+  .et-desc{color:var(--muted);}
   /* STICKY NAV */
   .top-nav{
     position:sticky;
@@ -135,7 +140,7 @@
   .nav-logo-wordmark{display:flex;align-items:center;gap:8px;}
   .nav-logo{width:32px;height:32px;}
   .nav-wordmark{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-weight:700;
     font-size:1.35rem;
     letter-spacing:-0.01em;
@@ -174,12 +179,76 @@
   .nav-search input::placeholder{color:rgba(255,255,255,0.65);}
   .nav-search input:focus{outline:none;border-color:var(--white);}
   @media (max-width:700px){
-    .top-nav{gap:10px;padding:10px 14px;}
-    .nav-left-row{flex-direction:column;align-items:flex-start;gap:4px;}
-    .nav-right{flex-direction:column;align-items:flex-end;gap:8px;}
-    .nav-search{order:1;width:200px;}
-    .nav-links{order:2;}
+    .top-nav{gap:10px;padding:10px 14px;justify-content:center;position:relative;}
+    .nav-user-col{display:none;}
+    .nav-right{
+      display:none;
+      position:fixed;
+      top:56px;left:0;right:0;
+      background:var(--bg);
+      border-bottom:1px solid var(--line);
+      padding:12px 16px;
+      z-index:39;
+      flex-direction:column;
+      align-items:stretch;
+      gap:0;
+    }
+    .nav-right.mobile-search-open{display:flex;}
+    .nav-links{display:none;}
+    .nav-search{width:100%;}
     .nav-search input, .field input, .field select{font-size:16px;}
+    body{padding-bottom:70px;}
+  }
+  .bottom-tab-bar{
+    display:none;
+  }
+  @media (max-width:700px){
+    .bottom-tab-bar{
+      display:flex;
+      position:fixed;
+      bottom:0;left:0;right:0;
+      background:var(--bg);
+      border-top:1px solid var(--line);
+      z-index:41;
+      padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    }
+  }
+  .tab-btn{
+    flex:1;
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:none;border:none;color:var(--muted);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.62rem;
+    padding:6px 2px;
+    cursor:pointer;
+  }
+  .tab-btn svg{width:22px;height:22px;}
+  .tab-btn.tab-active{color:var(--white);}
+  .tab-btn-center{
+    background:#d4af37;color:#141312;
+    border-radius:50%;width:46px;height:46px;
+    flex:none;align-self:center;
+    margin:-14px 10px 0;
+  }
+  .tab-btn-center svg{width:20px;height:20px;}
+  .account-menu{
+    position:fixed;
+    bottom:64px;right:14px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px;
+    z-index:42;
+    min-width:200px;
+  }
+  .account-menu-email{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.78rem;color:var(--text);margin-bottom:10px;word-break:break-all;
+  }
+  .account-menu-signout{
+    background:none;border:1px solid var(--line);border-radius:6px;
+    color:var(--text);font-size:0.8rem;padding:7px 14px;width:100%;cursor:pointer;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
   }
   .top-bar-user{
     display:flex;
@@ -475,7 +544,7 @@
     font-style:italic;
     font-weight:600;
   }
-  .duel-heading .cheeky-line{font-size:1.5rem;}
+  .duel-subtitle{font-size:0.9rem;margin-top:6px;}
   .tier-options.tier-4{flex-direction:row;gap:8px;}
   .tier-options.tier-4 .tier-btn{flex:1;text-align:center;}
   .tier-badge{
@@ -922,8 +991,9 @@
     align-self:center;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-style:italic;
-    font-size:1.1rem;
-    color:var(--muted);
+    font-weight:800;
+    font-size:1.8rem;
+    color:#d4af37;
   }
   .ticket{
     background:var(--card);
@@ -1041,7 +1111,7 @@
             <span id="userEmailDisplay"></span>
             <svg class="verified-check" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 12.5l2.5 2.5L16 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
           <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
@@ -1049,7 +1119,7 @@
         </div>
       </div>
     </div>
-    <div class="nav-right">
+    <div class="nav-right" id="navRight">
       <div class="nav-links">
         <a href="#/my-ratings" class="nav-link">My Ratings</a>
       </div>
@@ -1061,10 +1131,33 @@
   </nav>
   <div id="topSearchCard"></div>
 
+  <nav class="bottom-tab-bar" id="bottomTabBar">
+    <button class="tab-btn" id="tabHomeBtn">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="tab-btn" id="tabRatingsBtn">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>My Ratings</span>
+    </button>
+    <button class="tab-btn tab-btn-center" id="tabSearchBtn">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button class="tab-btn" id="tabAccountBtn">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Account</span>
+    </button>
+  </nav>
+
+  <div class="account-menu" id="accountMenu" style="display:none;">
+    <div class="account-menu-email" id="accountMenuEmail"></div>
+    <button class="account-menu-signout" id="accountMenuSignOut">Sign out</button>
+  </div>
+
   <div id="page-home">
     <div class="hero-overlay" id="heroOverlay">
       <p class="hero-tagline">Credible, simplified movie reviews.</p>
-      <p class="hero-subline">No fancy critic reviews. Just real votes, by real people.</p>
+      <p class="hero-subline" id="heroSubline"></p>
     </div>
 
     <div class="hero-banner">
@@ -1074,26 +1167,68 @@
     </div>
 
     <div class="explainer-section">
-      <div class="explainer-label">ReelVoter Lets You...</div>
+      <div class="explainer-label">How We Do Things:</div>
+      <div class="explainer-grid">
+        <div class="explainer-tile">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <p class="et-heading">1. Rate It.</p>
+            <p class="et-desc">Pick your rating, in simple terms — Great, Good, OK, Bad. That's it. No fancy reviews.</p>
+          </div>
+        </div>
+        <div class="explainer-tile">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M9 6l-5 6 5 6M15 6l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <p class="et-heading">2. Vote It.</p>
+            <p class="et-desc">One head-to-head vote against a similar film. No essay required — just a winner.</p>
+          </div>
+        </div>
+        <div class="explainer-tile">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="3" y="14" width="5" height="7" stroke="currentColor" stroke-width="1.6"/>
+            <rect x="9.5" y="9" width="5" height="12" stroke="currentColor" stroke-width="1.6"/>
+            <rect x="16" y="12" width="5" height="9" stroke="currentColor" stroke-width="1.6"/>
+          </svg>
+          <div>
+            <p class="et-heading">3. Log It.</p>
+            <p class="et-desc">Your vote joins a live, evolving ranking — never a number that just sits there.</p>
+          </div>
+        </div>
+      </div>
+      <div class="explainer-label" style="margin-top:20px;">Why We're Different:</div>
       <div class="explainer-grid">
         <div class="explainer-tile">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M12 3v18M6 7l-3 6a3 3 0 006 0l-3-6zM18 7l-3 6a3 3 0 006 0l-3-6zM4 7h16M9 21h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <p><b>No Stars. No Critics. No Performance.</b> Just a real head-to-head vote and a simple answer: Bad, OK, Good, or Great.</p>
+          <div>
+            <p class="et-heading">No Stars. No Critics. No Performance.</p>
+            <p class="et-desc">Just a real head-to-head vote and a simple answer: Bad, OK, Good, or Great.</p>
+          </div>
         </div>
         <div class="explainer-tile">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M12 2l7 3v6c0 5-3 8.5-7 11-4-2.5-7-6-7-11V5l7-3z" stroke="currentColor" stroke-width="1.6"/>
             <path d="M8.5 12l2.5 2.5 4.5-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <p><b>Verified, Not Padded.</b> One real account, one real vote — no bots, no burner accounts, no review-bombing a movie into oblivion.</p>
+          <div>
+            <p class="et-heading">Verified, Not Padded.</p>
+            <p class="et-desc">One real account, one real vote — no bots, no burners, no review-bombing.</p>
+          </div>
         </div>
         <div class="explainer-tile">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
-          <p><b>A Record, Not a Diary.</b> Sort it, filter it, own it — not a wall of essays for people to scroll past.</p>
+          <div>
+            <p class="et-heading">A Record, Not a Diary.</p>
+            <p class="et-desc">Sort it, filter it, own it — not a wall of essays for people to scroll past.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -1217,7 +1352,8 @@
     <button class="duel-exit" id="duelExitBtn" title="Back to rating">&larr; Back to rating</button>
     <div class="duel-heading">
       <div class="eyebrow" id="duelGenreLabel">Comedy</div>
-      <h3 id="duelHeadingText" class="cheeky-line">Vote</h3>
+      <h3>Vote It</h3>
+      <p id="duelHeadingText" class="cheeky-line duel-subtitle"></p>
     </div>
     <div class="duel-cards">
       <button class="ticket" id="ticketA"></button>
@@ -1356,6 +1492,9 @@
     const parts = hash.split('/');
     const routeName = parts[0] || 'home';
 
+    el('navRight').classList.remove('mobile-search-open');
+    el('accountMenu').style.display = 'none';
+
     if(routeName === 'movie' && parts[1]){
       PAGES.forEach(p => { const pageEl = el('page-' + p); if(pageEl) pageEl.style.display = 'none'; });
       const movie = movies.find(m => m.id === parts[1]);
@@ -1372,6 +1511,8 @@
         const pageEl = el('page-' + p);
         if(pageEl) pageEl.style.display = (p === activeRoute) ? 'block' : 'none';
       });
+      el('tabHomeBtn').classList.toggle('tab-active', activeRoute === 'home');
+      el('tabRatingsBtn').classList.toggle('tab-active', activeRoute === 'my-ratings');
     }
     window.scrollTo(0, 0);
   }
@@ -1392,6 +1533,35 @@
   });
 
   el('navHomeBtn').addEventListener('click', () => navigateTo('home'));
+
+  el('tabHomeBtn').addEventListener('click', () => navigateTo('home'));
+  el('tabRatingsBtn').addEventListener('click', () => navigateTo('my-ratings'));
+
+  el('tabSearchBtn').addEventListener('click', () => {
+    const navRight = el('navRight');
+    const isOpen = navRight.classList.toggle('mobile-search-open');
+    if(isOpen) setTimeout(() => el('topSearchInput').focus(), 100);
+  });
+
+  el('tabAccountBtn').addEventListener('click', () => {
+    if(currentUser){
+      const menu = el('accountMenu');
+      const isOpen = menu.style.display !== 'none';
+      if(isOpen){
+        menu.style.display = 'none';
+      } else {
+        el('accountMenuEmail').textContent = currentUser.email || '';
+        menu.style.display = 'block';
+      }
+    } else {
+      openSignInModal();
+    }
+  });
+
+  el('accountMenuSignOut').addEventListener('click', async () => {
+    el('accountMenu').style.display = 'none';
+    await supabaseClient.auth.signOut();
+  });
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     currentUser = session ? session.user : null;
@@ -1796,7 +1966,13 @@
     "Be honest. Nobody's grading this — except everyone else who votes.",
     "This is the whole app. This one click.",
     "Somewhere, a critic is writing 800 words about this. You get one tap.",
-    "Your couch, your two hours, your call."
+    "Your couch, your two hours, your call.",
+    "Rate first. Ask questions never.",
+    "Don't overthink it — you already know how you felt.",
+    "Bad, OK, Good, Great. Pick one and move on with your life.",
+    "Your opinion, no essay required.",
+    "Somebody's about to disagree with you. Good.",
+    "This isn't a review. It's a verdict."
   ];
   const DUEL_HEADING_LINES = [
     "Two movies enter. One leaves with your respect.",
@@ -1808,7 +1984,11 @@
     "Choose wisely — one of these is about to get bragging rights.",
     "This is basically a courtroom. You're the jury.",
     "Head to head. No notes, just a winner.",
-    "Somebody's about to lose. Make it count."
+    "Somebody's about to lose. Make it count.",
+    "This is where the ranking actually happens.",
+    "One of these wins. It's science, sort of.",
+    "Vote like it matters. It kind of does.",
+    "The comparison is the whole point. Don't skip it."
   ];
   const EMPTY_STATE_LINES = [
     "No movies yet. Cast the first real vote to start this genre's leaderboard.",
@@ -1819,7 +1999,39 @@
     "Zero votes. Zero excuses.",
     "Somebody has to go first. Might as well be you."
   ];
-  function pickRandomLine(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+  const HERO_SUBLINE_LINES = [
+    "No fancy critic reviews. Just real votes, by real people.",
+    "What do rotten vegetables have to do with movie ratings anyway?",
+    "A tomato has never seen a movie in its life.",
+    "Critics get a percentage. You get an opinion. Ours is better.",
+    "This isn't your diary. Bad, OK, Good, or Great — go.",
+    "Nobody's reading your 200-word essay about a popcorn movie.",
+    "Four stars, half stars, quarter stars — pick a lane.",
+    "Two hours you'll never get back. Better make it count.",
+    "Somebody's wrong about this movie. Let's find out who.",
+    "Real opinions from real people who paid for their own ticket.",
+    "No press badges. No screeners. Just people who bought a ticket.",
+    "Skip the aggregate score nobody can explain. Vote instead.",
+    "One tier, one comparison, one honest number.",
+    "The algorithm doesn't care about your following count. Neither do we."
+  ];
+
+  const lineQueues = {};
+  function shuffleArr(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function pickRandomLine(arr, key){
+    const k = key || arr;
+    if(!lineQueues[k] || lineQueues[k].length === 0){
+      lineQueues[k] = shuffleArr(arr);
+    }
+    return lineQueues[k].pop();
+  }
 
   function startRateFromDetail(movie){
     if(!currentUser){
@@ -2466,6 +2678,8 @@
   document.addEventListener('click', (e) => {
     if(!e.target.closest('.nav-search')) el('topSearchResults').style.display = 'none';
   });
+
+  el('heroSubline').textContent = pickRandomLine(HERO_SUBLINE_LINES);
 
   (async function initAuth(){
     const { data: { session } } = await supabaseClient.auth.getSession();
