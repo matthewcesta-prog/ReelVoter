@@ -21,6 +21,39 @@
     --white:#ffffff;
   }
   *{box-sizing:border-box;}
+  .splash-overlay{
+    position:fixed;inset:0;
+    background:var(--bg);
+    z-index:200;
+    display:flex;align-items:center;justify-content:center;
+    animation:splashOverlayFade 0.5s ease both;
+    animation-delay:1.6s;
+    pointer-events:none;
+  }
+  .splash-logo{
+    width:110px;height:110px;
+    animation:splashLogoSequence 1.7s cubic-bezier(0.65,0,0.35,1) both;
+  }
+  @keyframes splashLogoSequence{
+    0%{transform:translate(0,0) scale(1) rotate(0deg);}
+    58%{transform:translate(0,0) scale(1) rotate(270deg);}
+    100%{transform:translate(-32vw,-34vh) scale(0.3) rotate(270deg);}
+  }
+  @keyframes splashOverlayFade{
+    from{opacity:1;}
+    to{opacity:0;visibility:hidden;}
+  }
+  .intro-reveal-nav{animation:introFadeIn 0.4s ease both;animation-delay:1.65s;}
+  .intro-reveal-hero{animation:introFadeIn 0.5s ease both;animation-delay:2.0s;}
+  .intro-reveal-rest{animation:introFadeIn 0.6s ease both;animation-delay:2.4s;}
+  @keyframes introFadeIn{
+    from{opacity:0;}
+    to{opacity:1;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .splash-overlay{display:none;}
+    .intro-reveal-nav, .intro-reveal-hero, .intro-reveal-rest{animation:none;opacity:1;}
+  }
   html,body{margin:0;padding:0;}
   html{overflow-x:hidden;width:100%;}
   body{
@@ -137,14 +170,7 @@
   .nav-left-row{display:flex;align-items:flex-start;gap:14px;}
   .nav-user-col{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:6px;}
   .nav-logo-wordmark{display:flex;align-items:center;gap:8px;}
-  .nav-logo{
-    width:32px;height:32px;
-    animation:reelSpinIn 1.6s cubic-bezier(0.25,1,0.35,1) both;
-  }
-  @keyframes reelSpinIn{
-    from{transform:rotate(0deg);}
-    to{transform:rotate(270deg);}
-  }
+  .nav-logo{width:32px;height:32px;}
   .nav-wordmark{
     font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-weight:700;
@@ -1097,6 +1123,16 @@
 </head>
 <body>
 
+<div class="splash-overlay" id="splashOverlay" aria-hidden="true">
+  <svg class="splash-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="46" stroke="#d4af37" stroke-width="4"/>
+    <circle cx="50" cy="50" r="9" fill="#d4af37"/>
+    <circle cx="50" cy="19" r="9" fill="#d4af37"/>
+    <circle cx="81" cy="50" r="9" fill="#d4af37"/>
+    <circle cx="50" cy="81" r="9" fill="#d4af37"/>
+    <circle cx="19" cy="50" r="9" fill="#d4af37"/>
+  </svg>
+</div>
 
 <div class="wrap" id="appWrap">
 
@@ -1112,7 +1148,7 @@
             <circle cx="50" cy="81" r="9" fill="#d4af37"/>
             <circle cx="19" cy="50" r="9" fill="#d4af37"/>
           </svg>
-          <span class="nav-wordmark">reelvoter</span>
+          <span class="nav-wordmark intro-reveal-nav">reelvoter</span>
         </div>
         <div class="nav-user-col">
           <span class="top-bar-user" id="signedInBar" style="display:none;">
@@ -1165,18 +1201,18 @@
   </div>
 
   <div id="page-home">
-    <div class="hero-overlay" id="heroOverlay">
+    <div class="hero-overlay intro-reveal-hero" id="heroOverlay">
       <p class="hero-tagline">Credible, simplified<br>movie reviews.</p>
       <p class="hero-subline" id="heroSubline"></p>
     </div>
 
-    <div class="hero-banner">
+    <div class="hero-banner intro-reveal-rest">
       <div class="banner" id="bannerWrap">
         <div class="banner-empty">No activity yet — cast a comparison vote to see trending films here.</div>
       </div>
     </div>
 
-    <div class="explainer-section">
+    <div class="explainer-section intro-reveal-rest">
       <div class="explainer-label">How ReelVoter Works:</div>
       <div class="explainer-grid">
         <div class="explainer-tile">
@@ -1246,7 +1282,7 @@
       </div>
     </div>
 
-    <div id="posterGridWrap"></div>
+    <div id="posterGridWrap" class="intro-reveal-rest"></div>
   </div>
 
 
