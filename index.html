@@ -138,13 +138,46 @@
   .nav-left-row{display:flex;align-items:flex-start;gap:14px;}
   .nav-user-col{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:6px;}
   .nav-logo-wordmark{display:flex;align-items:center;gap:8px;}
-  .nav-logo{width:32px;height:32px;}
+  .nav-logo{
+    width:32px;height:32px;
+    animation:reelSpinIn 0.7s cubic-bezier(0.25,1,0.35,1) both;
+  }
+  @keyframes reelSpinIn{
+    from{transform:rotate(0deg);}
+    to{transform:rotate(270deg);}
+  }
   .nav-wordmark{
     font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-weight:700;
     font-size:1.35rem;
     letter-spacing:-0.01em;
     color:var(--white);
+  }
+  .v-slot{position:relative;display:inline-block;overflow:visible;}
+  .v-cover{
+    position:absolute;top:0;left:0;width:100%;height:100%;
+    background:var(--bg);
+    overflow:visible;
+    z-index:2;
+    animation:vCoverFadeOut 0.25s ease both;
+    animation-delay:0.55s;
+  }
+  .v-vans{
+    position:absolute;left:0;top:0.02em;
+    width:2.3em;height:1.3em;
+    overflow:visible;
+  }
+  .vans-bar{
+    animation:vansBarRecede 0.5s cubic-bezier(0.3,0.9,0.3,1) both;
+    animation-delay:0.05s;
+  }
+  @keyframes vansBarRecede{
+    0%{width:88px;}
+    100%{width:22px;}
+  }
+  @keyframes vCoverFadeOut{
+    0%{opacity:1;}
+    100%{opacity:0;}
   }
   .nw-gold{color:#c9852c;}
   .nw-white{color:var(--white);}
@@ -379,14 +412,16 @@
     font-size:1.4rem;line-height:1;cursor:pointer;
   }
   @media (max-width:700px){
-    .detail-close{top:158px;}
+    .detail-close{top:66px;}
   }
   .detail-hero-fullbg{
     position:absolute;inset:0;
     background-size:cover;background-position:center 15%;
-    filter:blur(50px) brightness(0.28) grayscale(1);
+    filter:blur(50px) brightness(0.22) grayscale(1);
     transform:scale(1.2);
     z-index:0;
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, black 200px, black 100%);
+    mask-image:linear-gradient(to bottom, transparent 0, black 200px, black 100%);
   }
   .detail-title-under{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -396,7 +431,7 @@
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
   .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:130px 24px 60px;}
   @media (max-width:700px){
-    .detail-body{padding-top:215px;}
+    .detail-body{padding-top:90px;}
   }
   .detail-layout{
     display:flex;
@@ -486,14 +521,14 @@
   }
   .detail-rate-widget .detail-rate-btn{align-self:center;}
   @media (max-width:820px){
-    .detail-layout{flex-direction:column;align-items:center;}
-    .detail-center-col{order:1;}
-    .detail-tier-scale{order:2;gap:14px;min-width:150px;width:100%;max-width:280px;}
-    .detail-info-col{order:3;align-items:flex-start;max-width:none;width:100%;}
-    .dts-label{font-size:1.1rem;}
-    .dts-sub{font-size:0.62rem;}
-    .dts-count{font-size:0.62rem;}
-    .detail-poster-big{width:150px;}
+    .detail-layout{flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:16px;}
+    .detail-center-col{order:1;flex:0 0 auto;min-width:0;}
+    .detail-tier-scale{order:2;flex:1 1 140px;gap:12px;min-width:140px;max-width:none;width:auto;}
+    .detail-info-col{order:3;align-items:flex-start;max-width:none;width:100%;flex:1 1 100%;}
+    .dts-label{font-size:1.05rem;}
+    .dts-sub{font-size:0.6rem;}
+    .dts-count{font-size:0.6rem;}
+    .detail-poster-big{width:120px;}
   }
   @media (max-width:480px){
     .detail-tier-scale{min-width:132px;gap:11px;}
@@ -1083,6 +1118,7 @@
   }
   @media (prefers-reduced-motion:reduce){
     *{transition:none !important; animation:none !important;}
+    .v-cover{display:none !important;}
   }
 </style>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1104,7 +1140,11 @@
             <circle cx="50" cy="81" r="9" fill="#d4af37"/>
             <circle cx="19" cy="50" r="9" fill="#d4af37"/>
           </svg>
-          <span class="nav-wordmark">reelvoter</span>
+          <span class="nav-wordmark">reel<span class="v-slot">v<span class="v-cover" aria-hidden="true"><svg class="v-vans" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid meet">
+            <rect class="vans-bar" x="4" y="4" width="88" height="11" fill="#ffffff"/>
+            <polygon points="8,15 26,15 40,52 26,52" fill="#ffffff"/>
+            <polygon points="88,15 70,15 44,52 58,52" fill="#ffffff"/>
+          </svg></span></span>oter</span>
         </div>
         <div class="nav-user-col">
           <span class="top-bar-user" id="signedInBar" style="display:none;">
@@ -1116,6 +1156,7 @@
           </span>
           <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
           <button id="signOutBtn" class="top-bar-signout" style="display:none;">Sign out</button>
+          <button id="setupPasskeyBtn" class="top-bar-signout" style="display:none;">Set up Face ID</button>
         </div>
       </div>
     </div>
@@ -1151,6 +1192,7 @@
 
   <div class="account-menu" id="accountMenu" style="display:none;">
     <div class="account-menu-email" id="accountMenuEmail"></div>
+    <button class="account-menu-signout" id="accountMenuSetupPasskey" style="display:none;margin-bottom:8px;">Set up Face ID</button>
     <button class="account-menu-signout" id="accountMenuSignOut">Sign out</button>
   </div>
 
@@ -1245,6 +1287,7 @@
   <div class="modal" style="text-align:center;">
     <h3>Sign in to rate a movie</h3>
     <p class="panel-sub">One real person, one real vote — no burner accounts, no bots padding a number.</p>
+    <button class="btn btn-primary" id="passkeySignInBtn" style="display:none;margin:0 auto 16px;">Sign in with Face ID</button>
     <div id="emailStep">
       <div class="field">
         <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
@@ -1404,9 +1447,13 @@
 
   const SUPABASE_URL = 'https://kbowfliptdewzevcyjmr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_0gwFSQ66DZDLeXH82z1sZw_QwCeOXwt';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { experimental: { passkey: true } }
+  });
 
   const el = (id) => document.getElementById(id);
+
+  const passkeySupported = !!window.PublicKeyCredential;
 
   function updateAuthUI(){
     const signedIn = !!currentUser;
@@ -1414,6 +1461,8 @@
     el('signOutBtn').style.display = signedIn ? 'block' : 'none';
     el('showSignInBtn').style.display = signedIn ? 'none' : 'block';
     el('myRatingsHeading').style.display = 'none'; // render() will re-show this if there's anything to show
+    el('setupPasskeyBtn').style.display = (signedIn && passkeySupported) ? 'block' : 'none';
+    el('accountMenuSetupPasskey').style.display = (signedIn && passkeySupported) ? 'block' : 'none';
     if(signedIn){
       el('userEmailDisplay').textContent = currentUser.email || '';
       closeSignInModal();
@@ -1430,6 +1479,28 @@
   }
 
   let pendingSignInEmail = null;
+
+  el('passkeySignInBtn').addEventListener('click', async () => {
+    el('loginStatus').textContent = 'Waiting for Face ID...';
+    const { error } = await supabaseClient.auth.signInWithPasskey();
+    if(error){
+      el('loginStatus').textContent = error.code === 'webauthn_credential_not_found'
+        ? 'No Face ID set up for this device yet — sign in with a code below, then set it up.'
+        : 'Face ID sign-in didn\'t work: ' + error.message;
+      return;
+    }
+    // A successful sign-in triggers onAuthStateChange, which handles the rest.
+  });
+
+  async function setupPasskey(btn){
+    const originalText = btn.textContent;
+    btn.textContent = 'Waiting for Face ID...';
+    const { data, error } = await supabaseClient.auth.registerPasskey();
+    btn.textContent = error ? 'Face ID setup failed' : 'Face ID enabled ✓';
+    setTimeout(() => { btn.textContent = originalText; }, 2500);
+  }
+  el('setupPasskeyBtn').addEventListener('click', (e) => setupPasskey(e.currentTarget));
+  el('accountMenuSetupPasskey').addEventListener('click', (e) => setupPasskey(e.currentTarget));
 
   el('sendCodeBtn').addEventListener('click', async () => {
     const email = el('loginEmail').value.trim();
@@ -1521,6 +1592,7 @@
 
   function openSignInModal(){
     el('signInModal').style.display = 'flex';
+    el('passkeySignInBtn').style.display = passkeySupported ? 'block' : 'none';
     setTimeout(() => el('loginEmail').focus(), 200);
   }
   function closeSignInModal(){
