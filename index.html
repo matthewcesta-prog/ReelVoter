@@ -76,7 +76,6 @@
     font-weight:800;
     letter-spacing:-0.01em;
     text-shadow:0 2px 14px rgba(0,0,0,0.7);
-    max-width:20ch;
   }
   @media (min-width:1000px){ .hero-tagline{font-size:2.3rem;} }
   .hero-subline{
@@ -1167,7 +1166,7 @@
 
   <div id="page-home">
     <div class="hero-overlay" id="heroOverlay">
-      <p class="hero-tagline">Credible, simplified movie reviews.</p>
+      <p class="hero-tagline">Credible, simplified<br>movie reviews.</p>
       <p class="hero-subline" id="heroSubline"></p>
     </div>
 
@@ -1178,7 +1177,7 @@
     </div>
 
     <div class="explainer-section">
-      <div class="explainer-label">How We Do Things:</div>
+      <div class="explainer-label">How ReelVoter Works:</div>
       <div class="explainer-grid">
         <div class="explainer-tile">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1187,7 +1186,7 @@
           </svg>
           <div>
             <p class="et-heading">1. Rate It.</p>
-            <p class="et-desc">Pick your rating, in simple terms — Great, Good, OK, Bad. That's it. No fancy reviews.</p>
+            <p class="et-desc">Pick your rating — Great, Good, OK, Bad. No fancy reviews, just an honest take.</p>
           </div>
         </div>
         <div class="explainer-tile">
@@ -1201,25 +1200,28 @@
         </div>
         <div class="explainer-tile">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="3" y="14" width="5" height="7" stroke="currentColor" stroke-width="1.6"/>
-            <rect x="9.5" y="9" width="5" height="12" stroke="currentColor" stroke-width="1.6"/>
-            <rect x="16" y="12" width="5" height="9" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
           <div>
             <p class="et-heading">3. Log It.</p>
-            <p class="et-desc">Your vote joins a live, evolving ranking — never a number that just sits there.</p>
+            <p class="et-desc">Every movie you rate joins your own list — sortable, searchable, always yours.</p>
           </div>
         </div>
       </div>
-      <div class="explainer-label" style="margin-top:20px;">Why We're Different:</div>
+      <div class="explainer-label" style="margin-top:20px;">Why ReelVoter is Different:</div>
       <div class="explainer-grid">
         <div class="explainer-tile">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M12 3v18M6 7l-3 6a3 3 0 006 0l-3-6zM18 7l-3 6a3 3 0 006 0l-3-6zM4 7h16M9 21h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6"/>
+            <circle cx="50" cy="50" r="7" fill="currentColor"/>
+            <circle cx="50" cy="22" r="7" fill="currentColor"/>
+            <circle cx="78" cy="50" r="7" fill="currentColor"/>
+            <circle cx="50" cy="78" r="7" fill="currentColor"/>
+            <circle cx="22" cy="50" r="7" fill="currentColor"/>
           </svg>
           <div>
-            <p class="et-heading">No Stars. No Critics. No Performance.</p>
-            <p class="et-desc">Just a real head-to-head vote and a simple answer: Bad, OK, Good, or Great.</p>
+            <p class="et-heading">No 5-Star Math.</p>
+            <p class="et-desc">Bad, OK, Good, or Great. No half-stars, no decimals to argue about.</p>
           </div>
         </div>
         <div class="explainer-tile">
@@ -1413,6 +1415,7 @@
   let searchDebounce = null;
   let currentUser = null;
   const OMDB_KEY = 'd17461f';
+  const TMDB_KEY = ''; // add your free TMDb API key here
 
   const SUPABASE_URL = 'https://kbowfliptdewzevcyjmr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_0gwFSQ66DZDLeXH82z1sZw_QwCeOXwt';
@@ -2206,27 +2209,49 @@
     return result;
   }
 
-  async function getOrCreateDefaultBannerMovie(){
-    return getOrCreateMovieByTitle('The Odyssey', null);
+  let trendingFallbackCache = null;
+
+  async function getTrendingFallbackMovies(){
+    if(trendingFallbackCache) return trendingFallbackCache;
+    if(!TMDB_KEY){
+      // No TMDb key configured yet — fall back to a single well-known title
+      // rather than showing nothing.
+      const single = await getOrCreateMovieByTitle('The Odyssey', null);
+      trendingFallbackCache = single ? [single] : [];
+      return trendingFallbackCache;
+    }
+    try{
+      const r = await fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${encodeURIComponent(TMDB_KEY)}`);
+      const data = await r.json();
+      const titles = (data.results || []).slice(0, 8).map(m => m.title).filter(Boolean);
+      const resolved = [];
+      for(const title of titles){
+        const movie = await getOrCreateMovieByTitle(title, null);
+        if(movie && movie.poster) resolved.push(movie);
+      }
+      trendingFallbackCache = resolved;
+      return resolved;
+    }catch(e){
+      trendingFallbackCache = [];
+      return [];
+    }
   }
 
-  function renderTrending(){
-    renderBanner();
-    renderPosterGrid();
+  async function renderTrending(){
+    const real = getFeaturedMovies(6);
+    const source = real.length > 0 ? real : await getTrendingFallbackMovies();
+    renderBanner(source);
+    renderPosterGrid(source);
   }
 
-  async function renderBanner(){
+  function renderBanner(source){
     const wrap = el('bannerWrap');
     if(carouselInterval){ clearInterval(carouselInterval); carouselInterval = null; }
 
-    let featured = getFeaturedMovies(6);
+    const featured = source || [];
     if(featured.length === 0){
-      const fallbackMovie = await getOrCreateDefaultBannerMovie();
-      if(!fallbackMovie || !fallbackMovie.poster){
-        wrap.innerHTML = `<div class="banner-empty">No activity yet — cast a comparison vote to see trending films here.</div>`;
-        return;
-      }
-      featured = [fallbackMovie];
+      wrap.innerHTML = `<div class="banner-empty">No activity yet — cast a comparison vote to see trending films here.</div>`;
+      return;
     }
 
     wrap.innerHTML = `
@@ -2262,9 +2287,9 @@
     }
   }
 
-  function renderPosterGrid(){
+  function renderPosterGrid(source){
     const wrap = el('posterGridWrap');
-    const featured = getFeaturedMovies(6);
+    const featured = source || [];
     if(featured.length === 0){ wrap.innerHTML = ''; return; }
     wrap.innerHTML = `
       <div class="poster-grid">
