@@ -140,7 +140,7 @@
   .nav-logo-wordmark{display:flex;align-items:center;gap:8px;}
   .nav-logo{
     width:32px;height:32px;
-    animation:reelSpinIn 0.7s cubic-bezier(0.25,1,0.35,1) both;
+    animation:reelSpinIn 1.6s cubic-bezier(0.25,1,0.35,1) both;
   }
   @keyframes reelSpinIn{
     from{transform:rotate(0deg);}
@@ -152,32 +152,6 @@
     font-size:1.35rem;
     letter-spacing:-0.01em;
     color:var(--white);
-  }
-  .v-slot{position:relative;display:inline-block;overflow:visible;}
-  .v-cover{
-    position:absolute;top:0;left:0;width:100%;height:100%;
-    background:var(--bg);
-    overflow:visible;
-    z-index:2;
-    animation:vCoverFadeOut 0.25s ease both;
-    animation-delay:0.55s;
-  }
-  .v-vans{
-    position:absolute;left:0;top:0.02em;
-    width:2.3em;height:1.3em;
-    overflow:visible;
-  }
-  .vans-bar{
-    animation:vansBarRecede 0.5s cubic-bezier(0.3,0.9,0.3,1) both;
-    animation-delay:0.05s;
-  }
-  @keyframes vansBarRecede{
-    0%{width:88px;}
-    100%{width:22px;}
-  }
-  @keyframes vCoverFadeOut{
-    0%{opacity:1;}
-    100%{opacity:0;}
   }
   .nw-gold{color:#c9852c;}
   .nw-white{color:var(--white);}
@@ -1118,7 +1092,6 @@
   }
   @media (prefers-reduced-motion:reduce){
     *{transition:none !important; animation:none !important;}
-    .v-cover{display:none !important;}
   }
 </style>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1140,11 +1113,7 @@
             <circle cx="50" cy="81" r="9" fill="#d4af37"/>
             <circle cx="19" cy="50" r="9" fill="#d4af37"/>
           </svg>
-          <span class="nav-wordmark">reel<span class="v-slot">v<span class="v-cover" aria-hidden="true"><svg class="v-vans" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMid meet">
-            <rect class="vans-bar" x="4" y="4" width="88" height="11" fill="#ffffff"/>
-            <polygon points="8,15 26,15 40,52 26,52" fill="#ffffff"/>
-            <polygon points="88,15 70,15 44,52 58,52" fill="#ffffff"/>
-          </svg></span></span>oter</span>
+          <span class="nav-wordmark">reelvoter</span>
         </div>
         <div class="nav-user-col">
           <span class="top-bar-user" id="signedInBar" style="display:none;">
