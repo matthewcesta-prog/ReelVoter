@@ -47,13 +47,17 @@
   .intro-reveal-tagline{animation:introFadeIn 0.5s ease both;animation-delay:2.1s;}
   .intro-reveal-subline{animation:introFadeIn 0.5s ease both;animation-delay:3.6s;}
   .intro-reveal-rest{animation:introFadeIn 0.6s ease both;animation-delay:5.1s;}
+  .intro-reveal-tile-1{animation:introFadeIn 0.35s ease both;animation-delay:5.7s;}
+  .intro-reveal-tile-2{animation:introFadeIn 0.35s ease both;animation-delay:6.05s;}
+  .intro-reveal-tile-3{animation:introFadeIn 0.35s ease both;animation-delay:6.4s;}
+  .intro-reveal-bottom{animation:introFadeIn 0.6s ease both;animation-delay:6.9s;}
   @keyframes introFadeIn{
     from{opacity:0;}
     to{opacity:1;}
   }
   @media (prefers-reduced-motion:reduce){
     .splash-overlay{display:none;}
-    .intro-reveal-nav, .intro-reveal-tagline, .intro-reveal-subline, .intro-reveal-rest{animation:none;opacity:1;}
+    .intro-reveal-nav, .intro-reveal-tagline, .intro-reveal-subline, .intro-reveal-rest, .intro-reveal-tile-1, .intro-reveal-tile-2, .intro-reveal-tile-3, .intro-reveal-bottom{animation:none;opacity:1;}
   }
   html,body{margin:0;padding:0;}
   html{overflow-x:hidden;width:100%;}
@@ -262,6 +266,8 @@
     border-radius:50%;width:46px;height:46px;
     flex:none;align-self:center;
     margin:-14px 10px 0;
+    justify-content:center;
+    padding:0;
   }
   .tab-btn-center svg{width:20px;height:20px;}
   .account-menu{
@@ -363,6 +369,7 @@
     transition:opacity 0.5s ease;
   }
   @media (min-width:1000px){ .banner-poster{height:420px;} }
+  @media (max-width:700px){ .banner-poster{height:170px;} }
   .banner-caption{
     margin-top:16px;
     display:flex;align-items:center;gap:10px;
@@ -1213,10 +1220,10 @@
       </div>
     </div>
 
-    <div class="explainer-section intro-reveal-rest">
-      <div class="explainer-label">How ReelVoter Works:</div>
+    <div class="explainer-section">
+      <div class="explainer-label intro-reveal-rest">How ReelVoter Works:</div>
       <div class="explainer-grid">
-        <div class="explainer-tile">
+        <div class="explainer-tile intro-reveal-tile-1">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
             <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1226,7 +1233,7 @@
             <p class="et-desc">Pick your rating — Great, Good, OK, Bad. No fancy reviews, just an honest take.</p>
           </div>
         </div>
-        <div class="explainer-tile">
+        <div class="explainer-tile intro-reveal-tile-2">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M9 6l-5 6 5 6M15 6l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -1235,7 +1242,7 @@
             <p class="et-desc">One head-to-head vote against a similar film. No essay required — just a winner.</p>
           </div>
         </div>
-        <div class="explainer-tile">
+        <div class="explainer-tile intro-reveal-tile-3">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
@@ -1245,8 +1252,8 @@
           </div>
         </div>
       </div>
-      <div class="explainer-label" style="margin-top:20px;">Why ReelVoter is Different:</div>
-      <div class="explainer-grid">
+      <div class="explainer-label intro-reveal-bottom" style="margin-top:20px;">Why ReelVoter is Different:</div>
+      <div class="explainer-grid intro-reveal-bottom">
         <div class="explainer-tile">
           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="6"/>
@@ -2784,14 +2791,21 @@
 
   (function positionSplashTarget(){
     try{
-      const splashLogo = document.querySelector('.splash-logo');
       const realLogo = document.querySelector('.nav-logo');
-      if(!splashLogo || !realLogo) return;
-      const splashRect = splashLogo.getBoundingClientRect();
+      if(!realLogo) return;
       const realRect = realLogo.getBoundingClientRect();
-      const tx = (realRect.left + realRect.width/2) - (splashRect.left + splashRect.width/2);
-      const ty = (realRect.top + realRect.height/2) - (splashRect.top + splashRect.height/2);
-      const scale = realRect.width / splashRect.width;
+      // The splash logo is centered in a full-viewport fixed overlay via flex,
+      // so its untransformed center is always exactly the viewport center —
+      // computing this directly avoids measuring the element live, which risks
+      // catching it mid-animation (its CSS animation starts immediately on
+      // load, with no JS trigger, so a slow-rendering page could measure it
+      // after it's already moved).
+      const splashSize = 110; // must match .splash-logo's CSS width/height
+      const splashCenterX = window.innerWidth / 2;
+      const splashCenterY = window.innerHeight / 2;
+      const tx = (realRect.left + realRect.width/2) - splashCenterX;
+      const ty = (realRect.top + realRect.height/2) - splashCenterY;
+      const scale = realRect.width / splashSize;
       document.documentElement.style.setProperty('--splash-tx', tx + 'px');
       document.documentElement.style.setProperty('--splash-ty', ty + 'px');
       document.documentElement.style.setProperty('--splash-scale', scale);
