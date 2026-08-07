@@ -233,7 +233,7 @@
     .nav-right{
       display:none;
       position:fixed;
-      bottom:64px;left:0;right:0;
+      bottom:80px;left:0;right:0;
       background:var(--bg);
       border-top:1px solid var(--line);
       padding:12px 16px;
@@ -246,7 +246,7 @@
     .nav-links{display:none;}
     .nav-search{width:100%;}
     .nav-search input, .field input, .field select{font-size:16px;}
-    body{padding-bottom:70px;}
+    body{padding-bottom:86px;}
     .search-results{
       top:auto;bottom:100%;
       border-top:1px solid var(--line);border-bottom:none;
@@ -264,7 +264,7 @@
       background:var(--bg);
       border-top:1px solid var(--line);
       z-index:41;
-      padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+      padding:6px 4px calc(22px + env(safe-area-inset-bottom));
     }
   }
   .tab-btn{
@@ -282,14 +282,14 @@
     background:#d4af37;color:#141312;
     border-radius:50%;width:46px;height:46px;
     flex:none;align-self:center;
-    margin:-14px 10px 0;
+    margin:0 10px 0 0;
     justify-content:center;
     padding:0;
   }
   .tab-btn-center svg{width:20px;height:20px;}
   .account-menu{
     position:fixed;
-    bottom:64px;right:14px;
+    bottom:80px;right:14px;
     background:var(--surface);
     border:1px solid var(--line);
     border-radius:8px;
@@ -519,6 +519,18 @@
     display:block;
     font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;
     color:var(--muted);margin-bottom:4px;font-weight:700;
+  }
+  .watch-providers{display:flex;flex-direction:column;gap:8px;margin-top:2px;}
+  .watch-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .watch-group-label{
+    font-size:0.8rem;color:var(--muted);width:44px;flex-shrink:0;
+  }
+  .watch-provider-logo{
+    width:28px;height:28px;border-radius:6px;object-fit:cover;
+  }
+  .watch-more-link{
+    font-size:0.78rem;color:var(--muted);text-decoration:underline;
+    margin-top:2px;align-self:flex-start;
   }
   .detail-rate-btn{margin-top:8px;align-self:flex-start;}
   .detail-update-link{
@@ -1185,6 +1197,7 @@
           <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
           <button id="signOutBtn" class="top-bar-signout" style="display:none;">Sign out</button>
           <button id="setupPasskeyBtn" class="top-bar-signout" style="display:none;">Set up Face ID</button>
+          <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener" class="top-bar-signout" id="supportLinkDesktop">Support ReelVoter</a>
         </div>
       </div>
     </div>
@@ -1221,6 +1234,7 @@
   <div class="account-menu" id="accountMenu" style="display:none;">
     <div class="account-menu-email" id="accountMenuEmail"></div>
     <button class="account-menu-signout" id="accountMenuSetupPasskey" style="display:none;margin-bottom:8px;">Set up Face ID</button>
+    <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener" class="account-menu-signout" id="supportLinkMobile" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;">Support ReelVoter</a>
     <button class="account-menu-signout" id="accountMenuSignOut">Sign out</button>
   </div>
 
@@ -1477,16 +1491,30 @@
   const OMDB_KEY = 'd17461f';
   const TMDB_KEY = '7590df0c340cf528a5ffbe3c684f94d8';
 
-  async function fetchBackdropForImdbId(imdbId){
+  async function fetchTmdbMovieData(imdbId){
     if(!TMDB_KEY || !imdbId) return null;
     try{
       const r = await fetch(`https://api.themoviedb.org/3/find/${encodeURIComponent(imdbId)}?api_key=${encodeURIComponent(TMDB_KEY)}&external_source=imdb_id`);
       const data = await r.json();
       const match = (data.movie_results || [])[0];
-      if(match && match.backdrop_path){
-        return `https://image.tmdb.org/t/p/w1280${match.backdrop_path}`;
-      }
-      return null;
+      if(!match) return null;
+      const backdrop = match.backdrop_path ? `https://image.tmdb.org/t/p/w1280${match.backdrop_path}` : null;
+      return { backdrop, tmdbId: match.id };
+    }catch(e){ return null; }
+  }
+
+  async function fetchWatchProviders(tmdbId){
+    if(!TMDB_KEY || !tmdbId) return null;
+    try{
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/watch/providers?api_key=${encodeURIComponent(TMDB_KEY)}`);
+      const data = await r.json();
+      const region = (data.results && (data.results.CA || data.results.US)) || null;
+      if(!region) return null;
+      const flatrate = region.flatrate || [];
+      const rent = region.rent || [];
+      const buy = region.buy || [];
+      if(flatrate.length === 0 && rent.length === 0 && buy.length === 0) return null;
+      return { flatrate, rent, buy, link: region.link };
     }catch(e){ return null; }
   }
 
@@ -2025,6 +2053,10 @@
             <div class="detail-field" id="detailStarringField" style="display:none;"><b>STARRING:</b> <span id="detailStarringText"></span></div>
             <div class="detail-field" id="detailDirectorField" style="display:none;"><b>DIRECTOR:</b> <span id="detailDirectorText"></span></div>
             <div class="detail-field" id="detailWritersField" style="display:none;"><b>WRITERS:</b> <span id="detailWritersText"></span></div>
+            <div class="detail-field" id="detailWatchField" style="display:none;">
+              <b>WHERE TO WATCH:</b>
+              <div id="detailWatchProviders" class="watch-providers"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -2057,6 +2089,29 @@
           el('detailWritersField').style.display = 'block';
         }
       }catch(e){ /* detail fetch failed — still show what we have */ }
+    }
+
+    if(movie.tmdb_id){
+      try{
+        const wp = await fetchWatchProviders(movie.tmdb_id);
+        if(wp){
+          const groups = [];
+          if(wp.flatrate.length) groups.push({ label: 'Stream', items: wp.flatrate });
+          if(wp.rent.length) groups.push({ label: 'Rent', items: wp.rent });
+          if(wp.buy.length) groups.push({ label: 'Buy', items: wp.buy });
+          const groupsHtml = groups.map(g => `
+            <div class="watch-group">
+              <span class="watch-group-label">${g.label}:</span>
+              ${g.items.slice(0, 5).map(p => `
+                <img class="watch-provider-logo" src="https://image.tmdb.org/t/p/w92${p.logo_path}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}">
+              `).join('')}
+            </div>
+          `).join('');
+          const moreLink = wp.link ? `<a href="${escapeHtml(wp.link)}" target="_blank" rel="noopener" class="watch-more-link">More options</a>` : '';
+          el('detailWatchProviders').innerHTML = groupsHtml + moreLink;
+          el('detailWatchField').style.display = 'block';
+        }
+      }catch(e){ /* watch-provider fetch failed — just skip the section */ }
     }
   }
 
@@ -2235,12 +2290,13 @@
     const key = title.toLowerCase();
     const existing = findExistingMovie(null, title);
     if(existing){
-      if(!existing.backdrop && existing.imdb_id && TMDB_KEY){
-        // Backfill for movies created before the backdrop feature/key existed.
+      if((!existing.backdrop || !existing.tmdb_id) && existing.imdb_id && TMDB_KEY){
+        // Backfill for movies created before the backdrop/watch-provider features existed.
         // Updates the data now; it'll show correctly next render/rotation.
-        fetchBackdropForImdbId(existing.imdb_id).then(backdrop => {
-          if(backdrop){
-            existing.backdrop = backdrop;
+        fetchTmdbMovieData(existing.imdb_id).then(tmdbData => {
+          if(tmdbData){
+            if(tmdbData.backdrop) existing.backdrop = tmdbData.backdrop;
+            if(tmdbData.tmdbId) existing.tmdb_id = tmdbData.tmdbId;
             if(currentUser) saveMovies();
           }
         });
@@ -2272,10 +2328,12 @@
         }
         const poster = (detail && detail.Poster && detail.Poster !== 'N/A') ? detail.Poster : (item.Poster !== 'N/A' ? item.Poster : '');
         const imdbRating = (detail && detail.imdbRating && detail.imdbRating !== 'N/A') ? parseFloat(detail.imdbRating) : null;
-        const backdrop = await fetchBackdropForImdbId(item.imdbID);
+        const tmdbData = await fetchTmdbMovieData(item.imdbID);
 
         const movie = {
-          id: crypto.randomUUID(), title: item.Title, year: item.Year, genre, poster, backdrop,
+          id: crypto.randomUUID(), title: item.Title, year: item.Year, genre, poster,
+          backdrop: tmdbData ? tmdbData.backdrop : null,
+          tmdb_id: tmdbData ? tmdbData.tmdbId : null,
           score: imdbRating != null ? imdbRating : 5.0,
           weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
           votes: 1, imdb_id: item.imdbID, imdb_rating: imdbRating
@@ -2800,11 +2858,13 @@
       const recheck = findExistingMovie(imdbID, title);
       if(recheck) return recheck;
 
-      const backdrop = await fetchBackdropForImdbId(imdbID);
+      const tmdbData = await fetchTmdbMovieData(imdbID);
 
       const target = {
         id: crypto.randomUUID(),
-        title, year, genre, poster, backdrop,
+        title, year, genre, poster,
+        backdrop: tmdbData ? tmdbData.backdrop : null,
+        tmdb_id: tmdbData ? tmdbData.tmdbId : null,
         score: imdbRating != null ? imdbRating : 5.0,
         weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
         votes: 1, imdb_id: imdbID, imdb_rating: imdbRating
