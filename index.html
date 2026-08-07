@@ -221,11 +221,11 @@
     .nav-right{
       display:none;
       position:fixed;
-      top:56px;left:0;right:0;
+      bottom:64px;left:0;right:0;
       background:var(--bg);
-      border-bottom:1px solid var(--line);
+      border-top:1px solid var(--line);
       padding:12px 16px;
-      z-index:39;
+      z-index:42;
       flex-direction:column;
       align-items:stretch;
       gap:0;
@@ -235,6 +235,11 @@
     .nav-search{width:100%;}
     .nav-search input, .field input, .field select{font-size:16px;}
     body{padding-bottom:70px;}
+    .search-results{
+      top:auto;bottom:100%;
+      border-top:1px solid var(--line);border-bottom:none;
+      border-radius:4px 4px 0 0;
+    }
   }
   .bottom-tab-bar{
     display:none;
@@ -363,10 +368,10 @@
   }
   .banner-poster{
     height:280px;
-    border-radius:6px;
-    box-shadow:0 16px 50px rgba(0,0,0,0.6);
     filter:grayscale(1) contrast(1.05);
     transition:opacity 0.5s ease;
+    -webkit-mask-image:linear-gradient(to bottom, black 50%, transparent 96%);
+    mask-image:linear-gradient(to bottom, black 50%, transparent 96%);
   }
   @media (min-width:1000px){ .banner-poster{height:420px;} }
   @media (max-width:700px){ .banner-poster{height:170px;} }
@@ -1628,7 +1633,10 @@
   el('tabSearchBtn').addEventListener('click', () => {
     const navRight = el('navRight');
     const isOpen = navRight.classList.toggle('mobile-search-open');
-    if(isOpen) setTimeout(() => el('topSearchInput').focus(), 100);
+    if(isOpen){
+      el('accountMenu').style.display = 'none';
+      setTimeout(() => el('topSearchInput').focus(), 100);
+    }
   });
 
   el('tabAccountBtn').addEventListener('click', () => {
@@ -1638,6 +1646,7 @@
       if(isOpen){
         menu.style.display = 'none';
       } else {
+        el('navRight').classList.remove('mobile-search-open');
         el('accountMenuEmail').textContent = currentUser.email || '';
         menu.style.display = 'block';
       }
