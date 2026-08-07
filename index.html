@@ -1466,6 +1466,20 @@
   const OMDB_KEY = 'd17461f';
   const TMDB_KEY = ''; // add your free TMDb API key here
 
+  async function fetchBackdropForImdbId(imdbId){
+    if(!TMDB_KEY || !imdbId) return null;
+    try{
+      const r = await fetch(`https://api.themoviedb.org/3/find/${encodeURIComponent(imdbId)}?api_key=${encodeURIComponent(TMDB_KEY)}&external_source=imdb_id`);
+      const data = await r.json();
+      const match = (data.movie_results || [])[0];
+      if(match && match.backdrop_path){
+        return `https://image.tmdb.org/t/p/w1280${match.backdrop_path}`;
+      }
+      return null;
+    }catch(e){ return null; }
+  }
+
+
   const SUPABASE_URL = 'https://kbowfliptdewzevcyjmr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_0gwFSQ66DZDLeXH82z1sZw_QwCeOXwt';
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -2235,9 +2249,10 @@
         }
         const poster = (detail && detail.Poster && detail.Poster !== 'N/A') ? detail.Poster : (item.Poster !== 'N/A' ? item.Poster : '');
         const imdbRating = (detail && detail.imdbRating && detail.imdbRating !== 'N/A') ? parseFloat(detail.imdbRating) : null;
+        const backdrop = await fetchBackdropForImdbId(item.imdbID);
 
         const movie = {
-          id: crypto.randomUUID(), title: item.Title, year: item.Year, genre, poster,
+          id: crypto.randomUUID(), title: item.Title, year: item.Year, genre, poster, backdrop,
           score: imdbRating != null ? imdbRating : 5.0,
           weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
           votes: 1, imdb_id: item.imdbID, imdb_rating: imdbRating
@@ -2308,7 +2323,7 @@
     }
 
     wrap.innerHTML = `
-      <div class="banner-bg" id="bannerBg" style="background-image:url('${escapeHtml(featured[0].poster)}')"></div>
+      <div class="banner-bg" id="bannerBg" style="background-image:url('${escapeHtml(featured[0].backdrop || featured[0].poster)}')"></div>
       <div class="banner-content" id="bannerContent" style="cursor:pointer;">
         <img class="banner-poster" id="bannerPoster" src="${escapeHtml(featured[0].poster)}" alt="">
         <div class="banner-caption">
@@ -2331,7 +2346,7 @@
         if(bg) bg.style.opacity = '0';
         if(poster) poster.style.opacity = '0';
         setTimeout(() => {
-          if(bg){ bg.style.backgroundImage = `url('${m.poster}')`; bg.style.opacity = '1'; }
+          if(bg){ bg.style.backgroundImage = `url('${m.backdrop || m.poster}')`; bg.style.opacity = '1'; }
           if(poster){ poster.src = m.poster; poster.style.opacity = '1'; }
           if(titleEl) titleEl.textContent = m.title;
           if(tierEl) tierEl.innerHTML = tierIcon(scoreToTier(m.score));
@@ -2762,9 +2777,11 @@
       const recheck = findExistingMovie(imdbID, title);
       if(recheck) return recheck;
 
+      const backdrop = await fetchBackdropForImdbId(imdbID);
+
       const target = {
         id: crypto.randomUUID(),
-        title, year, genre, poster,
+        title, year, genre, poster, backdrop,
         score: imdbRating != null ? imdbRating : 5.0,
         weight: imdbRating != null ? IMDB_PRIOR_WEIGHT : 0,
         votes: 1, imdb_id: imdbID, imdb_rating: imdbRating
