@@ -26,13 +26,13 @@
     background:var(--bg);
     z-index:200;
     display:flex;align-items:center;justify-content:center;
-    animation:splashOverlayFade 0.5s ease both;
-    animation-delay:1.6s;
+    animation:splashOverlayFade 0.4s ease both;
+    animation-delay:1.3s;
     pointer-events:none;
   }
   .splash-logo{
     width:110px;height:110px;
-    animation:splashLogoSequence 1.7s cubic-bezier(0.65,0,0.35,1) both;
+    animation:splashLogoSequence 1.4s cubic-bezier(0.65,0,0.35,1) both;
   }
   @keyframes splashLogoSequence{
     0%{transform:translate(0,0) scale(1) rotate(0deg);}
@@ -43,14 +43,14 @@
     from{opacity:1;}
     to{opacity:0;visibility:hidden;}
   }
-  .intro-reveal-nav{animation:introFadeIn 0.4s ease both;animation-delay:1.65s;}
-  .intro-reveal-tagline{animation:introFadeIn 0.5s ease both;animation-delay:2.1s;}
-  .intro-reveal-subline{animation:introFadeIn 0.5s ease both;animation-delay:3.6s;}
-  .intro-reveal-rest{animation:introFadeIn 0.6s ease both;animation-delay:5.1s;}
-  .intro-reveal-tile-1{animation:introFadeIn 0.35s ease both;animation-delay:5.7s;}
-  .intro-reveal-tile-2{animation:introFadeIn 0.35s ease both;animation-delay:6.05s;}
-  .intro-reveal-tile-3{animation:introFadeIn 0.35s ease both;animation-delay:6.4s;}
-  .intro-reveal-bottom{animation:introFadeIn 0.6s ease both;animation-delay:6.9s;}
+  .intro-reveal-nav{animation:introFadeIn 0.35s ease both;animation-delay:1.35s;}
+  .intro-reveal-tagline{animation:introFadeIn 0.4s ease both;animation-delay:1.75s;}
+  .intro-reveal-subline{animation:introFadeIn 0.4s ease both;animation-delay:2.75s;}
+  .intro-reveal-rest{animation:introFadeIn 0.5s ease both;animation-delay:3.75s;}
+  .intro-reveal-tile-1{animation:introFadeIn 0.3s ease both;animation-delay:4.25s;}
+  .intro-reveal-tile-2{animation:introFadeIn 0.3s ease both;animation-delay:4.55s;}
+  .intro-reveal-tile-3{animation:introFadeIn 0.3s ease both;animation-delay:4.85s;}
+  .intro-reveal-bottom{animation:introFadeIn 0.5s ease both;animation-delay:5.25s;}
   @keyframes introFadeIn{
     from{opacity:0;}
     to{opacity:1;}
@@ -59,6 +59,18 @@
     .splash-overlay{display:none;}
     .intro-reveal-nav, .intro-reveal-tagline, .intro-reveal-subline, .intro-reveal-rest, .intro-reveal-tile-1, .intro-reveal-tile-2, .intro-reveal-tile-3, .intro-reveal-bottom{animation:none;opacity:1;}
   }
+  /* Once the intro has played this session, every subsequent visit to Home
+     (a plain display:none/block toggle in this single-page app, which would
+     otherwise restart these CSS animations) shows the finished state instantly. */
+  .intro-played .splash-overlay{display:none;}
+  .intro-played .intro-reveal-nav,
+  .intro-played .intro-reveal-tagline,
+  .intro-played .intro-reveal-subline,
+  .intro-played .intro-reveal-rest,
+  .intro-played .intro-reveal-tile-1,
+  .intro-played .intro-reveal-tile-2,
+  .intro-played .intro-reveal-tile-3,
+  .intro-played .intro-reveal-bottom{animation:none;opacity:1;}
   html,body{margin:0;padding:0;}
   html{overflow-x:hidden;width:100%;}
   body{
@@ -367,9 +379,17 @@
   }
   .banner-full-title-wrap{
     position:absolute;left:0;right:0;bottom:20px;
-    display:flex;align-items:center;justify-content:center;gap:10px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
     padding:0 20px;
     z-index:2;
+  }
+  .banner-tier-row{
+    display:flex;align-items:center;gap:6px;
+  }
+  .banner-tier-label{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:600;color:var(--white);font-size:0.85rem;
+    text-shadow:0 1px 8px rgba(0,0,0,0.8);
   }
   .banner-title{
     font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -2331,7 +2351,10 @@
         <div class="banner-full-fade"></div>
         <div class="banner-full-title-wrap">
           <span class="banner-title" id="bannerTitle">${escapeHtml(featured[0].title)}</span>
-          <span id="bannerTier" style="display:flex;align-items:center;gap:6px;">${tierIcon(scoreToTier(featured[0].score))}</span>
+          <div class="banner-tier-row" id="bannerTier">
+            ${tierIcon(scoreToTier(featured[0].score))}
+            <span class="banner-tier-label">${scoreToTier(featured[0].score)}</span>
+          </div>
         </div>
       </div>
     `;
@@ -2349,7 +2372,7 @@
         setTimeout(() => {
           if(img){ img.style.backgroundImage = `url('${m.backdrop || m.poster}')`; img.style.opacity = '1'; }
           if(titleEl) titleEl.textContent = m.title;
-          if(tierEl) tierEl.innerHTML = tierIcon(scoreToTier(m.score));
+          if(tierEl) tierEl.innerHTML = `${tierIcon(scoreToTier(m.score))}<span class="banner-tier-label">${scoreToTier(m.score)}</span>`;
         }, 500);
       }, 5000);
     }
@@ -2815,7 +2838,7 @@
     if(!e.target.closest('.nav-search')) el('topSearchResults').style.display = 'none';
   });
 
-  (function positionSplashTarget(){
+  function measureAndSetSplashTarget(){
     try{
       const realLogo = document.querySelector('.nav-logo');
       if(!realLogo) return;
@@ -2836,7 +2859,23 @@
       document.documentElement.style.setProperty('--splash-ty', ty + 'px');
       document.documentElement.style.setProperty('--splash-scale', scale);
     }catch(e){ /* falls back to the default CSS values if measurement fails */ }
-  })();
+  }
+  // A single early measurement can go stale — the real nav logo's position
+  // can shift after it's taken (most likely: the custom web font finishing
+  // load and changing the wordmark's rendered width, which reflows the nav).
+  // Re-measure at three points instead of trusting one: immediately, once
+  // fonts are confirmed fully loaded, and again right before the travel
+  // phase of the animation actually needs the value (~950ms in).
+  measureAndSetSplashTarget();
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(measureAndSetSplashTarget);
+  }
+  setTimeout(measureAndSetSplashTarget, 750);
+
+  // Mark the intro as played once the full sequence finishes, so returning to
+  // Home later in this session (a display toggle, not a real page reload)
+  // shows the finished page instantly instead of replaying everything.
+  setTimeout(() => { document.body.classList.add('intro-played'); }, 5800);
 
   el('heroSubline').textContent = pickRandomLine(HERO_SUBLINE_LINES);
 
