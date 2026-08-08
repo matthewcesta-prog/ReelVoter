@@ -255,7 +255,7 @@
       background:var(--bg);
       border-top:1px solid var(--line);
       z-index:41;
-      padding:6px 4px calc(22px + env(safe-area-inset-bottom));
+      padding:6px 4px calc(8px + env(safe-area-inset-bottom));
     }
   }
   .tab-btn{
@@ -322,6 +322,21 @@
     color:var(--muted);
     text-decoration:underline;
   }
+  .save-error-toast{
+    position:fixed;left:50%;bottom:90px;
+    transform:translateX(-50%) translateY(20px);
+    background:#c0392b;color:#fff;
+    padding:10px 18px;border-radius:20px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.82rem;
+    max-width:90vw;text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    z-index:300;
+    opacity:0;pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+  }
+  .save-error-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  @media (min-width:701px){ .save-error-toast{bottom:24px;} }
   .page-footer{
     text-align:center;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1437,13 +1452,37 @@
   <div class="modal" style="text-align:center;">
     <h3>Sign in to rate a movie</h3>
     <p class="panel-sub">One real person, one real vote — no burner accounts, no bots padding a number.</p>
-    <div id="emailStep">
+
+    <div id="passwordStep">
+      <div class="field">
+        <input type="email" id="pwEmail" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <input type="password" id="pwPassword" placeholder="Password" autocomplete="current-password">
+      </div>
+      <div class="modal-actions" style="justify-content:center;">
+        <button class="btn btn-primary" id="pwSignInBtn">Sign in</button>
+      </div>
+      <p id="pwStatus" class="panel-sub" style="margin-top:8px;display:none;"></p>
+      <div id="pwFallbackOptions" style="display:none;margin-top:10px;">
+        <button class="duel-skip" id="pwCreateAccountBtn">Create an account with this email</button>
+        <br>
+        <button class="duel-skip" id="pwUseCodeBtn" style="margin-top:8px;">Email me a code instead</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="passkeySignInBtn" style="display:none;margin:16px auto 0;">Sign in with Face ID</button>
+
+    <button class="duel-skip" id="switchToCodeBtn" style="margin-top:16px;">Don't have a password? Email me a code</button>
+
+    <div id="emailStep" style="display:none;">
       <div class="field">
         <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
       </div>
       <div class="modal-actions" style="justify-content:center;">
         <button class="btn btn-primary" id="sendCodeBtn">Send code</button>
       </div>
+      <button class="duel-skip" id="backToPasswordBtn" style="margin-top:10px;">Back to password sign-in</button>
     </div>
     <div id="codeStep" style="display:none;">
       <div class="field">
@@ -1454,8 +1493,22 @@
       </div>
       <button class="duel-skip" id="resendCodeBtn" style="margin-top:10px;">Use a different email</button>
     </div>
-    <button class="btn btn-primary" id="passkeySignInBtn" style="display:none;margin:16px auto 0;">Sign in with Face ID</button>
     <p id="loginStatus" class="panel-sub" style="margin-top:14px;"></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="setPasswordPromptModal" style="display:none;">
+  <div class="modal" style="text-align:center;">
+    <h3>Want faster sign-in next time?</h3>
+    <p class="panel-sub">Set a password so you're not waiting on an email code every time.</p>
+    <div class="field">
+      <input type="password" id="newPasswordInput" placeholder="Create a password" autocomplete="new-password">
+    </div>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="btn btn-primary" id="setPasswordBtn">Set password</button>
+    </div>
+    <button class="duel-skip" id="skipSetPasswordBtn" style="margin-top:10px;">Maybe later</button>
+    <p id="setPasswordStatus" class="panel-sub" style="margin-top:10px;"></p>
   </div>
 </div>
 
@@ -1960,13 +2013,30 @@
     })();
   }
 
+  function showSaveErrorToast(message){
+    let toast = document.getElementById('saveErrorToast');
+    if(!toast){
+      toast = document.createElement('div');
+      toast.id = 'saveErrorToast';
+      toast.className = 'save-error-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 6000);
+  }
+
   async function saveUserRating(movieId, tierLabel){
     if(!currentUser) return;
     myRatings[movieId] = tierLabel;
     const { error } = await supabaseClient
       .from('user_ratings')
       .upsert([{ user_id: currentUser.id, movie_id: movieId, tier: tierLabel }], { onConflict: 'user_id,movie_id' });
-    if(error) console.error('Rating save error', error);
+    if(error){
+      console.error('Rating save error', error);
+      showSaveErrorToast('Your rating didn\'t save — check your connection and try again.');
+    }
   }
 
   async function saveMovies(){
@@ -1985,7 +2055,10 @@
       imdb_rating: (m.imdb_rating != null ? m.imdb_rating : null)
     }));
     const { error } = await supabaseClient.from('movies').upsert(rows);
-    if(error) console.error('Save error', error);
+    if(error){
+      console.error('Save error', error);
+      showSaveErrorToast('Something didn\'t save — check your connection and try again.');
+    }
   }
 
   function uniqueVoterCount(movieId){
@@ -2040,7 +2113,11 @@
   async function logVotes(rows){
     if(!rows || rows.length === 0) return;
     const { error } = await supabaseClient.from('votes').insert(rows);
-    if(error){ console.error('Vote log error', error); return; }
+    if(error){
+      console.error('Vote log error', error);
+      showSaveErrorToast('Your vote didn\'t save — check your connection and try again.');
+      return;
+    }
     votesLog.push(...rows);
   }
 
@@ -2325,6 +2402,7 @@
 
     el('detailRateBtn').onclick = () => startRateFromDetail(movie);
     modal.style.display = 'flex';
+    modal.scrollTop = 0;
     window.scrollTo(0,0);
 
     renderTierCounts(movie.id);
