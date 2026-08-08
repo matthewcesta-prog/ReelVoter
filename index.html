@@ -1237,6 +1237,7 @@
     </div>
     <div class="nav-right" id="navRight">
       <div class="nav-links">
+        <a href="#/browse" class="nav-link">Browse</a>
         <a href="#/my-ratings" class="nav-link">My Ratings</a>
       </div>
       <div class="nav-search">
@@ -1251,6 +1252,10 @@
     <button class="tab-btn" id="tabHomeBtn">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Home</span>
+    </button>
+    <button class="tab-btn" id="tabBrowseBtn">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Browse</span>
     </button>
     <button class="tab-btn" id="tabRatingsBtn">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -1417,6 +1422,31 @@
     </div>
 
     <div id="recsContainer"></div>
+  </div>
+
+  <div id="page-browse" style="display:none;">
+    <div class="my-ratings-heading">
+      <h2>Browse</h2>
+      <div class="line"></div>
+    </div>
+    <div class="my-ratings-controls">
+      <div class="mrc-group">
+        <label for="browseGenreFilter">Genre</label>
+        <select id="browseGenreFilter">
+          <option value="all">All Genres</option>
+        </select>
+      </div>
+      <div class="mrc-group">
+        <label for="browseTierFilter">Tier</label>
+        <select id="browseTierFilter">
+          <option value="all">All Tiers</option>
+        </select>
+      </div>
+    </div>
+    <div id="browseResults"></div>
+    <div id="browseEmpty" class="empty-state" style="display:none;">
+      <span class="cheeky-line">Nothing matches that combination yet.</span>
+    </div>
   </div>
 
   <div class="page-footer">
@@ -1661,7 +1691,7 @@
     await supabaseClient.auth.signOut();
   });
 
-  const PAGES = ['home', 'my-ratings'];
+  const PAGES = ['home', 'my-ratings', 'browse'];
 
   function navigateTo(route){
     window.location.hash = PAGES.includes(route) ? ('#/' + route) : ('#/movie/' + route);
@@ -1692,6 +1722,7 @@
         if(pageEl) pageEl.style.display = (p === activeRoute) ? 'block' : 'none';
       });
       el('tabHomeBtn').classList.toggle('tab-active', activeRoute === 'home');
+      el('tabBrowseBtn').classList.toggle('tab-active', activeRoute === 'browse');
       el('tabRatingsBtn').classList.toggle('tab-active', activeRoute === 'my-ratings');
     }
     window.scrollTo(0, 0);
@@ -1716,6 +1747,7 @@
   el('navHomeBtn').addEventListener('click', () => navigateTo('home'));
 
   el('tabHomeBtn').addEventListener('click', () => navigateTo('home'));
+  el('tabBrowseBtn').addEventListener('click', () => navigateTo('browse'));
   el('tabRatingsBtn').addEventListener('click', () => navigateTo('my-ratings'));
 
   el('tabSearchBtn').addEventListener('click', () => {
@@ -1917,6 +1949,8 @@
   let myRatingsSortField = 'reelvote';
   let myRatingsSortDir = -1; // -1 = high-to-low / Z-A, 1 = low-to-high / A-Z
   let myRatingsGenreFilter = 'all';
+  let browseGenreFilter = 'all';
+  let browseTierFilter = 'all';
   const TIER_RANK = { Bad: 1, OK: 2, Good: 3, Great: 4 };
 
   function render(){
@@ -2001,7 +2035,73 @@
     });
 
     renderRecommendations(byGenre);
+    renderBrowsePage();
   }
+
+  function renderBrowsePage(){
+    const genreFilterEl = el('browseGenreFilter');
+    const tierFilterEl = el('browseTierFilter');
+
+    const presentGenres = GENRE_ORDER.filter(g => movies.some(m => m.genre === g));
+    const currentGenreValue = genreFilterEl.value || browseGenreFilter;
+    genreFilterEl.innerHTML = `<option value="all">All Genres</option>` +
+      presentGenres.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+    genreFilterEl.value = presentGenres.includes(currentGenreValue) ? currentGenreValue : 'all';
+    browseGenreFilter = genreFilterEl.value;
+
+    const currentTierValue = tierFilterEl.value || browseTierFilter;
+    tierFilterEl.innerHTML = `<option value="all">All Tiers</option>` +
+      TIER_ORDER_DESC.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    tierFilterEl.value = TIER_ORDER_DESC.includes(currentTierValue) ? currentTierValue : 'all';
+    browseTierFilter = tierFilterEl.value;
+
+    let results = movies.slice();
+    if(browseGenreFilter !== 'all') results = results.filter(m => m.genre === browseGenreFilter);
+    if(browseTierFilter !== 'all') results = results.filter(m => scoreToTier(m.score) === browseTierFilter);
+    results.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    const wrap = el('browseResults');
+    const emptyEl = el('browseEmpty');
+    wrap.innerHTML = '';
+    if(results.length === 0){
+      emptyEl.style.display = 'block';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    results.forEach((m, idx) => {
+      const row = document.createElement('div');
+      row.className = 'movie-row';
+      const posterHtml = m.poster
+        ? `<img class="poster-thumb" src="${escapeHtml(m.poster)}" alt="">`
+        : `<div class="poster-thumb placeholder">n/a</div>`;
+      row.innerHTML = `
+        <div class="rank">#${idx + 1}</div>
+        ${posterHtml}
+        <div class="movie-info">
+          <span class="movie-title">${escapeHtml(m.title)}</span>
+          ${m.year ? `<span class="movie-year">${escapeHtml(m.year)}</span>` : ''}
+          <br><span class="mrow-genre-tag">${escapeHtml(m.genre)}</span>
+          <span class="vote-count">ranked by ${uniqueVoterCount(m.id)} ${uniqueVoterCount(m.id) === 1 ? 'person' : 'people'}</span>
+        </div>
+        <div class="dual-tier">
+          <div class="dt-col">
+            <span class="dt-label">ReelVote</span>
+            ${tierIcon(scoreToTier(m.score))}
+            <span class="tier-badge">${scoreToTier(m.score)}</span>
+            <span class="dt-score">${(m.score || 5).toFixed(1)}</span>
+          </div>
+        </div>
+      `;
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => navigateTo(m.id));
+      wrap.appendChild(row);
+    });
+  }
+
+  el('browseGenreFilter').addEventListener('change', () => renderBrowsePage());
+  el('browseTierFilter').addEventListener('change', () => renderBrowsePage());
+
 
   el('sortField').addEventListener('change', () => {
     myRatingsSortField = el('sortField').value;
