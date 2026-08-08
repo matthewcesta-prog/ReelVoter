@@ -450,6 +450,9 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-weight:800;font-size:1.2rem;color:var(--white);
     margin-top:14px;text-align:center;
+    max-width:100%;
+    word-wrap:break-word;
+    overflow-wrap:break-word;
   }
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
   .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:130px 24px 60px;}
@@ -536,7 +539,7 @@
   .dvr-meta{font-size:0.72rem;color:var(--muted);margin-top:1px;}
   .detail-center-col{
     display:flex;flex-direction:column;align-items:center;text-align:center;
-    min-width:220px;order:2;
+    min-width:220px;max-width:220px;order:2;
   }
   .detail-poster-block{display:flex;flex-direction:column;align-items:center;}
   .detail-poster-big{
@@ -591,7 +594,7 @@
   .detail-rate-widget .detail-rate-btn{align-self:center;}
   @media (max-width:820px){
     .detail-layout{flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:16px;}
-    .detail-center-col{order:1;flex:0 0 auto;min-width:0;}
+    .detail-center-col{order:1;flex:0 0 auto;min-width:0;max-width:120px;}
     .detail-tier-scale{order:2;flex:1 1 140px;gap:12px;min-width:140px;max-width:none;width:auto;}
     .detail-info-col{order:3;align-items:flex-start;max-width:none;width:100%;flex:1 1 100%;}
     .dts-label{font-size:1.05rem;}
@@ -1372,7 +1375,6 @@
   <div class="modal" style="text-align:center;">
     <h3>Sign in to rate a movie</h3>
     <p class="panel-sub">One real person, one real vote — no burner accounts, no bots padding a number.</p>
-    <button class="btn btn-primary" id="passkeySignInBtn" style="display:none;margin:0 auto 16px;">Sign in with Face ID</button>
     <div id="emailStep">
       <div class="field">
         <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
@@ -1390,6 +1392,7 @@
       </div>
       <button class="duel-skip" id="resendCodeBtn" style="margin-top:10px;">Use a different email</button>
     </div>
+    <button class="btn btn-primary" id="passkeySignInBtn" style="display:none;margin:16px auto 0;">Sign in with Face ID</button>
     <p id="loginStatus" class="panel-sub" style="margin-top:14px;"></p>
   </div>
 </div>
@@ -1756,8 +1759,28 @@
     if(isOpen){
       el('accountMenu').style.display = 'none';
       setTimeout(() => el('topSearchInput').focus(), 100);
+    } else {
+      navRight.style.bottom = '';
     }
   });
+
+  // The search bar/dropdown is bottom-anchored for thumb reachability, but the
+  // on-screen keyboard covers that same region once typing starts — without
+  // this, the dropdown renders correctly but ends up hidden behind/under the
+  // keyboard. Track the actual visible viewport and push the bar above it.
+  function repositionSearchAboveKeyboard(){
+    if(!window.visualViewport) return;
+    const navRight = el('navRight');
+    if(!navRight.classList.contains('mobile-search-open')) return;
+    const vv = window.visualViewport;
+    const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    navRight.style.bottom = (keyboardHeight > 40 ? keyboardHeight + 8 : 80) + 'px';
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', repositionSearchAboveKeyboard);
+    window.visualViewport.addEventListener('scroll', repositionSearchAboveKeyboard);
+  }
+  el('topSearchInput').addEventListener('focus', () => setTimeout(repositionSearchAboveKeyboard, 150));
 
   el('tabAccountBtn').addEventListener('click', () => {
     const menu = el('accountMenu');
