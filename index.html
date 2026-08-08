@@ -456,6 +456,40 @@
   @media (max-width:700px){
     .detail-body{padding-top:90px;}
   }
+  .next-suggestion{
+    max-width:480px;margin:36px auto 0;
+    padding-top:28px;
+    border-top:1px solid var(--line);
+    text-align:center;
+  }
+  .next-suggestion-label{
+    font-size:0.95rem;margin:0 0 16px;
+  }
+  .next-suggestion-card{
+    display:flex;align-items:center;gap:14px;
+    background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:14px;text-align:left;
+  }
+  .next-suggestion-card img{
+    width:56px;height:80px;object-fit:cover;border-radius:4px;
+    filter:grayscale(1) contrast(1.05);flex-shrink:0;
+  }
+  .next-suggestion-info{flex:1;min-width:0;}
+  .next-suggestion-title{
+    font-weight:700;color:var(--white);font-size:0.95rem;margin-bottom:10px;
+  }
+  .next-suggestion-title span{color:var(--muted);font-weight:400;}
+  .next-suggestion-tiers{display:flex;gap:6px;flex-wrap:wrap;}
+  .next-suggestion-tiers button{
+    background:var(--surface-2);border:1px solid var(--line);border-radius:16px;
+    color:var(--text);font-size:0.75rem;padding:6px 12px;cursor:pointer;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+  }
+  .next-suggestion-tiers button:hover{background:var(--surface);border-color:var(--muted);}
+  .next-suggestion-loading{
+    text-align:center;color:var(--muted);font-size:0.85rem;
+    max-width:480px;margin:36px auto 0;padding-top:28px;border-top:1px solid var(--line);
+  }
   .detail-layout{
     display:flex;
     gap:36px;
@@ -1236,6 +1270,7 @@
     <button class="account-menu-signout" id="accountMenuSetupPasskey" style="display:none;margin-bottom:8px;">Set up Face ID</button>
     <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener" class="account-menu-signout" id="supportLinkMobile" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;">Support ReelVoter</a>
     <button class="account-menu-signout" id="accountMenuSignOut">Sign out</button>
+    <button class="account-menu-signout" id="accountMenuSignIn" style="display:none;">Sign in</button>
   </div>
 
   <div id="page-home">
@@ -1693,19 +1728,30 @@
   });
 
   el('tabAccountBtn').addEventListener('click', () => {
-    if(currentUser){
-      const menu = el('accountMenu');
-      const isOpen = menu.style.display !== 'none';
-      if(isOpen){
-        menu.style.display = 'none';
-      } else {
-        el('navRight').classList.remove('mobile-search-open');
-        el('accountMenuEmail').textContent = currentUser.email || '';
-        menu.style.display = 'block';
-      }
-    } else {
-      openSignInModal();
+    const menu = el('accountMenu');
+    const isOpen = menu.style.display !== 'none';
+    if(isOpen){
+      menu.style.display = 'none';
+      return;
     }
+    el('navRight').classList.remove('mobile-search-open');
+    if(currentUser){
+      el('accountMenuEmail').textContent = currentUser.email || '';
+      el('accountMenuEmail').style.display = 'block';
+      el('accountMenuSignOut').style.display = 'block';
+      el('accountMenuSignIn').style.display = 'none';
+    } else {
+      el('accountMenuEmail').textContent = '';
+      el('accountMenuEmail').style.display = 'none';
+      el('accountMenuSignOut').style.display = 'none';
+      el('accountMenuSignIn').style.display = 'block';
+    }
+    menu.style.display = 'block';
+  });
+
+  el('accountMenuSignIn').addEventListener('click', () => {
+    el('accountMenu').style.display = 'none';
+    openSignInModal();
   });
 
   el('accountMenuSignOut').addEventListener('click', async () => {
@@ -1992,6 +2038,16 @@
     if(!movie) return;
     const modal = el('movieDetailModal');
     const content = el('detailContent');
+
+    if(!movie.tmdb_id && movie.imdb_id && TMDB_KEY){
+      const tmdbData = await fetchTmdbMovieData(movie.imdb_id);
+      if(tmdbData){
+        if(tmdbData.backdrop) movie.backdrop = tmdbData.backdrop;
+        if(tmdbData.tmdbId) movie.tmdb_id = tmdbData.tmdbId;
+        if(currentUser) saveMovies();
+      }
+    }
+
     const hasRealSignal_ = hasRealSignal(movie);
     const currentTier = scoreToTier(movie.score);
 
@@ -2059,6 +2115,7 @@
             </div>
           </div>
         </div>
+        <div id="nextSuggestionWrap"></div>
       </div>
     `;
 
@@ -2489,6 +2546,89 @@
     iconEl.innerHTML = tierIcon(iconEl.dataset.tierIcon);
   });
 
+  const NEXT_SUGGESTION_LINES = [
+    "Keep the momentum going.",
+    "One more? You know you want to.",
+    "While you're here...",
+    "Since you're on a roll.",
+    "This one's probably next on your list anyway.",
+    "Don't stop now."
+  ];
+
+  function pickNextSuggestion(genre, excludeIds){
+    const excludeSet = new Set(excludeIds);
+    const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !myRatings[m.id]);
+    if(candidates.length > 0){
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+    const pool = (CURATED[genre] || []).filter(c => !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()));
+    if(pool.length > 0){
+      const seed = pool[Math.floor(Math.random() * pool.length)];
+      return { needsCreation: true, title: seed.title, genre };
+    }
+    return null;
+  }
+
+  async function quickRateSuggestion(movie, tierKey){
+    const previousTier = myRatings[movie.id];
+    if(previousTier){
+      const oldTarget = TIER_ANCHOR[previousTier] != null ? TIER_ANCHOR[previousTier] : 6.0;
+      const oldWeight = Math.min(RATING_WEIGHT, movie.weight || 0);
+      const remainingWeight = (movie.weight || 0) - oldWeight;
+      if(remainingWeight <= 0){
+        movie.score = 5.0;
+        movie.weight = 0;
+      } else {
+        movie.score = Math.max(0, Math.min(10, ((movie.score * movie.weight) - (oldTarget * oldWeight)) / remainingWeight));
+        movie.weight = remainingWeight;
+      }
+    }
+    applyRatingAnchor(movie, tierKey);
+    await saveMovies();
+    const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[tierKey] || null;
+    if(tierLabel) await saveUserRating(movie.id, tierLabel);
+  }
+
+  async function showNextSuggestion(genre, excludeIds){
+    const wrap = el('nextSuggestionWrap');
+    if(!wrap) return;
+    const pick = pickNextSuggestion(genre, excludeIds);
+    if(!pick){ wrap.innerHTML = ''; return; }
+
+    let movie = pick;
+    if(pick.needsCreation){
+      wrap.innerHTML = `<p class="next-suggestion-loading">Finding something else you might like...</p>`;
+      movie = await getOrCreateMovieByTitle(pick.title, pick.genre);
+      if(!movie){ wrap.innerHTML = ''; return; }
+    }
+
+    wrap.innerHTML = `
+      <div class="next-suggestion">
+        <p class="next-suggestion-label cheeky-line">${pickRandomLine(NEXT_SUGGESTION_LINES)}</p>
+        <div class="next-suggestion-card">
+          <img src="${escapeHtml(movie.poster||'')}" alt="">
+          <div class="next-suggestion-info">
+            <div class="next-suggestion-title">${escapeHtml(movie.title)} <span>(${escapeHtml(movie.year||'')})</span></div>
+            <div class="next-suggestion-tiers">
+              <button data-tier="great">Great</button>
+              <button data-tier="good">Good</button>
+              <button data-tier="ok">OK</button>
+              <button data-tier="bad">Bad</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    wrap.querySelectorAll('.next-suggestion-tiers button').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        wrap.innerHTML = `<p class="next-suggestion-loading">Saving...</p>`;
+        await quickRateSuggestion(movie, btn.dataset.tier);
+        render();
+        showNextSuggestion(genre, [...excludeIds, movie.id]);
+      });
+    });
+  }
+
   async function renderRecommendations(byGenre){
     const recContainer = el('recsContainer');
     recContainer.innerHTML = '';
@@ -2767,7 +2907,8 @@
     render();
     resetSearchPanel();
     if(window.location.hash.startsWith('#/movie/')){
-      openMovieDetail(movie);
+      await openMovieDetail(movie);
+      showNextSuggestion(movie.genre, [movie.id]);
     }
   }
 
@@ -2780,6 +2921,17 @@
     if(topSearchDebounce) clearTimeout(topSearchDebounce);
     if(!q){ el('topSearchResults').style.display = 'none'; return; }
     topSearchDebounce = setTimeout(() => runTopSearch(q), 200);
+  });
+
+  el('topSearchInput').addEventListener('keydown', async (e) => {
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    const q = el('topSearchInput').value.trim().toLowerCase();
+    if(!q) return;
+    if(topSearchDebounce) clearTimeout(topSearchDebounce);
+    await runTopSearch(q);
+    const firstResult = el('topSearchResults').querySelector('.search-result-item');
+    if(firstResult) firstResult.click();
   });
 
   async function runTopSearch(q){
