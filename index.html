@@ -35,9 +35,9 @@
     animation:splashLogoSequence 1.4s cubic-bezier(0.65,0,0.35,1) both;
   }
   @keyframes splashLogoSequence{
-    0%{transform:translate(0,0) scale(1) rotate(0deg);}
-    58%{transform:translate(0,0) scale(1) rotate(270deg);}
-    100%{transform:translate(var(--splash-tx,-32vw),var(--splash-ty,-34vh)) scale(var(--splash-scale,0.3)) rotate(270deg);}
+    0%{transform:scale(1) rotate(0deg); opacity:1;}
+    58%{transform:scale(1) rotate(270deg); opacity:1;}
+    100%{transform:scale(0.4) rotate(270deg); opacity:0;}
   }
   @keyframes splashOverlayFade{
     from{opacity:1;}
@@ -185,7 +185,7 @@
   }
   .nav-left{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
   .nav-left-row{display:flex;align-items:flex-start;gap:14px;}
-  .nav-user-col{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:6px;}
+  .nav-user-col{display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin-top:6px;}
   .nav-logo-wordmark{display:flex;align-items:center;gap:8px;}
   .nav-logo{width:32px;height:32px;}
   .nav-wordmark{
@@ -309,6 +309,10 @@
     padding:0;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     white-space:nowrap;
+  }
+  a.top-bar-signout, a.top-bar-signout:visited, a.top-bar-signout:hover{
+    color:var(--muted);
+    text-decoration:underline;
   }
   .page-footer{
     text-align:center;
@@ -1266,7 +1270,7 @@
     </div>
   </nav>
 
-  <div class="mobile-search-fullscreen" id="mobileSearchFullscreen" style="display:none;">
+  <div class="mobile-search-fullscreen" id="mobileSearchFullscreen">
     <div class="msf-header">
       <span class="msf-title">Search</span>
       <button class="msf-close" id="mobileSearchCloseBtn" aria-label="Close search">&times;</button>
@@ -3189,40 +3193,6 @@
   document.addEventListener('click', (e) => {
     if(!e.target.closest('.nav-search')) el('topSearchResults').style.display = 'none';
   });
-
-  function measureAndSetSplashTarget(){
-    try{
-      const realLogo = document.querySelector('.nav-logo');
-      if(!realLogo) return;
-      const realRect = realLogo.getBoundingClientRect();
-      // The splash logo is centered in a full-viewport fixed overlay via flex,
-      // so its untransformed center is always exactly the viewport center —
-      // computing this directly avoids measuring the element live, which risks
-      // catching it mid-animation (its CSS animation starts immediately on
-      // load, with no JS trigger, so a slow-rendering page could measure it
-      // after it's already moved).
-      const splashSize = 110; // must match .splash-logo's CSS width/height
-      const splashCenterX = window.innerWidth / 2;
-      const splashCenterY = window.innerHeight / 2;
-      const tx = (realRect.left + realRect.width/2) - splashCenterX;
-      const ty = (realRect.top + realRect.height/2) - splashCenterY;
-      const scale = realRect.width / splashSize;
-      document.documentElement.style.setProperty('--splash-tx', tx + 'px');
-      document.documentElement.style.setProperty('--splash-ty', ty + 'px');
-      document.documentElement.style.setProperty('--splash-scale', scale);
-    }catch(e){ /* falls back to the default CSS values if measurement fails */ }
-  }
-  // A single early measurement can go stale — the real nav logo's position
-  // can shift after it's taken (most likely: the custom web font finishing
-  // load and changing the wordmark's rendered width, which reflows the nav).
-  // Re-measure at three points instead of trusting one: immediately, once
-  // fonts are confirmed fully loaded, and again right before the travel
-  // phase of the animation actually needs the value (~950ms in).
-  measureAndSetSplashTarget();
-  if(document.fonts && document.fonts.ready){
-    document.fonts.ready.then(measureAndSetSplashTarget);
-  }
-  setTimeout(measureAndSetSplashTarget, 750);
 
   // Mark the intro as played once the full sequence finishes, so returning to
   // Home later in this session (a display toggle, not a real page reload)
