@@ -230,28 +230,11 @@
   @media (max-width:700px){
     .top-nav{gap:10px;padding:10px 14px;justify-content:center;position:relative;}
     .nav-user-col{display:none;}
-    .nav-right{
-      display:none;
-      position:fixed;
-      bottom:80px;left:0;right:0;
-      background:var(--bg);
-      border-top:1px solid var(--line);
-      padding:12px 16px;
-      z-index:42;
-      flex-direction:column;
-      align-items:stretch;
-      gap:0;
-    }
-    .nav-right.mobile-search-open{display:flex;}
+    .nav-right{display:none;}
     .nav-links{display:none;}
     .nav-search{width:100%;}
     .nav-search input, .field input, .field select{font-size:16px;}
     body{padding-bottom:86px;}
-    .search-results{
-      top:auto;bottom:100%;
-      border-top:1px solid var(--line);border-bottom:none;
-      border-radius:4px 4px 0 0;
-    }
   }
   .bottom-tab-bar{
     display:none;
@@ -994,6 +977,39 @@
   .field input:focus, .field select:focus{outline:2px solid var(--white);outline-offset:1px;}
 
   /* search dropdown */
+  .mobile-search-fullscreen{
+    display:none;
+    position:fixed;inset:0;
+    background:var(--bg);
+    z-index:150;
+    flex-direction:column;
+    padding:16px;
+    overflow-y:auto;
+  }
+  .mobile-search-fullscreen.open{display:flex;}
+  .msf-header{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .msf-title{
+    font-family:'Bricolage Grotesque',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:800;font-size:1.3rem;color:var(--white);
+  }
+  .msf-close{
+    background:none;border:none;color:var(--muted);
+    font-size:1.8rem;line-height:1;cursor:pointer;padding:4px 10px;
+  }
+  .msf-browse-link{
+    display:block;text-align:center;color:var(--muted);
+    font-size:0.85rem;text-decoration:underline;margin-top:24px;
+  }
+  #mobileSearchFullscreen .nav-search{position:relative;}
+  #mobileSearchFullscreen .search-results{
+    top:100%;bottom:auto;
+    border-top:none;border-bottom:1px solid var(--line);
+    border-radius:0 0 4px 4px;
+    max-height:none;
+  }
   .search-results{
     position:absolute;
     top:100%;left:0;right:0;
@@ -1243,12 +1259,21 @@
         <a href="#/browse" class="nav-link">Browse</a>
         <a href="#/my-ratings" class="nav-link">My Ratings</a>
       </div>
-      <div class="nav-search">
+      <div class="nav-search" id="navSearchContainer">
         <input type="text" id="topSearchInput" placeholder="Search or Rate a Movie..." autocomplete="off">
         <div id="topSearchResults" class="search-results" style="display:none;"></div>
       </div>
     </div>
   </nav>
+
+  <div class="mobile-search-fullscreen" id="mobileSearchFullscreen" style="display:none;">
+    <div class="msf-header">
+      <span class="msf-title">Search</span>
+      <button class="msf-close" id="mobileSearchCloseBtn" aria-label="Close search">&times;</button>
+    </div>
+    <div id="navSearchSlot"></div>
+    <a href="#/browse" class="msf-browse-link" id="mobileSearchBrowseLink">Browse all movies &rarr;</a>
+  </div>
   <div id="topSearchCard"></div>
 
   <nav class="bottom-tab-bar" id="bottomTabBar">
@@ -1705,7 +1730,7 @@
     const parts = hash.split('/');
     const routeName = parts[0] || 'home';
 
-    el('navRight').classList.remove('mobile-search-open');
+    if(el('mobileSearchFullscreen').classList.contains('open')) closeMobileSearch();
     el('accountMenu').style.display = 'none';
 
     if(routeName === 'movie' && parts[1]){
@@ -1753,34 +1778,26 @@
   el('tabBrowseBtn').addEventListener('click', () => navigateTo('browse'));
   el('tabRatingsBtn').addEventListener('click', () => navigateTo('my-ratings'));
 
+  function openMobileSearch(){
+    el('accountMenu').style.display = 'none';
+    el('navSearchSlot').appendChild(el('navSearchContainer'));
+    el('mobileSearchFullscreen').classList.add('open');
+    setTimeout(() => el('topSearchInput').focus(), 150);
+  }
+  function closeMobileSearch(){
+    el('mobileSearchFullscreen').classList.remove('open');
+    el('navRight').appendChild(el('navSearchContainer'));
+    el('topSearchResults').style.display = 'none';
+  }
   el('tabSearchBtn').addEventListener('click', () => {
-    const navRight = el('navRight');
-    const isOpen = navRight.classList.toggle('mobile-search-open');
-    if(isOpen){
-      el('accountMenu').style.display = 'none';
-      setTimeout(() => el('topSearchInput').focus(), 100);
+    if(el('mobileSearchFullscreen').classList.contains('open')){
+      closeMobileSearch();
     } else {
-      navRight.style.bottom = '';
+      openMobileSearch();
     }
   });
-
-  // The search bar/dropdown is bottom-anchored for thumb reachability, but the
-  // on-screen keyboard covers that same region once typing starts — without
-  // this, the dropdown renders correctly but ends up hidden behind/under the
-  // keyboard. Track the actual visible viewport and push the bar above it.
-  function repositionSearchAboveKeyboard(){
-    if(!window.visualViewport) return;
-    const navRight = el('navRight');
-    if(!navRight.classList.contains('mobile-search-open')) return;
-    const vv = window.visualViewport;
-    const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    navRight.style.bottom = (keyboardHeight > 40 ? keyboardHeight + 8 : 80) + 'px';
-  }
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', repositionSearchAboveKeyboard);
-    window.visualViewport.addEventListener('scroll', repositionSearchAboveKeyboard);
-  }
-  el('topSearchInput').addEventListener('focus', () => setTimeout(repositionSearchAboveKeyboard, 150));
+  el('mobileSearchCloseBtn').addEventListener('click', closeMobileSearch);
+  el('mobileSearchBrowseLink').addEventListener('click', closeMobileSearch);
 
   el('tabAccountBtn').addEventListener('click', () => {
     const menu = el('accountMenu');
@@ -1789,7 +1806,7 @@
       menu.style.display = 'none';
       return;
     }
-    el('navRight').classList.remove('mobile-search-open');
+    if(el('mobileSearchFullscreen').classList.contains('open')) closeMobileSearch();
     if(currentUser){
       el('accountMenuEmail').textContent = currentUser.email || '';
       el('accountMenuEmail').style.display = 'block';
