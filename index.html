@@ -39,6 +39,14 @@
     58%{transform:scale(1) rotate(270deg); opacity:1;}
     100%{transform:scale(0.4) rotate(270deg); opacity:0;}
   }
+  @media (max-width:700px){
+    .splash-logo{animation-name:splashLogoSequenceMobile;}
+  }
+  @keyframes splashLogoSequenceMobile{
+    0%{transform:translate(0,0) scale(1) rotate(0deg); opacity:1;}
+    58%{transform:translate(0,0) scale(1) rotate(270deg); opacity:1;}
+    100%{transform:translate(var(--splash-tx,0),var(--splash-ty,0)) scale(var(--splash-scale,0.3)) rotate(270deg); opacity:1;}
+  }
   @keyframes splashOverlayFade{
     from{opacity:1;}
     to{opacity:0;visibility:hidden;}
@@ -402,7 +410,7 @@
   .poster-cell{border-radius:6px;overflow:hidden;aspect-ratio:2/3;background:var(--surface);}
   .poster-cell img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
 
-  .modal-overlay.detail-overlay{align-items:flex-start;overflow-y:auto;overflow-x:hidden;padding:0;z-index:35;}
+  .modal-overlay.detail-overlay{align-items:flex-start;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0;z-index:35;}
   .detail-panel{
     background:var(--bg);
     width:100%;
@@ -446,6 +454,7 @@
   @media (max-width:700px){
     .detail-body{padding-top:90px;}
   }
+  #nextSuggestionWrap{flex-basis:100%;order:1;}
   .next-suggestion{
     max-width:480px;margin:36px auto 0;
     padding-top:28px;
@@ -479,6 +488,29 @@
   .next-suggestion-loading{
     text-align:center;color:var(--muted);font-size:0.85rem;
     max-width:480px;margin:36px auto 0;padding-top:28px;border-top:1px solid var(--line);
+  }
+  .inline-duel-cards{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    margin-bottom:14px;
+  }
+  .inline-duel-ticket{
+    background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:10px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    width:110px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+  }
+  .inline-duel-ticket:hover{border-color:var(--muted);}
+  .inline-duel-ticket img{
+    width:70px;height:100px;object-fit:cover;border-radius:4px;
+    filter:grayscale(1) contrast(1.05);
+  }
+  .inline-duel-ticket span{
+    font-size:0.75rem;color:var(--text);text-align:center;line-height:1.3;
+  }
+  .inline-vs-mark{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-style:italic;font-weight:800;font-size:1.2rem;color:#d4af37;flex-shrink:0;
   }
   .detail-layout{
     display:flex;
@@ -583,7 +615,8 @@
     .detail-layout{flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:16px;}
     .detail-center-col{order:1;flex:0 0 auto;min-width:0;max-width:120px;}
     .detail-tier-scale{order:2;flex:1 1 140px;gap:12px;min-width:140px;max-width:none;width:auto;}
-    .detail-info-col{order:3;align-items:flex-start;max-width:none;width:100%;flex:1 1 100%;}
+    #nextSuggestionWrap{order:3;}
+    .detail-info-col{order:4;align-items:flex-start;max-width:none;width:100%;flex:1 1 100%;}
     .dts-label{font-size:1.05rem;}
     .dts-sub{font-size:0.6rem;}
     .dts-count{font-size:0.6rem;}
@@ -1260,8 +1293,8 @@
     </div>
     <div class="nav-right" id="navRight">
       <div class="nav-links">
-        <a href="#/browse" class="nav-link">Browse</a>
-        <a href="#/my-ratings" class="nav-link">My Ratings</a>
+        <a href="#/browse" class="nav-link">Rankings</a>
+        <a href="#/my-ratings" class="nav-link">My List</a>
       </div>
       <div class="nav-search" id="navSearchContainer">
         <input type="text" id="topSearchInput" placeholder="Search or Rate a Movie..." autocomplete="off">
@@ -1287,14 +1320,14 @@
     </button>
     <button class="tab-btn" id="tabBrowseBtn">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <span>Browse</span>
-    </button>
-    <button class="tab-btn" id="tabRatingsBtn">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      <span>My Ratings</span>
+      <span>Rankings</span>
     </button>
     <button class="tab-btn tab-btn-center" id="tabSearchBtn">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button class="tab-btn" id="tabRatingsBtn">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>My List</span>
     </button>
     <button class="tab-btn" id="tabAccountBtn">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -1428,7 +1461,7 @@
 
   <div id="page-my-ratings" style="display:none;">
     <div class="my-ratings-heading" id="myRatingsHeading" style="display:none;">
-      <h2>My Ratings</h2>
+      <h2>My List</h2>
       <div class="line"></div>
     </div>
     <div class="my-ratings-controls" id="myRatingsControls" style="display:none;">
@@ -1458,7 +1491,7 @@
 
   <div id="page-browse" style="display:none;">
     <div class="my-ratings-heading">
-      <h2>Browse</h2>
+      <h2>Rankings</h2>
       <div class="line"></div>
     </div>
     <div class="my-ratings-controls">
@@ -1743,8 +1776,16 @@
       if(movie){
         openMovieDetail(movie);
       } else {
-        // Movie not loaded yet (e.g. direct link before data arrives) — fall back home.
-        navigateTo('home');
+        // Movie not found in the current data (e.g. this movie's page was
+        // reached before data finished loading). Show home content without
+        // rewriting the URL — if the movie genuinely doesn't exist, this is
+        // harmless; if data was just still loading, the next render() call
+        // will correctly re-run renderRoute-equivalent logic and recover it.
+        el('movieDetailModal').style.display = 'none';
+        PAGES.forEach(p => {
+          const pageEl = el('page-' + p);
+          if(pageEl) pageEl.style.display = (p === 'home') ? 'block' : 'none';
+        });
       }
     } else {
       el('movieDetailModal').style.display = 'none';
@@ -1863,42 +1904,60 @@
         .eq('user_id', currentUser.id);
       if(ratingErr) console.error('Ratings load error', ratingErr);
       else (ratingRows || []).forEach(r => { myRatings[r.movie_id] = r.tier; });
-
-      // One-time backfill: movies this user originally added before the Your Vote /
-      // ReelVote split existed won't have a user_ratings row yet. Without this they'd
-      // silently vanish from the personal list even though nothing was actually deleted.
-      for(const m of movies){
-        if(m.user_id === currentUser.id && !myRatings[m.id]){
-          await saveUserRating(m.id, scoreToTier(m.score));
-        }
-      }
     }
-
-    // One-time backfill: movies already in the catalog before the IMDb-anchored
-    // scoring existed won't have imdb_rating stored yet. Fetch it so early scores
-    // start from a credible real-world anchor instead of a flat neutral midpoint.
-    let ratingsBackfilled = false;
-    for(const m of movies){
-      if(m.imdb_id && m.imdb_rating == null){
-        try{
-          const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(m.imdb_id)}`);
-          const data = await r.json();
-          if(data && data.imdbRating && data.imdbRating !== 'N/A'){
-            m.imdb_rating = parseFloat(data.imdbRating);
-            ratingsBackfilled = true;
-          }
-        }catch(e){ /* skip this one, try again next load */ }
-      }
-    }
-    if(ratingsBackfilled) await saveMovies();
 
     try{
       const c = await window.storage.get('poster_cache', false);
       posterCache = c && c.value ? JSON.parse(c.value) : {};
     }catch(e){ posterCache = {}; }
 
+    // Render with what we have right away — the page should never sit blank
+    // waiting on the slower backfill work below. If the tab gets backgrounded
+    // or reloaded before this point, a real load is genuinely still in
+    // progress; once we're past this line, the person has something correct
+    // on screen no matter what happens next.
     render();
     renderRoute();
+
+    // One-time backfill: movies this user originally added before the Your
+    // Vote / ReelVote split existed won't have a user_ratings row yet.
+    // Runs in the background so it can't block the first render.
+    if(currentUser){
+      (async () => {
+        let changed = false;
+        for(const m of movies){
+          if(m.user_id === currentUser.id && !myRatings[m.id]){
+            await saveUserRating(m.id, scoreToTier(m.score));
+            changed = true;
+          }
+        }
+        if(changed) render();
+      })();
+    }
+
+    // One-time backfill: movies already in the catalog before the IMDb-anchored
+    // scoring existed won't have imdb_rating stored yet. Fetched in parallel in
+    // the background — this used to run one movie at a time, sequentially,
+    // *before* the page ever rendered, which got slower as the catalog grew.
+    (async () => {
+      const missing = movies.filter(m => m.imdb_id && m.imdb_rating == null);
+      if(missing.length === 0) return;
+      const results = await Promise.all(missing.map(async m => {
+        try{
+          const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(m.imdb_id)}`);
+          const data = await r.json();
+          if(data && data.imdbRating && data.imdbRating !== 'N/A'){
+            m.imdb_rating = parseFloat(data.imdbRating);
+            return true;
+          }
+        }catch(e){ /* skip this one, try again next load */ }
+        return false;
+      }));
+      if(results.some(Boolean)){
+        await saveMovies();
+        render();
+      }
+    })();
   }
 
   async function saveUserRating(movieId, tierLabel){
@@ -2184,12 +2243,13 @@
     const content = el('detailContent');
 
     if(!movie.tmdb_id && movie.imdb_id && TMDB_KEY){
-      const tmdbData = await fetchTmdbMovieData(movie.imdb_id);
-      if(tmdbData){
-        if(tmdbData.backdrop) movie.backdrop = tmdbData.backdrop;
-        if(tmdbData.tmdbId) movie.tmdb_id = tmdbData.tmdbId;
-        if(currentUser) saveMovies();
-      }
+      fetchTmdbMovieData(movie.imdb_id).then(tmdbData => {
+        if(tmdbData){
+          if(tmdbData.backdrop) movie.backdrop = tmdbData.backdrop;
+          if(tmdbData.tmdbId) movie.tmdb_id = tmdbData.tmdbId;
+          if(currentUser) saveMovies();
+        }
+      });
     }
 
     const hasRealSignal_ = hasRealSignal(movie);
@@ -2247,6 +2307,7 @@
               <div class="detail-title-under">${escapeHtml(movie.title)} <span class="detail-year-under">(${escapeHtml(movie.year||'')})</span></div>
             </div>
           </div>
+          <div id="nextSuggestionWrap"></div>
           <div class="detail-info-col">
             <div class="detail-field"><b>GENRE:</b> <span>${escapeHtml(movie.genre)}</span></div>
             <div class="detail-field" id="detailPlotField" style="display:none;"><b>BRIEF:</b> <span id="detailPlotText"></span></div>
@@ -2259,7 +2320,6 @@
             </div>
           </div>
         </div>
-        <div id="nextSuggestionWrap"></div>
       </div>
     `;
 
@@ -2571,11 +2631,25 @@
       return trendingFallbackCache;
     }
     try{
-      const r = await fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${encodeURIComponent(TMDB_KEY)}`);
-      const data = await r.json();
-      const titles = (data.results || []).slice(0, 8).map(m => m.title).filter(Boolean);
+      const [trendingR, popularR] = await Promise.all([
+        fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${encodeURIComponent(TMDB_KEY)}`),
+        fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${encodeURIComponent(TMDB_KEY)}`)
+      ]);
+      const [trendingData, popularData] = await Promise.all([trendingR.json(), popularR.json()]);
+
+      // Combine both sources into a wider pool and dedupe by title, so a
+      // fresh page load has real variety to draw from instead of always
+      // pulling the same fixed top few from one slow-changing list.
+      const seen = new Set();
+      const pool = [];
+      [...(trendingData.results || []), ...(popularData.results || [])].forEach(m => {
+        const key = (m.title || '').toLowerCase();
+        if(key && !seen.has(key)){ seen.add(key); pool.push(m.title); }
+      });
+
+      const shuffled = shuffleArr(pool).slice(0, 10);
       const resolved = [];
-      for(const title of titles){
+      for(const title of shuffled){
         const movie = await getOrCreateMovieByTitle(title, null);
         if(movie && movie.poster) resolved.push(movie);
       }
@@ -2710,6 +2784,19 @@
       const seed = pool[Math.floor(Math.random() * pool.length)];
       return { needsCreation: true, title: seed.title, genre };
     }
+    // This genre's pool (real + curated) is exhausted — fall back across the
+    // whole catalog rather than suggesting nothing at all.
+    const anyCandidates = movies.filter(m => !excludeSet.has(m.id) && !myRatings[m.id]);
+    if(anyCandidates.length > 0){
+      return anyCandidates[Math.floor(Math.random() * anyCandidates.length)];
+    }
+    for(const g of GENRE_ORDER){
+      const gPool = (CURATED[g] || []).filter(c => !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()));
+      if(gPool.length > 0){
+        const seed = gPool[Math.floor(Math.random() * gPool.length)];
+        return { needsCreation: true, title: seed.title, genre: g };
+      }
+    }
     return null;
   }
 
@@ -2743,9 +2830,24 @@
     if(pick.needsCreation){
       wrap.innerHTML = `<p class="next-suggestion-loading">Finding something else you might like...</p>`;
       movie = await getOrCreateMovieByTitle(pick.title, pick.genre);
-      if(!movie){ wrap.innerHTML = ''; return; }
+      if(!movie){
+        // That curated title failed to resolve (e.g. an OMDb miss) — fall
+        // back to any real, already-in-catalog movie rather than giving up.
+        const excludeSet = new Set(excludeIds);
+        const anyReal = movies.filter(m => !excludeSet.has(m.id) && !myRatings[m.id]);
+        if(anyReal.length > 0){
+          movie = anyReal[Math.floor(Math.random() * anyReal.length)];
+        } else {
+          wrap.innerHTML = '';
+          return;
+        }
+      }
     }
 
+    renderSuggestionTierStep(wrap, movie, genre, excludeIds);
+  }
+
+  function renderSuggestionTierStep(wrap, movie, genre, excludeIds){
     wrap.innerHTML = `
       <div class="next-suggestion">
         <p class="next-suggestion-label cheeky-line">${pickRandomLine(NEXT_SUGGESTION_LINES)}</p>
@@ -2768,8 +2870,74 @@
         wrap.innerHTML = `<p class="next-suggestion-loading">Saving...</p>`;
         await quickRateSuggestion(movie, btn.dataset.tier);
         render();
+        const opponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id]);
+        if(opponent){
+          renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, [opponent.id]);
+        } else {
+          // No peer available in this genre to compare against — settle
+          // with just the tier rating, same as the main flow would.
+          showNextSuggestion(genre, [...excludeIds, movie.id]);
+        }
+      });
+    });
+  }
+
+  function pickInlineDuelOpponent(movie, excludeIds){
+    const excludeSet = new Set(excludeIds);
+    const candidates = movies.filter(m => m.genre === movie.genre && !excludeSet.has(m.id));
+    if(candidates.length === 0) return null;
+    const anchor = movie.score || 5;
+    return candidates.reduce((best, m) =>
+      (Math.abs((m.score||5) - anchor) < Math.abs((best.score||5) - anchor)) ? m : best
+    , candidates[0]);
+  }
+
+  function renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, usedOpponentIds){
+    wrap.innerHTML = `
+      <div class="next-suggestion">
+        <p class="next-suggestion-label cheeky-line">${pickRandomLine(DUEL_HEADING_LINES)}</p>
+        <div class="inline-duel-cards">
+          <button class="inline-duel-ticket" id="inlineTicketA">
+            <img src="${escapeHtml(movie.poster||'')}" alt="">
+            <span>${escapeHtml(movie.title)}</span>
+          </button>
+          <div class="inline-vs-mark">vs</div>
+          <button class="inline-duel-ticket" id="inlineTicketB">
+            <img src="${escapeHtml(opponent.poster||'')}" alt="">
+            <span>${escapeHtml(opponent.title)}</span>
+          </button>
+        </div>
+        <div class="next-suggestion-tiers">
+          <button id="inlineTooClose">Too close to call</button>
+          <button id="inlineHaventSeen">Haven't seen it</button>
+        </div>
+      </div>
+    `;
+
+    function finishDuel(result){
+      wrap.innerHTML = `<p class="next-suggestion-loading">Saving...</p>`;
+      if(result !== 'tie'){
+        const won = result === 'win';
+        applyEloUpdate(movie, opponent, won);
+        opponent.votes = (opponent.votes || 1) + 1;
+      }
+      saveMovies().then(() => {
+        render();
         showNextSuggestion(genre, [...excludeIds, movie.id]);
       });
+    }
+
+    el('inlineTicketA').addEventListener('click', () => finishDuel('win'));
+    el('inlineTicketB').addEventListener('click', () => finishDuel('loss'));
+    el('inlineTooClose').addEventListener('click', () => finishDuel('tie'));
+    el('inlineHaventSeen').addEventListener('click', () => {
+      const altOpponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id, ...usedOpponentIds]);
+      if(altOpponent){
+        renderSuggestionDuelStep(wrap, movie, altOpponent, genre, excludeIds, [...usedOpponentIds, altOpponent.id]);
+      } else {
+        // Ran out of alternates and still haven't seen it — settle without a nudge either way.
+        finishDuel('tie');
+      }
     });
   }
 
@@ -3193,6 +3361,39 @@
   document.addEventListener('click', (e) => {
     if(!e.target.closest('.nav-search')) el('topSearchResults').style.display = 'none';
   });
+
+  function measureAndSetSplashTarget(){
+    try{
+      const realLogo = document.querySelector('.nav-logo');
+      if(!realLogo) return;
+      const realRect = realLogo.getBoundingClientRect();
+      // The splash logo is centered in a full-viewport fixed overlay via flex,
+      // so its untransformed center is always exactly the viewport center —
+      // computing this directly avoids measuring the element live, which risks
+      // catching it mid-animation.
+      const splashSize = 110; // must match .splash-logo's CSS width/height
+      const splashCenterX = window.innerWidth / 2;
+      const splashCenterY = window.innerHeight / 2;
+      const tx = (realRect.left + realRect.width/2) - splashCenterX;
+      const ty = (realRect.top + realRect.height/2) - splashCenterY;
+      const scale = realRect.width / splashSize;
+      document.documentElement.style.setProperty('--splash-tx', tx + 'px');
+      document.documentElement.style.setProperty('--splash-ty', ty + 'px');
+      document.documentElement.style.setProperty('--splash-scale', scale);
+    }catch(e){ /* falls back to landing centered if measurement fails */ }
+  }
+  // Only used by the mobile travel animation (desktop's in-place fade doesn't
+  // reference these values at all, so computing them is harmless either way).
+  // A single early measurement can go stale if the real nav logo's position
+  // shifts after it's taken (most likely: the custom web font finishing load
+  // and reflowing the nav) — re-measure at three points instead of trusting
+  // one: immediately, once fonts are confirmed loaded, and again right before
+  // the travel phase of the animation actually needs the value.
+  measureAndSetSplashTarget();
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(measureAndSetSplashTarget);
+  }
+  setTimeout(measureAndSetSplashTarget, 750);
 
   // Mark the intro as played once the full sequence finishes, so returning to
   // Home later in this session (a display toggle, not a real page reload)
