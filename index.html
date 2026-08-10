@@ -892,6 +892,7 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-size:1.05rem;
     font-weight:500;
+    display:block;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -1388,9 +1389,13 @@
       <div class="explainer-label intro-reveal-rest">How ReelVoter Works:</div>
       <div class="explainer-grid">
         <div class="explainer-tile intro-reveal-tile-1">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
-            <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" stroke="#d4af37" stroke-width="4"/>
+            <circle cx="50" cy="50" r="9" fill="#d4af37"/>
+            <circle cx="50" cy="19" r="9" fill="#d4af37"/>
+            <circle cx="81" cy="50" r="9" fill="#d4af37"/>
+            <circle cx="50" cy="81" r="9" fill="#d4af37"/>
+            <circle cx="19" cy="50" r="9" fill="#d4af37"/>
           </svg>
           <div>
             <p class="et-heading">1. Rate It.</p>
@@ -1400,7 +1405,8 @@
         </div>
         <div class="explainer-tile intro-reveal-tile-2">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M9 6l-5 6 5 6M15 6l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <div>
             <p class="et-heading">2. Vote It.</p>
@@ -1787,6 +1793,7 @@
   function switchToCodeStep(){
     const typedEmail = el('pwEmail').value.trim();
     el('passwordStep').style.display = 'none';
+    el('passkeySignInBtn').style.display = 'none';
     el('emailStep').style.display = 'block';
     if(typedEmail) el('loginEmail').value = typedEmail;
     el('loginStatus').textContent = '';
@@ -1799,6 +1806,7 @@
     el('emailStep').style.display = 'none';
     el('codeStep').style.display = 'none';
     el('passwordStep').style.display = 'block';
+    el('passkeySignInBtn').style.display = passkeySupported ? 'block' : 'none';
     el('loginStatus').textContent = '';
     setTimeout(() => el('pwEmail').focus(), 100);
   });
