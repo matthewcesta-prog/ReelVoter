@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ReelVoter — Rank Your Movies</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -265,7 +265,7 @@
       background:var(--bg);
       border-top:1px solid var(--line);
       z-index:41;
-      padding:6px 4px calc(8px + env(safe-area-inset-bottom));
+      padding:6px 4px calc(6px + env(safe-area-inset-bottom));
     }
   }
   .tab-btn{
@@ -440,6 +440,7 @@
     background:var(--bg);
     width:100%;
     min-height:100vh;
+    min-height:100dvh;
     max-width:none;
     border-radius:0;
     padding:0;
