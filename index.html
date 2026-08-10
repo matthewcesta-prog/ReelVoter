@@ -435,7 +435,7 @@
   .poster-cell{border-radius:6px;overflow:hidden;aspect-ratio:2/3;background:var(--surface);}
   .poster-cell img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
 
-  .modal-overlay.detail-overlay{align-items:flex-start;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0;z-index:35;}
+  .modal-overlay.detail-overlay{align-items:flex-start;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overflow-anchor:none;padding:0;z-index:35;}
   .detail-panel{
     background:var(--bg);
     width:100%;
@@ -478,7 +478,7 @@
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
   .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:130px 24px 60px;}
   @media (max-width:700px){
-    .detail-body{padding-top:90px;}
+    .detail-body{padding-top:110px;}
   }
   #nextSuggestionWrap{flex-basis:100%;order:1;}
   #nextSuggestionWrap:empty{display:none;flex-basis:0;}
@@ -512,6 +512,12 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
   }
   .next-suggestion-tiers button:hover{background:var(--surface);border-color:var(--muted);}
+  .ns-havent-seen{
+    border-color:#d4af37 !important;
+    box-shadow:0 0 8px rgba(212,175,55,0.5);
+    color:#d4af37 !important;
+  }
+  .ns-havent-seen:hover{box-shadow:0 0 12px rgba(212,175,55,0.75);}
   .next-suggestion-loading{
     text-align:center;color:var(--muted);font-size:0.85rem;
     max-width:480px;margin:36px auto 0;padding-top:28px;border-top:1px solid var(--line);
@@ -937,57 +943,29 @@
     color:var(--white);
   }
   .recs-heading .line{flex:1;height:1px;background:var(--line);}
-  .rec-block{margin-bottom:22px;}
-  .rec-anchor{
-    font-size:0.85rem;
-    color:var(--muted);
-    margin:0 0 10px;
+  #movieRecsWrap{max-width:1100px;margin:0 auto;padding:0 24px 40px;}
+  .rec-row{
+    display:flex;gap:16px;overflow-x:auto;padding-bottom:6px;
+    scrollbar-width:thin;
   }
-  .rec-anchor b{color:var(--text);font-weight:600;}
-  .rec-anchor .g-tag{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-size:0.7rem;
-    color:var(--muted);
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    margin-left:8px;
-    border:1px solid var(--line);
-    padding:2px 6px;
-    border-radius:3px;
+  .rec-poster-chip{
+    flex:0 0 auto;width:140px;cursor:pointer;
   }
-  .rec-chips{display:flex;flex-wrap:wrap;gap:10px;}
-  .rec-chip{
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:5px;
-    padding:8px;
-    display:flex;
-    gap:10px;
-    align-items:center;
-    min-width:170px;
-  }
-  .rec-chip img{
-    width:32px;height:46px;object-fit:cover;border-radius:2px;
+  .rec-poster-chip img, .rec-poster-placeholder{
+    width:140px;height:200px;object-fit:cover;border-radius:6px;
     filter:grayscale(1) contrast(1.05);
     background:var(--surface-2);
-  }
-  .rec-chip .r-title{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-weight:500;
-    font-size:0.92rem;
-    line-height:1.15;
-  }
-  .rec-chip .r-year{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-size:0.7rem;
-    color:var(--muted);
-    margin-top:3px;
     display:block;
   }
-  .recs-note{
-    font-size:0.78rem;
-    color:var(--muted);
-    margin-top:2px;
+  .rec-poster-chip .r-title{
+    display:block;margin-top:8px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:500;font-size:0.85rem;line-height:1.3;color:var(--text);
+  }
+  @media (max-width:700px){
+    #movieRecsWrap{padding:0 16px 32px;}
+    .rec-poster-chip{width:112px;}
+    .rec-poster-chip img, .rec-poster-placeholder{width:112px;height:160px;}
   }
 
   /* MODAL BASE */
@@ -1399,7 +1377,7 @@
           </svg>
           <div>
             <p class="et-heading">1. Rate It.</p>
-            <p class="et-desc">Pick your rating — Great, Good, OK, Bad. No fancy reviews, just an honest take.</p>
+            <p class="et-desc">Pick your rating — Great, Good, OK, Bad.<br>No fancy reviews, just an honest take.</p>
           </div>
           <button class="et-why-trigger" data-why-title="No 5-Star Math." data-why-text="Bad, OK, Good, or Great. No half-stars, no decimals to argue about." aria-label="Why this matters">?</button>
         </div>
@@ -1410,7 +1388,7 @@
           </svg>
           <div>
             <p class="et-heading">2. Vote It.</p>
-            <p class="et-desc">One head-to-head vote against a similar film. No essay required — just a winner.</p>
+            <p class="et-desc">One head-to-head vote against a similar film.<br>No essay required — just a winner.</p>
           </div>
           <button class="et-why-trigger" data-why-title="Verified, Not Padded." data-why-text="One real account, one real vote — no bots, no burners, no review-bombing." aria-label="Why this matters">?</button>
         </div>
@@ -1533,8 +1511,6 @@
     <div id="emptyAll" class="empty-state" style="display:none;">
       <span id="emptyAllText" class="cheeky-line">No movies yet. Cast the first real vote to start this genre's leaderboard.</span>
     </div>
-
-    <div id="recsContainer"></div>
   </div>
 
   <div id="page-browse" style="display:none;">
@@ -1643,6 +1619,20 @@
     "sci-fi":"Sci-Fi","science fiction":"Sci-Fi","thriller":"Thriller","crime":"Thriller",
     "mystery":"Thriller","biography":"Documentary","family":"Animation","fantasy":"Sci-Fi"
   };
+
+  // OMDb often lists "Drama" first even for genre films (e.g. Hereditary comes back
+  // as "Drama, Horror, Mystery") — checking every listed genre against this priority
+  // order, instead of just taking position [0], keeps the more distinctive genre
+  // from being overshadowed by that generic catch-all tag.
+  const GENRE_PRIORITY = ["horror","animation","sci-fi","science fiction","documentary","comedy","romance","action","adventure","family","fantasy","crime","mystery","thriller","drama"];
+  function pickBestGenre(omdbGenreString, fallback){
+    if(!omdbGenreString) return fallback;
+    const listed = omdbGenreString.split(',').map(g => g.trim().toLowerCase());
+    for(const p of GENRE_PRIORITY){
+      if(listed.includes(p)) return OMDB_GENRE_MAP[p] || fallback;
+    }
+    return OMDB_GENRE_MAP[listed[0]] || fallback;
+  }
 
   // Small curated pool used to power "if you liked..." suggestions when no match is on-hand.
   const CURATED = {
@@ -2021,6 +2011,12 @@
     }
     menu.style.display = 'block';
   });
+  document.addEventListener('click', (e) => {
+    const menu = el('accountMenu');
+    if(menu.style.display === 'none') return;
+    if(menu.contains(e.target) || el('tabAccountBtn').contains(e.target)) return;
+    menu.style.display = 'none';
+  });
 
   el('accountMenuSignIn').addEventListener('click', () => {
     el('accountMenu').style.display = 'none';
@@ -2323,7 +2319,6 @@
       container.appendChild(row);
     });
 
-    renderRecommendations(byGenre);
     renderBrowsePage();
   }
 
@@ -2506,6 +2501,7 @@
             </div>
           </div>
         </div>
+        <div id="movieRecsWrap"></div>
       </div>
     `;
 
@@ -2515,6 +2511,7 @@
     window.scrollTo(0,0);
 
     renderTierCounts(movie.id);
+    renderMovieRecommendations(movie);
 
     if(movie.imdb_id){
       try{
@@ -2771,8 +2768,7 @@
 
         let genre = fallbackGenre || 'Other';
         if(detail && detail.Genre){
-          const first = detail.Genre.split(',')[0].trim().toLowerCase();
-          genre = OMDB_GENRE_MAP[first] || genre;
+          genre = pickBestGenre(detail.Genre, genre);
         }
         const poster = (detail && detail.Poster && detail.Poster !== 'N/A') ? detail.Poster : (item.Poster !== 'N/A' ? item.Poster : '');
         const imdbRating = (detail && detail.imdbRating && detail.imdbRating !== 'N/A') ? parseFloat(detail.imdbRating) : null;
@@ -3047,12 +3043,16 @@
               <button data-tier="good">Good</button>
               <button data-tier="ok">OK</button>
               <button data-tier="bad">Bad</button>
+              <button id="suggestionHaventSeen" class="ns-havent-seen">Haven't seen it</button>
             </div>
           </div>
         </div>
       </div>
     `;
-    wrap.querySelectorAll('.next-suggestion-tiers button').forEach(btn => {
+    el('suggestionHaventSeen').addEventListener('click', () => {
+      showNextSuggestion(genre, [...excludeIds, movie.id]);
+    });
+    wrap.querySelectorAll('.next-suggestion-tiers button[data-tier]').forEach(btn => {
       btn.addEventListener('click', async () => {
         wrap.innerHTML = `<p class="next-suggestion-loading">Saving...</p>`;
         await quickRateSuggestion(movie, btn.dataset.tier);
@@ -3128,67 +3128,49 @@
     });
   }
 
-  async function renderRecommendations(byGenre){
-    const recContainer = el('recsContainer');
-    recContainer.innerHTML = '';
+  async function renderMovieRecommendations(movie){
+    const wrap = el('movieRecsWrap');
+    if(!wrap) return;
+    wrap.innerHTML = '';
 
-    const blocks = [];
-    GENRE_ORDER.forEach(genre => {
-      const list = byGenre[genre];
-      if(!list || list.length === 0) return;
-      const top = [...list].sort((a,b) => b.score - a.score)[0];
-      const pool = CURATED[genre] || [];
-      const have = new Set(list.map(m => m.title.trim().toLowerCase()));
-      const suggestions = pool.filter(p => !have.has(p.title.toLowerCase())).slice(0, 3);
-      if(suggestions.length === 0) return;
-      blocks.push({ genre, top, suggestions });
+    const pool = CURATED[movie.genre] || [];
+    const suggestions = pool.filter(p => p.title.trim().toLowerCase() !== movie.title.trim().toLowerCase()).slice(0, 6);
+    if(suggestions.length === 0) return;
+
+    wrap.innerHTML = `
+      <div class="recs-heading">
+        <h2>If you liked ${escapeHtml(movie.title)}...</h2>
+        <div class="line"></div>
+      </div>
+      <div class="rec-row" id="movieRecsRow"></div>
+    `;
+    const row = el('movieRecsRow');
+
+    suggestions.forEach(s => {
+      const chip = document.createElement('div');
+      chip.className = 'rec-poster-chip';
+      chip.style.cursor = 'pointer';
+      const cached = posterCache[s.title.toLowerCase()];
+      chip.innerHTML = `
+        ${cached ? `<img src="${escapeHtml(cached)}" alt="">` : `<div class="rec-poster-placeholder"></div>`}
+        <span class="r-title">${escapeHtml(s.title)}</span>
+      `;
+      chip.addEventListener('click', () => openRecommendation(s.title, movie.genre));
+      row.appendChild(chip);
+      if(OMDB_KEY && !cached){
+        fetchPosterForTitle(s.title).then(url => {
+          if(url){
+            posterCache[s.title.toLowerCase()] = url;
+            savePosterCache();
+            const placeholder = chip.querySelector('.rec-poster-placeholder');
+            const img = document.createElement('img');
+            img.src = url;
+            if(placeholder) chip.replaceChild(img, placeholder);
+            else chip.prepend(img);
+          }
+        });
+      }
     });
-    if(blocks.length === 0) return;
-
-    const heading = document.createElement('div');
-    heading.className = 'recs-heading';
-    heading.innerHTML = `<h2>If you liked...</h2><div class="line"></div>`;
-    recContainer.appendChild(heading);
-
-    for(const { genre, top, suggestions } of blocks){
-      const block = document.createElement('div');
-      block.className = 'rec-block';
-      const chipsWrap = document.createElement('div');
-      chipsWrap.className = 'rec-chips';
-      block.innerHTML = `<p class="rec-anchor">Because you ranked <b>${escapeHtml(top.title)}</b> highly<span class="g-tag">${genre}</span></p>`;
-      block.appendChild(chipsWrap);
-
-      suggestions.forEach(s => {
-        const chip = document.createElement('div');
-        chip.className = 'rec-chip';
-        chip.style.cursor = 'pointer';
-        const cached = posterCache[s.title.toLowerCase()];
-        chip.innerHTML = `
-          ${cached ? `<img src="${escapeHtml(cached)}" alt="">` : ''}
-          <div><span class="r-title">${escapeHtml(s.title)}</span><span class="r-year">${escapeHtml(s.year||'')}</span></div>
-        `;
-        chip.addEventListener('click', () => openRecommendation(s.title, genre));
-        chipsWrap.appendChild(chip);
-        if(OMDB_KEY && !cached){
-          fetchPosterForTitle(s.title).then(url => {
-            if(url){
-              posterCache[s.title.toLowerCase()] = url;
-              savePosterCache();
-              const img = document.createElement('img');
-              img.src = url;
-              chip.prepend(img);
-            }
-          });
-        }
-      });
-
-      recContainer.appendChild(block);
-    }
-
-    const note = document.createElement('p');
-    note.className = 'recs-note';
-    note.textContent = 'Suggestions drawn from a small curated list, with posters fetched live from OMDb.';
-    recContainer.appendChild(note);
   }
 
   async function openRecommendation(title, genre){
@@ -3498,8 +3480,7 @@
         const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(imdbID)}`);
         const data = await r.json();
         if(data && data.Genre){
-          const first = data.Genre.split(',')[0].trim().toLowerCase();
-          genre = OMDB_GENRE_MAP[first] || 'Other';
+          genre = pickBestGenre(data.Genre, 'Other');
         }
         if(data && data.Poster && data.Poster !== 'N/A') poster = data.Poster;
         if(data && data.imdbRating && data.imdbRating !== 'N/A') imdbRating = parseFloat(data.imdbRating);
