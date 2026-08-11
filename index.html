@@ -903,14 +903,8 @@
   .vote-count{
     display:inline-block;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-size:0.68rem;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-    color:var(--bg);
-    background:var(--white);
-    border-radius:3px;
-    padding:2px 7px;
+    font-size:0.7rem;
+    color:var(--muted);
     margin-top:4px;
   }
 
@@ -1903,6 +1897,7 @@
         // will correctly re-run renderRoute-equivalent logic and recover it.
         el('movieDetailModal').style.display = 'none';
         el('closeDetailBtn').style.display = 'none';
+        document.body.style.overflow = '';
         PAGES.forEach(p => {
           const pageEl = el('page-' + p);
           if(pageEl) pageEl.style.display = (p === 'home') ? 'block' : 'none';
@@ -1911,6 +1906,7 @@
     } else {
       el('movieDetailModal').style.display = 'none';
       el('closeDetailBtn').style.display = 'none';
+      document.body.style.overflow = '';
       const activeRoute = PAGES.includes(routeName) ? routeName : 'home';
       PAGES.forEach(p => {
         const pageEl = el('page-' + p);
@@ -2163,6 +2159,13 @@
     }
   }
 
+  function formatVoteCount(n){
+    if(n >= 1000){
+      return (n / 1000).toFixed(1) + 'k votes';
+    }
+    return n + (n === 1 ? ' vote' : ' votes');
+  }
+
   function uniqueVoterCount(movieId){
     const ids = new Set();
     votesLog.forEach(v => {
@@ -2304,29 +2307,27 @@
     flatList.sort((a, b) => {
       let av, bv;
       if(myRatingsSortField === 'reelvote'){ av = a.score || 5; bv = b.score || 5; }
-      else if(myRatingsSortField === 'yourRating'){ av = TIER_RANK[myRatings[a.id]] || 0; bv = TIER_RANK[myRatings[b.id]] || 0; }
+      else if(myRatingsSortField === 'yourRating'){ av = personalVoteScore(a) || 0; bv = personalVoteScore(b) || 0; }
       else { av = a.title.toLowerCase(); bv = b.title.toLowerCase(); }
       if(av < bv) return -1 * myRatingsSortDir;
       if(av > bv) return 1 * myRatingsSortDir;
       return 0;
     });
 
-    flatList.forEach((m) => {
-      const fullGenreList = movies.filter(x => x.genre === m.genre).sort((a,b) => b.score - a.score);
-      const globalRank = fullGenreList.findIndex(x => x.id === m.id) + 1;
+    flatList.forEach((m, idx) => {
       const row = document.createElement('div');
       row.className = 'movie-row';
       const posterHtml = m.poster
         ? `<img class="poster-thumb" src="${escapeHtml(m.poster)}" alt="">`
         : `<div class="poster-thumb placeholder">n/a</div>`;
       row.innerHTML = `
-        <div class="rank">#${globalRank}</div>
+        <div class="rank">#${idx + 1}</div>
         ${posterHtml}
         <div class="movie-info">
           <span class="movie-title">${escapeHtml(m.title)}</span>
           ${m.year ? `<span class="movie-year">${escapeHtml(m.year)}</span>` : ''}
           <br><span class="mrow-genre-tag">${escapeHtml(m.genre)}</span>
-          <span class="vote-count">ranked by ${uniqueVoterCount(m.id)} ${uniqueVoterCount(m.id) === 1 ? 'person' : 'people'}</span>
+          <span class="vote-count">${formatVoteCount(uniqueVoterCount(m.id))}</span>
         </div>
         <div class="dual-tier">
           <div class="dt-col">
@@ -2395,7 +2396,7 @@
           <span class="movie-title">${escapeHtml(m.title)}</span>
           ${m.year ? `<span class="movie-year">${escapeHtml(m.year)}</span>` : ''}
           <br><span class="mrow-genre-tag">${escapeHtml(m.genre)}</span>
-          <span class="vote-count">ranked by ${uniqueVoterCount(m.id)} ${uniqueVoterCount(m.id) === 1 ? 'person' : 'people'}</span>
+          <span class="vote-count">${formatVoteCount(uniqueVoterCount(m.id))}</span>
         </div>
         <div class="dual-tier">
           <div class="dt-col">
@@ -2492,7 +2493,7 @@
                 <div class="detail-vote-row-text">
                   <div class="dvr-label">ReelVote</div>
                   <div class="dvr-value" style="color:${TIER_VISUAL[currentTier].color};">${currentTier} <span>${(movie.score||5).toFixed(1)}</span></div>
-                  <div class="dvr-meta">${hasRealSignal_ ? `ranked by ${uniqueVoterCount(movie.id)} ${uniqueVoterCount(movie.id)===1?'person':'people'}` : 'IMDb baseline — not yet ReelVoted'}</div>
+                  <div class="dvr-meta">${hasRealSignal_ ? formatVoteCount(uniqueVoterCount(movie.id)) : 'IMDb baseline — not yet ReelVoted'}</div>
                 </div>
               </div>
               ${myRatings[movie.id] ? `
@@ -2538,6 +2539,7 @@
     if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     modal.style.display = 'flex';
     el('closeDetailBtn').style.display = 'inline-block';
+    document.body.style.overflow = 'hidden';
     modal.scrollTop = 0;
     window.scrollTo(0,0);
 
@@ -2707,6 +2709,7 @@
   function closeMovieDetail(){
     el('movieDetailModal').style.display = 'none';
     el('closeDetailBtn').style.display = 'none';
+    document.body.style.overflow = '';
     if(window.location.hash.startsWith('#/movie/')){
       window.history.back();
     }
@@ -2995,7 +2998,16 @@
   function pickNextSuggestion(genre, excludeIds, excludeTitles){
     const excludeSet = new Set(excludeIds);
     const excludeTitleSet = new Set((excludeTitles || []).map(t => t.toLowerCase()));
-    const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !myRatings[m.id]);
+    // Also derive titles from the excluded ids themselves, in case a
+    // duplicate catalog entry exists for the same movie under a different
+    // id — excluding by id alone wouldn't catch that.
+    excludeIds.forEach(id => {
+      const m = movies.find(mv => mv.id === id);
+      if(m) excludeTitleSet.add(m.title.toLowerCase());
+    });
+    const candidates = movies.filter(m =>
+      m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && !myRatings[m.id]
+    );
     if(candidates.length > 0){
       return candidates[Math.floor(Math.random() * candidates.length)];
     }
@@ -3008,7 +3020,9 @@
     }
     // This genre's pool (real + curated) is exhausted — fall back across the
     // whole catalog rather than suggesting nothing at all.
-    const anyCandidates = movies.filter(m => !excludeSet.has(m.id) && !myRatings[m.id]);
+    const anyCandidates = movies.filter(m =>
+      !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && !myRatings[m.id]
+    );
     if(anyCandidates.length > 0){
       return anyCandidates[Math.floor(Math.random() * anyCandidates.length)];
     }
@@ -3366,6 +3380,7 @@
   });
 
   async function finalizeInsert(title, year, genre, poster, imdbID, imdbRating, existingMovie, tierKey, comparison){
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     el('duelOverlay').style.display = 'none';
     pending = null;
 
@@ -3426,6 +3441,8 @@
     resetSearchPanel();
     if(window.location.hash.startsWith('#/movie/')){
       await openMovieDetail(movie);
+      el('movieDetailModal').scrollTop = 0;
+      window.scrollTo(0,0);
       showNextSuggestion(movie.genre, [movie.id]);
     }
   }
