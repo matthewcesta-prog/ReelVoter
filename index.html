@@ -493,8 +493,9 @@
   }
   .next-suggestion-card{
     display:flex;align-items:center;gap:14px;
-    background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    background:var(--surface);border:1px solid #d4af37;border-radius:8px;
     padding:14px;text-align:left;
+    box-shadow:0 0 10px rgba(212,175,55,0.4);
   }
   .next-suggestion-card img{
     width:56px;height:80px;object-fit:cover;border-radius:4px;
@@ -512,12 +513,6 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
   }
   .next-suggestion-tiers button:hover{background:var(--surface);border-color:var(--muted);}
-  .ns-havent-seen{
-    border-color:#d4af37 !important;
-    box-shadow:0 0 8px rgba(212,175,55,0.5);
-    color:#d4af37 !important;
-  }
-  .ns-havent-seen:hover{box-shadow:0 0 12px rgba(212,175,55,0.75);}
   .next-suggestion-loading{
     text-align:center;color:var(--muted);font-size:0.85rem;
     max-width:480px;margin:36px auto 0;padding-top:28px;border-top:1px solid var(--line);
@@ -570,7 +565,7 @@
     line-height:1;text-transform:uppercase;letter-spacing:-0.01em;
   }
   .dts-sub{font-size:0.72rem;color:var(--muted);font-style:italic;margin-top:2px;}
-  .dts-count{font-size:0.7rem;color:var(--muted);white-space:nowrap;}
+  .dts-count{font-size:0.7rem;color:var(--muted);white-space:nowrap;min-width:52px;display:inline-block;font-variant-numeric:tabular-nums;}
   .dts-item.dts-active{opacity:1;}
   .dts-item.dts-active .dts-label{color:var(--tier-color);}
   .dts-item.dts-active .dts-sub{color:var(--tier-color);opacity:0.85;}
@@ -1652,7 +1647,7 @@
   let pending = null;    // {title, year, genre, low, high, list, poster, tempVotes, voteLog}
   let selectedResult = null; // {title, year, poster, genre} from search
   let posterCache = {};  // title(lower) -> poster url
-  let votesLog = [];     // {user_id, movie_a_id, movie_b_id} — used to count unique voters per movie
+  let votesLog = [];     // {user_id, movie_a_id, movie_b_id, winner_id} — used to count unique voters per movie and personal head-to-head history
   let myRatings = {};    // movie_id -> tier label ('Bad'|'OK'|'Good'|'Great') for the current signed-in user
   let searchDebounce = null;
   let currentUser = null;
@@ -2050,7 +2045,7 @@
 
     const { data: voteRows, error: voteErr } = await supabaseClient
       .from('votes')
-      .select('user_id, movie_a_id, movie_b_id, created_at');
+      .select('user_id, movie_a_id, movie_b_id, winner_id, created_at');
     votesLog = voteErr ? [] : (voteRows || []);
     if(voteErr) console.error('Vote log load error', voteErr);
 
@@ -2188,6 +2183,38 @@
   function tierAnchorNumber(tierLabel){
     return tierLabel ? (TIER_ANCHOR[tierLabel.toLowerCase()] != null ? TIER_ANCHOR[tierLabel.toLowerCase()] : null) : null;
   }
+
+  // "Your Vote" starts from the flat tier anchor, then nudges up/down based on
+  // the user's OWN head-to-head history against other movies they rated the
+  // SAME tier — a movie they've personally beaten in a duel shows a slight
+  // edge over one it beat, instead of both showing an identical number. Only
+  // same-tier duels count (a different-tier comparison is already reflected
+  // by the tier gap itself), and the nudge is capped well inside the tier's
+  // own numeric range so it can never cross into a neighboring tier.
+  const PERSONAL_NUDGE_STEP = 0.1;
+  const PERSONAL_NUDGE_CAP = 0.4;
+  function personalVoteScore(movie){
+    const tier = myRatings[movie.id];
+    if(!tier) return null;
+    const base = TIER_ANCHOR[tier.toLowerCase()];
+    if(base == null || !currentUser) return base;
+
+    let wins = 0, losses = 0;
+    votesLog.forEach(v => {
+      if(v.user_id !== currentUser.id || !v.winner_id) return;
+      let opponentId = null;
+      if(v.movie_a_id === movie.id) opponentId = v.movie_b_id;
+      else if(v.movie_b_id === movie.id) opponentId = v.movie_a_id;
+      else return;
+      if(myRatings[opponentId] !== tier) return; // only same-tier duels differentiate
+      if(v.winner_id === movie.id) wins++;
+      else if(v.winner_id === opponentId) losses++;
+    });
+
+    const nudge = Math.max(-PERSONAL_NUDGE_CAP, Math.min(PERSONAL_NUDGE_CAP, (wins - losses) * PERSONAL_NUDGE_STEP));
+    return base + nudge;
+  }
+
   const RATING_WEIGHT = 3;
   const IMDB_PRIOR_WEIGHT = 2;
 
@@ -2304,7 +2331,7 @@
             <span class="dt-label">Your Vote</span>
             ${tierIcon(myRatings[m.id])}
             <span class="tier-badge">${myRatings[m.id]}</span>
-            <span class="dt-score">${tierAnchorNumber(myRatings[m.id]).toFixed(1)}</span>
+            <span class="dt-score">${personalVoteScore(m).toFixed(1)}</span>
           </div>
           <div class="dt-col">
             <span class="dt-label">ReelVote</span>
@@ -2471,7 +2498,7 @@
                   ${tierIcon(myRatings[movie.id])}
                   <div class="detail-vote-row-text">
                     <div class="dvr-label">Your Vote</div>
-                    <div class="dvr-value" style="color:${TIER_VISUAL[myRatings[movie.id]].color};">${myRatings[movie.id]} <span>${tierAnchorNumber(myRatings[movie.id]).toFixed(1)}</span></div>
+                    <div class="dvr-value" style="color:${TIER_VISUAL[myRatings[movie.id]].color};">${myRatings[movie.id]} <span>${personalVoteScore(movie).toFixed(1)}</span></div>
                   </div>
                 </div>
               ` : ''}
@@ -2956,13 +2983,16 @@
     "Don't stop now."
   ];
 
-  function pickNextSuggestion(genre, excludeIds){
+  function pickNextSuggestion(genre, excludeIds, excludeTitles){
     const excludeSet = new Set(excludeIds);
+    const excludeTitleSet = new Set((excludeTitles || []).map(t => t.toLowerCase()));
     const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !myRatings[m.id]);
     if(candidates.length > 0){
       return candidates[Math.floor(Math.random() * candidates.length)];
     }
-    const pool = (CURATED[genre] || []).filter(c => !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()));
+    const pool = (CURATED[genre] || []).filter(c =>
+      !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()) && !excludeTitleSet.has(c.title.toLowerCase())
+    );
     if(pool.length > 0){
       const seed = pool[Math.floor(Math.random() * pool.length)];
       return { needsCreation: true, title: seed.title, genre };
@@ -2974,7 +3004,9 @@
       return anyCandidates[Math.floor(Math.random() * anyCandidates.length)];
     }
     for(const g of GENRE_ORDER){
-      const gPool = (CURATED[g] || []).filter(c => !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()));
+      const gPool = (CURATED[g] || []).filter(c =>
+        !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()) && !excludeTitleSet.has(c.title.toLowerCase())
+      );
       if(gPool.length > 0){
         const seed = gPool[Math.floor(Math.random() * gPool.length)];
         return { needsCreation: true, title: seed.title, genre: g };
@@ -3003,10 +3035,11 @@
     if(tierLabel) await saveUserRating(movie.id, tierLabel);
   }
 
-  async function showNextSuggestion(genre, excludeIds){
+  async function showNextSuggestion(genre, excludeIds, excludeTitles){
+    excludeTitles = excludeTitles || [];
     const wrap = el('nextSuggestionWrap');
     if(!wrap) return;
-    const pick = pickNextSuggestion(genre, excludeIds);
+    const pick = pickNextSuggestion(genre, excludeIds, excludeTitles);
     if(!pick){ wrap.innerHTML = ''; return; }
 
     let movie = pick;
@@ -3014,23 +3047,18 @@
       wrap.innerHTML = `<p class="next-suggestion-loading">Finding something else you might like...</p>`;
       movie = await getOrCreateMovieByTitle(pick.title, pick.genre);
       if(!movie){
-        // That curated title failed to resolve (e.g. an OMDb miss) — fall
-        // back to any real, already-in-catalog movie rather than giving up.
-        const excludeSet = new Set(excludeIds);
-        const anyReal = movies.filter(m => !excludeSet.has(m.id) && !myRatings[m.id]);
-        if(anyReal.length > 0){
-          movie = anyReal[Math.floor(Math.random() * anyReal.length)];
-        } else {
-          wrap.innerHTML = '';
-          return;
-        }
+        // That curated title failed to resolve (e.g. an OMDb miss). Remember
+        // it so it's never picked again in this chain, then retry right away
+        // instead of leaving the widget stuck on the loading message.
+        showNextSuggestion(genre, excludeIds, [...excludeTitles, pick.title]);
+        return;
       }
     }
 
-    renderSuggestionTierStep(wrap, movie, genre, excludeIds);
+    renderSuggestionTierStep(wrap, movie, genre, excludeIds, excludeTitles);
   }
 
-  function renderSuggestionTierStep(wrap, movie, genre, excludeIds){
+  function renderSuggestionTierStep(wrap, movie, genre, excludeIds, excludeTitles){
     wrap.innerHTML = `
       <div class="next-suggestion">
         <p class="next-suggestion-label cheeky-line">${pickRandomLine(NEXT_SUGGESTION_LINES)}</p>
@@ -3050,7 +3078,7 @@
       </div>
     `;
     el('suggestionHaventSeen').addEventListener('click', () => {
-      showNextSuggestion(genre, [...excludeIds, movie.id]);
+      showNextSuggestion(genre, [...excludeIds, movie.id], excludeTitles);
     });
     wrap.querySelectorAll('.next-suggestion-tiers button[data-tier]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -3059,11 +3087,11 @@
         render();
         const opponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id]);
         if(opponent){
-          renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, [opponent.id]);
+          renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, excludeTitles, [opponent.id]);
         } else {
           // No peer available in this genre to compare against — settle
           // with just the tier rating, same as the main flow would.
-          showNextSuggestion(genre, [...excludeIds, movie.id]);
+          showNextSuggestion(genre, [...excludeIds, movie.id], excludeTitles);
         }
       });
     });
@@ -3079,7 +3107,7 @@
     , candidates[0]);
   }
 
-  function renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, usedOpponentIds){
+  function renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, excludeTitles, usedOpponentIds){
     wrap.innerHTML = `
       <div class="next-suggestion">
         <p class="next-suggestion-label cheeky-line">${pickRandomLine(DUEL_HEADING_LINES)}</p>
@@ -3110,7 +3138,7 @@
       }
       saveMovies().then(() => {
         render();
-        showNextSuggestion(genre, [...excludeIds, movie.id]);
+        showNextSuggestion(genre, [...excludeIds, movie.id], excludeTitles);
       });
     }
 
@@ -3120,7 +3148,7 @@
     el('inlineHaventSeen').addEventListener('click', () => {
       const altOpponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id, ...usedOpponentIds]);
       if(altOpponent){
-        renderSuggestionDuelStep(wrap, movie, altOpponent, genre, excludeIds, [...usedOpponentIds, altOpponent.id]);
+        renderSuggestionDuelStep(wrap, movie, altOpponent, genre, excludeIds, excludeTitles, [...usedOpponentIds, altOpponent.id]);
       } else {
         // Ran out of alternates and still haven't seen it — settle without a nudge either way.
         finishDuel('tie');
