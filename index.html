@@ -1540,9 +1540,9 @@
 </div>
 
 <!-- MOVIE DETAIL OVERLAY -->
+<button class="detail-close" id="closeDetailBtn" style="display:none;">&times;</button>
 <div class="modal-overlay detail-overlay" id="movieDetailModal" style="display:none;">
   <div class="detail-panel">
-    <button class="detail-close" id="closeDetailBtn">&times;</button>
     <div id="detailContent"></div>
     <div id="detailRateWidget" class="detail-rate-widget" style="display:none;">
       <p class="cheeky-line" id="rateWidgetLine" style="text-align:center;margin:0 0 16px;"></p>
@@ -1902,6 +1902,7 @@
         // harmless; if data was just still loading, the next render() call
         // will correctly re-run renderRoute-equivalent logic and recover it.
         el('movieDetailModal').style.display = 'none';
+        el('closeDetailBtn').style.display = 'none';
         PAGES.forEach(p => {
           const pageEl = el('page-' + p);
           if(pageEl) pageEl.style.display = (p === 'home') ? 'block' : 'none';
@@ -1909,6 +1910,7 @@
       }
     } else {
       el('movieDetailModal').style.display = 'none';
+      el('closeDetailBtn').style.display = 'none';
       const activeRoute = PAGES.includes(routeName) ? routeName : 'home';
       PAGES.forEach(p => {
         const pageEl = el('page-' + p);
@@ -2533,7 +2535,9 @@
     `;
 
     el('detailRateBtn').onclick = () => startRateFromDetail(movie);
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     modal.style.display = 'flex';
+    el('closeDetailBtn').style.display = 'inline-block';
     modal.scrollTop = 0;
     window.scrollTo(0,0);
 
@@ -2702,6 +2706,7 @@
 
   function closeMovieDetail(){
     el('movieDetailModal').style.display = 'none';
+    el('closeDetailBtn').style.display = 'none';
     if(window.location.hash.startsWith('#/movie/')){
       window.history.back();
     }
@@ -2758,7 +2763,7 @@
 
   const pendingMovieCreations = new Map();
 
-  async function getOrCreateMovieByTitle(title, fallbackGenre){
+  async function getOrCreateMovieByTitle(title, fallbackGenre, year){
     const key = title.toLowerCase();
     const existing = findExistingMovie(null, title);
     if(existing){
@@ -2779,7 +2784,8 @@
 
     const promise = (async () => {
       try{
-        const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&s=${encodeURIComponent(title)}&type=movie`);
+        const yearParam = year ? `&y=${encodeURIComponent(year)}` : '';
+        const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&s=${encodeURIComponent(title)}${yearParam}&type=movie`);
         const data = await r.json();
         if(!data || !data.Search || !data.Search.length) return null;
         const item = data.Search[0];
@@ -2854,13 +2860,16 @@
       const pool = [];
       [...(trendingData.results || []), ...(popularData.results || [])].forEach(m => {
         const key = (m.title || '').toLowerCase();
-        if(key && !seen.has(key)){ seen.add(key); pool.push(m.title); }
+        if(key && !seen.has(key)){
+          seen.add(key);
+          pool.push({ title: m.title, year: (m.release_date || '').slice(0, 4) || null });
+        }
       });
 
       const shuffled = shuffleArr(pool).slice(0, 10);
       const resolved = [];
-      for(const title of shuffled){
-        const movie = await getOrCreateMovieByTitle(title, null);
+      for(const item of shuffled){
+        const movie = await getOrCreateMovieByTitle(item.title, null, item.year);
         if(movie && movie.poster) resolved.push(movie);
       }
       trendingFallbackCache = resolved;
@@ -2995,7 +3004,7 @@
     );
     if(pool.length > 0){
       const seed = pool[Math.floor(Math.random() * pool.length)];
-      return { needsCreation: true, title: seed.title, genre };
+      return { needsCreation: true, title: seed.title, year: seed.year, genre };
     }
     // This genre's pool (real + curated) is exhausted — fall back across the
     // whole catalog rather than suggesting nothing at all.
@@ -3009,7 +3018,7 @@
       );
       if(gPool.length > 0){
         const seed = gPool[Math.floor(Math.random() * gPool.length)];
-        return { needsCreation: true, title: seed.title, genre: g };
+        return { needsCreation: true, title: seed.title, year: seed.year, genre: g };
       }
     }
     return null;
@@ -3045,7 +3054,7 @@
     let movie = pick;
     if(pick.needsCreation){
       wrap.innerHTML = `<p class="next-suggestion-loading">Finding something else you might like...</p>`;
-      movie = await getOrCreateMovieByTitle(pick.title, pick.genre);
+      movie = await getOrCreateMovieByTitle(pick.title, pick.genre, pick.year);
       if(!movie){
         // That curated title failed to resolve (e.g. an OMDb miss). Remember
         // it so it's never picked again in this chain, then retry right away
@@ -3183,7 +3192,7 @@
         ${cached ? `<img src="${escapeHtml(cached)}" alt="">` : `<div class="rec-poster-placeholder"></div>`}
         <span class="r-title">${escapeHtml(s.title)}</span>
       `;
-      chip.addEventListener('click', () => openRecommendation(s.title, movie.genre));
+      chip.addEventListener('click', () => openRecommendation(s.title, movie.genre, s.year));
       row.appendChild(chip);
       if(OMDB_KEY && !cached){
         fetchPosterForTitle(s.title).then(url => {
@@ -3201,8 +3210,8 @@
     });
   }
 
-  async function openRecommendation(title, genre){
-    const movie = await getOrCreateMovieByTitle(title, genre);
+  async function openRecommendation(title, genre, year){
+    const movie = await getOrCreateMovieByTitle(title, genre, year);
     if(movie) navigateTo(movie.id);
   }
 
@@ -3262,7 +3271,7 @@
       if(pool.length > 0){
         const seed = pool[Math.floor(Math.random() * pool.length)];
         el('continueAddBtn').disabled = true;
-        const seedMovie = await getOrCreateMovieByTitle(seed.title, genre);
+        const seedMovie = await getOrCreateMovieByTitle(seed.title, genre, seed.year);
         el('continueAddBtn').disabled = false;
         if(seedMovie){
           pending = {
