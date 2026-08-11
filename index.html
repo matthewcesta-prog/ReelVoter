@@ -1897,7 +1897,7 @@
         // will correctly re-run renderRoute-equivalent logic and recover it.
         el('movieDetailModal').style.display = 'none';
         el('closeDetailBtn').style.display = 'none';
-        document.body.style.overflow = '';
+        unlockBodyScroll();
         PAGES.forEach(p => {
           const pageEl = el('page-' + p);
           if(pageEl) pageEl.style.display = (p === 'home') ? 'block' : 'none';
@@ -1906,7 +1906,7 @@
     } else {
       el('movieDetailModal').style.display = 'none';
       el('closeDetailBtn').style.display = 'none';
-      document.body.style.overflow = '';
+      unlockBodyScroll();
       const activeRoute = PAGES.includes(routeName) ? routeName : 'home';
       PAGES.forEach(p => {
         const pageEl = el('page-' + p);
@@ -2539,7 +2539,7 @@
     if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     modal.style.display = 'flex';
     el('closeDetailBtn').style.display = 'inline-block';
-    document.body.style.overflow = 'hidden';
+    lockBodyScroll();
     modal.scrollTop = 0;
     window.scrollTo(0,0);
 
@@ -2706,10 +2706,28 @@
     el('detailRateWidget').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  let lockedScrollY = 0;
+  function lockBodyScroll(){
+    lockedScrollY = window.scrollY || window.pageYOffset || 0;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.width = '100%';
+  }
+  function unlockBodyScroll(){
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, lockedScrollY);
+  }
+
   function closeMovieDetail(){
     el('movieDetailModal').style.display = 'none';
     el('closeDetailBtn').style.display = 'none';
-    document.body.style.overflow = '';
+    unlockBodyScroll();
     if(window.location.hash.startsWith('#/movie/')){
       window.history.back();
     }
