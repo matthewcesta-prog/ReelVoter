@@ -2540,50 +2540,50 @@
     renderTierCounts(movie.id);
     renderMovieRecommendations(movie);
 
-    if(movie.imdb_id){
-      try{
-        const r = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(movie.imdb_id)}&plot=short`);
-        const data = await r.json();
-        if(data && data.Plot && data.Plot !== 'N/A'){
-          el('detailPlotText').textContent = data.Plot;
-          el('detailPlotField').style.display = 'block';
-        }
-        if(data && data.Actors && data.Actors !== 'N/A'){
-          el('detailStarringText').textContent = data.Actors;
-          el('detailStarringField').style.display = 'block';
-        }
-        if(data && data.Director && data.Director !== 'N/A'){
-          el('detailDirectorText').textContent = data.Director;
-          el('detailDirectorField').style.display = 'block';
-        }
-        if(data && data.Writer && data.Writer !== 'N/A'){
-          el('detailWritersText').textContent = data.Writer;
-          el('detailWritersField').style.display = 'block';
-        }
-      }catch(e){ /* detail fetch failed — still show what we have */ }
+    const detailPromise = movie.imdb_id
+      ? fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(movie.imdb_id)}&plot=short`).then(r => r.json()).catch(() => null)
+      : Promise.resolve(null);
+    const watchProvidersPromise = movie.tmdb_id
+      ? fetchWatchProviders(movie.tmdb_id).catch(() => null)
+      : Promise.resolve(null);
+
+    const [data, wp] = await Promise.all([detailPromise, watchProvidersPromise]);
+
+    if(data){
+      if(data.Plot && data.Plot !== 'N/A'){
+        el('detailPlotText').textContent = data.Plot;
+        el('detailPlotField').style.display = 'block';
+      }
+      if(data.Actors && data.Actors !== 'N/A'){
+        el('detailStarringText').textContent = data.Actors;
+        el('detailStarringField').style.display = 'block';
+      }
+      if(data.Director && data.Director !== 'N/A'){
+        el('detailDirectorText').textContent = data.Director;
+        el('detailDirectorField').style.display = 'block';
+      }
+      if(data.Writer && data.Writer !== 'N/A'){
+        el('detailWritersText').textContent = data.Writer;
+        el('detailWritersField').style.display = 'block';
+      }
     }
 
-    if(movie.tmdb_id){
-      try{
-        const wp = await fetchWatchProviders(movie.tmdb_id);
-        if(wp){
-          const groups = [];
-          if(wp.flatrate.length) groups.push({ label: 'Stream', items: wp.flatrate });
-          if(wp.rent.length) groups.push({ label: 'Rent', items: wp.rent });
-          if(wp.buy.length) groups.push({ label: 'Buy', items: wp.buy });
-          const groupsHtml = groups.map(g => `
-            <div class="watch-group">
-              <span class="watch-group-label">${g.label}:</span>
-              ${g.items.slice(0, 5).map(p => `
-                <img class="watch-provider-logo" src="https://image.tmdb.org/t/p/w92${p.logo_path}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}">
-              `).join('')}
-            </div>
-          `).join('');
-          const moreLink = wp.link ? `<a href="${escapeHtml(wp.link)}" target="_blank" rel="noopener" class="watch-more-link">More options</a>` : '';
-          el('detailWatchProviders').innerHTML = groupsHtml + moreLink;
-          el('detailWatchField').style.display = 'block';
-        }
-      }catch(e){ /* watch-provider fetch failed — just skip the section */ }
+    if(wp){
+      const groups = [];
+      if(wp.flatrate.length) groups.push({ label: 'Stream', items: wp.flatrate });
+      if(wp.rent.length) groups.push({ label: 'Rent', items: wp.rent });
+      if(wp.buy.length) groups.push({ label: 'Buy', items: wp.buy });
+      const groupsHtml = groups.map(g => `
+        <div class="watch-group">
+          <span class="watch-group-label">${g.label}:</span>
+          ${g.items.slice(0, 5).map(p => `
+            <img class="watch-provider-logo" src="https://image.tmdb.org/t/p/w92${p.logo_path}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}">
+          `).join('')}
+        </div>
+      `).join('');
+      const moreLink = wp.link ? `<a href="${escapeHtml(wp.link)}" target="_blank" rel="noopener" class="watch-more-link">More options</a>` : '';
+      el('detailWatchProviders').innerHTML = groupsHtml + moreLink;
+      el('detailWatchField').style.display = 'block';
     }
   }
 
