@@ -2542,6 +2542,15 @@
     lockBodyScroll();
     modal.scrollTop = 0;
     window.scrollTo(0,0);
+    // WebKit (Safari and, on iOS, every other browser including Chrome, since
+    // Apple requires them all to use it) needs a freshly-shown scroll view's
+    // momentum-scrolling engine to "warm up" before it behaves normally on
+    // touch. Priming it with an imperceptible 1px scroll right now means the
+    // person's own first real gesture doesn't hit that uninitialized state.
+    requestAnimationFrame(() => {
+      modal.scrollTop = 1;
+      requestAnimationFrame(() => { modal.scrollTop = 0; });
+    });
 
     renderTierCounts(movie.id);
     renderMovieRecommendations(movie);
