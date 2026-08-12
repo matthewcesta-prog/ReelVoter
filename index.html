@@ -262,8 +262,9 @@
       display:flex;
       position:fixed;
       bottom:0;left:0;right:0;
-      background:var(--bg);
+      background:var(--surface);
       border-top:1px solid var(--line);
+      box-shadow:0 -4px 16px rgba(0,0,0,0.45);
       z-index:41;
       padding:6px 4px calc(6px + env(safe-area-inset-bottom));
     }
@@ -826,6 +827,12 @@
     border-radius:4px;
     font-size:0.82rem;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+  }
+  @media (max-width:700px){
+    .my-ratings-controls{gap:12px;flex-wrap:nowrap;}
+    .mrc-group{gap:5px;}
+    .mrc-group label{font-size:0.68rem;}
+    .mrc-group select{padding:5px 6px;font-size:0.74rem;}
   }
   #sortDirBtn{
     background:var(--surface-2);
@@ -2600,6 +2607,16 @@
       el('detailWatchProviders').innerHTML = groupsHtml + moreLink;
       el('detailWatchField').style.display = 'block';
     }
+
+    // Re-prime the scroll engine now that async content (Where to Watch,
+    // etc.) has actually settled — the initial priming at page-open can't
+    // account for layout still shifting after it runs. Preserves wherever
+    // the person has already scrolled to; just nudges by 1px and back.
+    requestAnimationFrame(() => {
+      const currentScroll = modal.scrollTop;
+      modal.scrollTop = currentScroll + 1;
+      requestAnimationFrame(() => { modal.scrollTop = currentScroll; });
+    });
   }
 
   async function renderTierCounts(movieId){
@@ -3022,8 +3039,23 @@
     "Don't stop now."
   ];
 
+  function getDismissedSuggestions(){
+    try{
+      return JSON.parse(localStorage.getItem('reelvoter_dismissed_suggestions') || '[]');
+    }catch(e){ return []; }
+  }
+  function addDismissedSuggestion(movieId){
+    try{
+      const current = getDismissedSuggestions();
+      if(!current.includes(movieId)){
+        current.push(movieId);
+        localStorage.setItem('reelvoter_dismissed_suggestions', JSON.stringify(current));
+      }
+    }catch(e){ /* localStorage unavailable — degrade gracefully, just no cross-session memory */ }
+  }
+
   function pickNextSuggestion(genre, excludeIds, excludeTitles){
-    const excludeSet = new Set(excludeIds);
+    const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const excludeTitleSet = new Set((excludeTitles || []).map(t => t.toLowerCase()));
     // Also derive titles from the excluded ids themselves, in case a
     // duplicate catalog entry exists for the same movie under a different
@@ -3128,6 +3160,7 @@
       </div>
     `;
     el('suggestionHaventSeen').addEventListener('click', () => {
+      addDismissedSuggestion(movie.id);
       showNextSuggestion(genre, [...excludeIds, movie.id], excludeTitles);
     });
     wrap.querySelectorAll('.next-suggestion-tiers button[data-tier]').forEach(btn => {
@@ -3147,14 +3180,33 @@
     });
   }
 
+  function hasBeenComparedTo(userId, movieId1, movieId2){
+    return votesLog.some(v =>
+      v.user_id === userId &&
+      ((v.movie_a_id === movieId1 && v.movie_b_id === movieId2) ||
+       (v.movie_a_id === movieId2 && v.movie_b_id === movieId1))
+    );
+  }
+
   function pickInlineDuelOpponent(movie, excludeIds){
     const excludeSet = new Set(excludeIds);
     const candidates = movies.filter(m => m.genre === movie.genre && !excludeSet.has(m.id));
     if(candidates.length === 0) return null;
     const anchor = movie.score || 5;
-    return candidates.reduce((best, m) =>
+
+    // Prefer a movie this user has never actually been shown against this
+    // one — resolves transitivity gaps (rated A over C, but B vs C was
+    // never tested) far more directly than always picking whoever's
+    // closest in score, which can keep re-confirming relationships that
+    // are already known instead of filling real gaps.
+    const untested = currentUser
+      ? candidates.filter(m => !hasBeenComparedTo(currentUser.id, movie.id, m.id))
+      : candidates;
+    const pool = untested.length > 0 ? untested : candidates;
+
+    return pool.reduce((best, m) =>
       (Math.abs((m.score||5) - anchor) < Math.abs((best.score||5) - anchor)) ? m : best
-    , candidates[0]);
+    , pool[0]);
   }
 
   function renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, excludeTitles, usedOpponentIds){
@@ -3332,11 +3384,16 @@
     }
 
     // Pick the closest peer to the chosen tier's anchor — a genuinely comparable film,
-    // not a random one that makes the comparison pointless.
+    // not a random one that makes the comparison pointless. Prefer one this user
+    // has never actually been shown against this movie before, when possible.
     const anchor = TIER_ANCHOR[selectedTier];
-    const opponent = candidates.reduce((best, m) =>
+    const untestedCandidates = (currentUser && existingMovie)
+      ? candidates.filter(m => !hasBeenComparedTo(currentUser.id, existingMovie.id, m.id))
+      : candidates;
+    const opponentPool = untestedCandidates.length > 0 ? untestedCandidates : candidates;
+    const opponent = opponentPool.reduce((best, m) =>
       (Math.abs((m.score||5) - anchor) < Math.abs((best.score||5) - anchor)) ? m : best
-    , candidates[0]);
+    , opponentPool[0]);
 
     pending = {
       title, year, genre, poster, imdbID, imdbRating, existingMovie, tier: selectedTier,
