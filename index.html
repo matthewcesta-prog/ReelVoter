@@ -437,7 +437,7 @@
   .poster-cell{border-radius:6px;overflow:hidden;aspect-ratio:2/3;background:var(--surface);}
   .poster-cell img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
 
-  .modal-overlay.detail-overlay{align-items:flex-start;overflow-y:auto;overflow-x:hidden;overflow-anchor:none;padding:0;z-index:35;}
+  .modal-overlay.detail-overlay{align-items:flex-start;overflow-y:auto;overflow-x:hidden;overflow-anchor:none;touch-action:pan-y;padding:0;z-index:35;}
   .detail-panel{
     background:var(--bg);
     width:100%;
@@ -489,6 +489,13 @@
     padding-top:28px;
     border-top:1px solid var(--line);
     text-align:center;
+  }
+  .inline-duel-box{
+    background:var(--surface);
+    border:1px solid #d4af37;
+    box-shadow:0 0 10px rgba(212,175,55,0.4);
+    border-radius:8px;
+    padding:20px;
   }
   .next-suggestion-label{
     font-size:0.95rem;margin:0 0 16px;
@@ -946,6 +953,7 @@
   .rec-row{
     display:flex;gap:16px;overflow-x:auto;padding-bottom:6px;
     scrollbar-width:thin;
+    touch-action:pan-x;
   }
   .rec-poster-chip{
     flex:0 0 auto;width:140px;cursor:pointer;
@@ -1506,6 +1514,12 @@
     </div>
     <div class="my-ratings-controls" id="myRatingsControls" style="display:none;">
       <div class="mrc-group">
+        <label for="genreFilter">Genre</label>
+        <select id="genreFilter">
+          <option value="all">All Genres</option>
+        </select>
+      </div>
+      <div class="mrc-group">
         <label for="sortField">Sort by</label>
         <select id="sortField">
           <option value="reelvote">ReelVote Score</option>
@@ -1513,12 +1527,6 @@
           <option value="title">Title</option>
         </select>
         <button id="sortDirBtn" type="button" title="Toggle sort direction">↓</button>
-      </div>
-      <div class="mrc-group">
-        <label for="genreFilter">Genre</label>
-        <select id="genreFilter">
-          <option value="all">All Genres</option>
-        </select>
       </div>
     </div>
     <div id="genreContainer"></div>
@@ -1650,7 +1658,7 @@
 
   // Small curated pool used to power "if you liked..." suggestions when no match is on-hand.
   const CURATED = {
-    "Action": [{title:"Mad Max: Fury Road",year:"2015"},{title:"Die Hard",year:"1988"},{title:"The Raid",year:"2011"},{title:"John Wick",year:"2014"},{title:"Heat",year:"1995"}],
+    "Action": [{title:"Mad Max: Fury Road",year:"2015"},{title:"Die Hard",year:"1988"},{title:"The Raid: Redemption",year:"2011"},{title:"John Wick",year:"2014"},{title:"Heat",year:"1995"}],
     "Animation": [{title:"Spirited Away",year:"2001"},{title:"Spider-Man: Into the Spider-Verse",year:"2018"},{title:"The Iron Giant",year:"1999"},{title:"Up",year:"2009"},{title:"Ratatouille",year:"2007"}],
     "Comedy": [{title:"Paddington 2",year:"2017"},{title:"In Bruges",year:"2008"},{title:"Superbad",year:"2007"},{title:"Groundhog Day",year:"1993"},{title:"The Grand Budapest Hotel",year:"2014"}],
     "Documentary": [{title:"Man on Wire",year:"2008"},{title:"Free Solo",year:"2018"},{title:"The Act of Killing",year:"2012"},{title:"Amy",year:"2015"},{title:"13th",year:"2016"}],
@@ -3347,22 +3355,24 @@
     duelChain = duelChain || [];
     wrap.innerHTML = `
       <div class="next-suggestion">
-        <p class="next-suggestion-label cheeky-line">${pickRandomLine(DUEL_HEADING_LINES)}</p>
-        ${duelChain.length > 0 ? `<p class="inline-duel-progress">One more comparison to help place it precisely (${duelChain.length + 1} of up to 3)</p>` : ''}
-        <div class="inline-duel-cards">
-          <button class="inline-duel-ticket" id="inlineTicketA">
-            <img src="${escapeHtml(movie.poster||'')}" alt="">
-            <span>${escapeHtml(movie.title)}</span>
-          </button>
-          <div class="inline-vs-mark">vs</div>
-          <button class="inline-duel-ticket" id="inlineTicketB">
-            <img src="${escapeHtml(opponent.poster||'')}" alt="">
-            <span>${escapeHtml(opponent.title)}</span>
-          </button>
-        </div>
-        <div class="next-suggestion-tiers">
-          <button id="inlineTooClose">Too close to call</button>
-          <button id="inlineHaventSeen">Haven't seen it</button>
+        <div class="inline-duel-box">
+          <p class="next-suggestion-label cheeky-line">${pickRandomLine(DUEL_HEADING_LINES)}</p>
+          ${duelChain.length > 0 ? `<p class="inline-duel-progress">One more comparison to help place it precisely (${duelChain.length + 1} of up to 3)</p>` : ''}
+          <div class="inline-duel-cards">
+            <button class="inline-duel-ticket" id="inlineTicketA">
+              <img src="${escapeHtml(movie.poster||'')}" alt="">
+              <span>${escapeHtml(movie.title)}</span>
+            </button>
+            <div class="inline-vs-mark">vs</div>
+            <button class="inline-duel-ticket" id="inlineTicketB">
+              <img src="${escapeHtml(opponent.poster||'')}" alt="">
+              <span>${escapeHtml(opponent.title)}</span>
+            </button>
+          </div>
+          <div class="next-suggestion-tiers">
+            <button id="inlineTooClose">Too close to call</button>
+            <button id="inlineHaventSeen">Haven't seen it</button>
+          </div>
         </div>
       </div>
     `;
