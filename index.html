@@ -632,7 +632,8 @@
     margin:24px auto 40px;
     padding:24px;
     background:var(--surface);
-    border:1px solid var(--line);
+    border:1px solid #d4af37;
+    box-shadow:0 0 10px rgba(212,175,55,0.4);
     border-radius:8px;
     position:relative;
     z-index:1;
@@ -1130,7 +1131,15 @@
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;}
 
   /* DUEL / COMPARISON MODAL — signature element */
-  .duel-modal{position:relative;max-width:640px;background:transparent;border:none;padding:0;box-shadow:none;animation:modalIn 0.22s cubic-bezier(0.2,0.7,0.3,1);}
+  .duel-modal{
+    position:relative;max-width:640px;
+    background:var(--surface);
+    border:1px solid #d4af37;
+    box-shadow:0 0 10px rgba(212,175,55,0.4);
+    border-radius:8px;
+    padding:24px;
+    animation:modalIn 0.22s cubic-bezier(0.2,0.7,0.3,1);
+  }
   .duel-heading{text-align:center;margin-bottom:18px;padding:0 90px;}
   .duel-heading .eyebrow{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1382,9 +1391,9 @@
           </svg>
           <div>
             <p class="et-heading">1. Rate It.</p>
-            <p class="et-desc">Pick your rating — Great, Good, OK, Bad.<br>No fancy reviews, just an honest take.</p>
+            <p class="et-desc">Pick your rating — Great, Good, OK, Bad.</p>
           </div>
-          <button class="et-why-trigger" data-why-title="No 5-Star Math." data-why-text="Bad, OK, Good, or Great. No half-stars, no decimals to argue about." aria-label="Why this matters">?</button>
+          <button class="et-why-trigger" data-why-title="No 5-Star Math." data-why-text="No half-stars, no decimals to argue about." aria-label="Why this matters">?</button>
         </div>
         <div class="explainer-tile intro-reveal-tile-2">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1393,9 +1402,9 @@
           </svg>
           <div>
             <p class="et-heading">2. Vote It.</p>
-            <p class="et-desc">One head-to-head vote against a similar film.<br>No essay required — just a winner.</p>
+            <p class="et-desc">Head-to-head, against similar films.</p>
           </div>
-          <button class="et-why-trigger" data-why-title="Verified, Not Padded." data-why-text="One real account, one real vote — no bots, no burners, no review-bombing." aria-label="Why this matters">?</button>
+          <button class="et-why-trigger" data-why-title="Not Just Another Star Average." data-why-text="Most sites average anonymous stars. ReelVoter uses a weighted comparison algorithm, built from real head-to-head votes.<br><br><strong>Verified Ratings</strong><br>Account logins mean real ratings. No bots, no burners, no review-bombing. That's what makes the number mean something." aria-label="Why this matters">?</button>
         </div>
         <div class="explainer-tile intro-reveal-tile-3">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1403,7 +1412,7 @@
           </svg>
           <div>
             <p class="et-heading">3. Log It.</p>
-            <p class="et-desc">Every movie you rate joins your own list — sortable, searchable, always yours.</p>
+            <p class="et-desc">Every movie you rate joins your own list.</p>
           </div>
           <button class="et-why-trigger" data-why-title="A Record, Not a Diary." data-why-text="Sort it, filter it, own it — not a wall of essays for people to scroll past." aria-label="Why this matters">?</button>
         </div>
@@ -1960,11 +1969,19 @@
 
   el('navHomeBtn').addEventListener('click', () => navigateTo('home'));
 
-  document.querySelectorAll('.et-why-trigger').forEach(btn => {
-    btn.addEventListener('click', () => {
+  document.querySelectorAll('.explainer-tile').forEach(tile => {
+    const btn = tile.querySelector('.et-why-trigger');
+    if(!btn) return;
+    const openPopup = () => {
       el('whyPopupTitle').textContent = btn.dataset.whyTitle;
-      el('whyPopupText').textContent = btn.dataset.whyText;
+      el('whyPopupText').innerHTML = btn.dataset.whyText;
       el('whyPopupModal').style.display = 'flex';
+    };
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', openPopup);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // avoid firing the tile's own listener too and opening it twice
+      openPopup();
     });
   });
   el('whyPopupCloseBtn').addEventListener('click', () => {
@@ -3659,9 +3676,9 @@
     resetSearchPanel();
     if(window.location.hash.startsWith('#/movie/')){
       await openMovieDetail(movie);
+      await showNextSuggestion(movie.genre, [movie.id]);
       el('movieDetailModal').scrollTop = 0;
       window.scrollTo(0,0);
-      showNextSuggestion(movie.genre, [movie.id]);
     }
   }
 
