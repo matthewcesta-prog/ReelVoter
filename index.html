@@ -1412,7 +1412,7 @@
             <p class="et-heading">2. Vote It.</p>
             <p class="et-desc">Head-to-head, against similar films.</p>
           </div>
-          <button class="et-why-trigger" data-why-title="Not Just Another Star Average." data-why-text="Most sites average anonymous stars. ReelVoter uses a weighted comparison algorithm, built from real head-to-head votes.<br><br><strong>Verified Ratings</strong><br>Account logins mean real ratings. No bots, no burners, no review-bombing. That's what makes the number mean something." aria-label="Why this matters">?</button>
+          <button class="et-why-trigger" data-why-title="Not Just Another<br>Star Average." data-why-text="<strong>Real Comparisons</strong><br>Most sites average anonymous stars. ReelVoter's algorithm is built on real head-to-head votes.<br><br><strong>Real Ratings</strong><br>Account logins mean real ratings. No bots, no burners, no review-bombing. That's what makes the number mean something." aria-label="Why this matters">?</button>
         </div>
         <div class="explainer-tile intro-reveal-tile-3">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1981,7 +1981,7 @@
     const btn = tile.querySelector('.et-why-trigger');
     if(!btn) return;
     const openPopup = () => {
-      el('whyPopupTitle').textContent = btn.dataset.whyTitle;
+      el('whyPopupTitle').innerHTML = btn.dataset.whyTitle;
       el('whyPopupText').innerHTML = btn.dataset.whyText;
       el('whyPopupModal').style.display = 'flex';
     };
@@ -2301,7 +2301,7 @@
   // after a loss, something ranked LOWER. This converges on the correct
   // slot directly instead of another semi-random comparison.
   function pickDirectionalOpponent(movie, referenceOpponent, direction, genre, excludeIds){
-    const excludeSet = new Set(excludeIds);
+    const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     let candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id));
     candidates = direction === 'higher'
       ? candidates.filter(m => (m.score||5) > (referenceOpponent.score||5))
@@ -2323,7 +2323,7 @@
   // For a third, narrowing duel — picks the closest-to-midpoint candidate
   // strictly between the two opponents already faced.
   function pickBetweenOpponent(movie, opponentA, opponentB, genre, excludeIds){
-    const excludeSet = new Set(excludeIds);
+    const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const lo = Math.min(opponentA.score||5, opponentB.score||5);
     const hi = Math.max(opponentA.score||5, opponentB.score||5);
     const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && (m.score||5) >= lo && (m.score||5) <= hi);
@@ -3331,7 +3331,7 @@
   }
 
   function pickInlineDuelOpponent(movie, excludeIds){
-    const excludeSet = new Set(excludeIds);
+    const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const candidates = movies.filter(m => m.genre === movie.genre && !excludeSet.has(m.id));
     if(candidates.length === 0) return null;
     const anchor = movie.score || 5;
@@ -3504,7 +3504,8 @@
     const { title, year, poster, imdbID, imdbRating, existingMovie } = selectedResult;
     const genre = el('genreInput').value;
 
-    const candidates = movies.filter(m => m.genre === genre && (!existingMovie || m.id !== existingMovie.id));
+    const dismissedSet = new Set(getDismissedSuggestions());
+    const candidates = movies.filter(m => m.genre === genre && (!existingMovie || m.id !== existingMovie.id) && !dismissedSet.has(m.id));
 
     if(candidates.length === 0){
       const pool = (CURATED[genre] || []).filter(c => c.title !== title);
