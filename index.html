@@ -263,7 +263,8 @@
       position:fixed;
       bottom:0;left:0;right:0;
       background:var(--surface);
-      border-top:1px solid var(--line);
+      border-top:1px solid #d4af37;
+      border-bottom:1px solid #d4af37;
       box-shadow:0 -4px 16px rgba(0,0,0,0.45);
       z-index:41;
       padding:6px 4px calc(6px + env(safe-area-inset-bottom));
@@ -721,6 +722,7 @@
     gap:14px;
     flex-shrink:0;
   }
+  .dt-col-dim{opacity:0.4;}
   .dt-col{
     display:flex;
     flex-direction:column;
@@ -1129,7 +1131,7 @@
 
   /* DUEL / COMPARISON MODAL — signature element */
   .duel-modal{position:relative;max-width:640px;background:transparent;border:none;padding:0;box-shadow:none;animation:modalIn 0.22s cubic-bezier(0.2,0.7,0.3,1);}
-  .duel-heading{text-align:center;margin-bottom:18px;}
+  .duel-heading{text-align:center;margin-bottom:18px;padding:0 90px;}
   .duel-heading .eyebrow{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-size:0.75rem;
@@ -1237,6 +1239,13 @@
     color:var(--muted);
     margin-top:16px;
     letter-spacing:0.05em;
+  }
+  .inline-duel-progress{
+    text-align:center;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.7rem;
+    color:var(--muted);
+    margin:-4px 0 10px;
   }
 
   @media (max-width:520px){
@@ -2254,6 +2263,122 @@
     movieB.score = Math.max(0, Math.min(10, scoreB + ELO_K * ((1 - actualA) - (1 - expectedA))));
   }
 
+  // Was this outcome a genuine surprise given the scores going in? Reuses the
+  // exact same expected-outcome math as the Elo update itself. Must be
+  // called BEFORE applyEloUpdate, since that mutates the scores in place.
+  function wasUpset(scoreA, scoreB, aWon){
+    const expectedA = 1 / (1 + Math.pow(10, (scoreB - scoreA) / ELO_D));
+    return (expectedA < 0.5 && aWon) || (expectedA > 0.5 && !aWon);
+  }
+
+  // Sequential duel chain: after a win, the next duel should test against
+  // something ranked HIGHER (to see if the true position is even higher);
+  // after a loss, something ranked LOWER. This converges on the correct
+  // slot directly instead of another semi-random comparison.
+  function pickDirectionalOpponent(movie, referenceOpponent, direction, genre, excludeIds){
+    const excludeSet = new Set(excludeIds);
+    let candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id));
+    candidates = direction === 'higher'
+      ? candidates.filter(m => (m.score||5) > (referenceOpponent.score||5))
+      : candidates.filter(m => (m.score||5) < (referenceOpponent.score||5));
+    if(candidates.length === 0) return null;
+
+    const untested = currentUser
+      ? candidates.filter(m => !hasBeenComparedTo(currentUser.id, movie.id, m.id))
+      : candidates;
+    const pool = untested.length > 0 ? untested : candidates;
+
+    // The nearest boundary beyond the reference opponent is the most
+    // informative next comparison for narrowing the range.
+    return pool.reduce((best, m) =>
+      (Math.abs((m.score||5) - (referenceOpponent.score||5)) < Math.abs((best.score||5) - (referenceOpponent.score||5))) ? m : best
+    , pool[0]);
+  }
+
+  // For a third, narrowing duel — picks the closest-to-midpoint candidate
+  // strictly between the two opponents already faced.
+  function pickBetweenOpponent(movie, opponentA, opponentB, genre, excludeIds){
+    const excludeSet = new Set(excludeIds);
+    const lo = Math.min(opponentA.score||5, opponentB.score||5);
+    const hi = Math.max(opponentA.score||5, opponentB.score||5);
+    const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && (m.score||5) >= lo && (m.score||5) <= hi);
+    if(candidates.length === 0) return null;
+
+    const untested = currentUser
+      ? candidates.filter(m => !hasBeenComparedTo(currentUser.id, movie.id, m.id))
+      : candidates;
+    const pool = untested.length > 0 ? untested : candidates;
+
+    const midpoint = (lo + hi) / 2;
+    return pool.reduce((best, m) =>
+      (Math.abs((m.score||5) - midpoint) < Math.abs((best.score||5) - midpoint)) ? m : best
+    , pool[0]);
+  }
+
+  // Decides whether the chain continues. Win/loss narrows in that direction;
+  // a tie has no clear direction so the chain stops. A third duel only
+  // fires if the second result is itself informative: either it reversed
+  // the trend duel 1 established (bracketing the true position between the
+  // two opponents faced), or it continued the trend as a genuine upset
+  // (pushing even further in the same direction is more informative than
+  // doubling back to search between two points already both confirmed).
+  function decideNextDuel(movie, genre, duelChain){
+    if(duelChain.length >= 3) return null;
+    const excludeIds = [movie.id, ...duelChain.map(c => c.opponent.id)];
+
+    if(duelChain.length === 1){
+      const { opponent, result } = duelChain[0];
+      if(result === 'tie') return null;
+      const direction = result === 'win' ? 'higher' : 'lower';
+      return pickDirectionalOpponent(movie, opponent, direction, genre, excludeIds);
+    }
+
+    if(duelChain.length === 2){
+      const [first, second] = duelChain;
+      const firstDirection = first.result === 'win' ? 'higher' : (first.result === 'lose' ? 'lower' : null);
+      if(!firstDirection) return null; // duel 1 was a tie — no direction was ever established
+
+      if(second.result === 'tie'){
+        return pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
+      }
+
+      const continuedTrend = (firstDirection === 'higher' && second.result === 'win') || (firstDirection === 'lower' && second.result === 'lose');
+      if(continuedTrend){
+        // Still climbing (or falling) — only worth a third duel if duel 2
+        // was itself surprising, and then it should push further in the
+        // same direction, not double back between two confirmed points.
+        return second.upset ? pickDirectionalOpponent(movie, second.opponent, firstDirection, genre, excludeIds) : null;
+      }
+      // Direction reversed — the true position is bracketed between the two opponents faced.
+      return pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
+    }
+
+    return null;
+  }
+
+  // Applies one duel's real, permanent Elo update and vote log — every duel
+  // in a chain is its own independent match record, same as always. Returns
+  // whether the result was an upset, needed by decideNextDuel afterward.
+  async function applyDuelResult(movie, opponent, result){
+    let upset = false;
+    if(result !== 'tie'){
+      const won = result === 'win';
+      upset = wasUpset(movie.score, opponent.score, won);
+      applyEloUpdate(movie, opponent, won);
+      opponent.votes = (opponent.votes || 1) + 1;
+    }
+    await saveMovies();
+    if(currentUser){
+      await logVotes([{
+        user_id: currentUser.id,
+        movie_a_id: movie.id,
+        movie_b_id: opponent.id,
+        winner_id: result === 'win' ? movie.id : (result === 'lose' ? opponent.id : null)
+      }]);
+    }
+    return upset;
+  }
+
   async function logVotes(rows){
     if(!rows || rows.length === 0) return;
     const { error } = await supabaseClient.from('votes').insert(rows);
@@ -2327,6 +2452,8 @@
       const posterHtml = m.poster
         ? `<img class="poster-thumb" src="${escapeHtml(m.poster)}" alt="">`
         : `<div class="poster-thumb placeholder">n/a</div>`;
+      const yourVoteClass = myRatingsSortField === 'reelvote' ? 'dt-col dt-col-dim' : 'dt-col';
+      const reelVoteClass = myRatingsSortField === 'yourRating' ? 'dt-col dt-col-dim' : 'dt-col';
       row.innerHTML = `
         <div class="rank">#${idx + 1}</div>
         ${posterHtml}
@@ -2337,13 +2464,13 @@
           <span class="vote-count">${formatVoteCount(uniqueVoterCount(m.id))}</span>
         </div>
         <div class="dual-tier">
-          <div class="dt-col">
+          <div class="${yourVoteClass}">
             <span class="dt-label">Your Vote</span>
             ${tierIcon(myRatings[m.id])}
             <span class="tier-badge">${myRatings[m.id]}</span>
             <span class="dt-score">${personalVoteScore(m).toFixed(1)}</span>
           </div>
-          <div class="dt-col">
+          <div class="${reelVoteClass}">
             <span class="dt-label">ReelVote</span>
             ${tierIcon(scoreToTier(m.score))}
             <span class="tier-badge">${scoreToTier(m.score)}</span>
@@ -3098,37 +3225,35 @@
     if(tierLabel) await saveUserRating(movie.id, tierLabel);
   }
 
-  let suggestionRequestId = 0;
+  function withTimeout(promise, ms){
+    return Promise.race([
+      promise,
+      new Promise(resolve => setTimeout(() => resolve(null), ms))
+    ]);
+  }
 
   async function showNextSuggestion(genre, excludeIds, excludeTitles){
     excludeTitles = excludeTitles || [];
     const wrap = el('nextSuggestionWrap');
     if(!wrap) return;
-    const myRequestId = ++suggestionRequestId;
 
     const pick = pickNextSuggestion(genre, excludeIds, excludeTitles);
-    if(!pick){
-      if(myRequestId === suggestionRequestId) wrap.innerHTML = '';
-      return;
-    }
+    if(!pick){ wrap.innerHTML = ''; return; }
 
     let movie = pick;
     if(pick.needsCreation){
-      if(myRequestId === suggestionRequestId){
-        wrap.innerHTML = `<p class="next-suggestion-loading">Finding something else you might like...</p>`;
-      }
-      movie = await getOrCreateMovieByTitle(pick.title, pick.genre, pick.year);
-      if(myRequestId !== suggestionRequestId) return; // a newer request has since started — discard this stale result
+      wrap.innerHTML = `<p class="next-suggestion-loading">Finding something else you might like...</p>`;
+      movie = await withTimeout(getOrCreateMovieByTitle(pick.title, pick.genre, pick.year), 6000);
       if(!movie){
-        // That curated title failed to resolve (e.g. an OMDb miss). Remember
-        // it so it's never picked again in this chain, then retry right away
-        // instead of leaving the widget stuck on the loading message.
+        // That curated title failed to resolve (e.g. an OMDb miss, or it
+        // simply took too long). Remember it so it's never picked again in
+        // this chain, then retry right away instead of leaving the widget
+        // stuck on the loading message with no way out.
         showNextSuggestion(genre, excludeIds, [...excludeTitles, pick.title]);
         return;
       }
     }
 
-    if(myRequestId !== suggestionRequestId) return; // stale — a newer request has already started
     renderSuggestionTierStep(wrap, movie, genre, excludeIds, excludeTitles);
   }
 
@@ -3201,10 +3326,12 @@
     , pool[0]);
   }
 
-  function renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, excludeTitles, usedOpponentIds){
+  function renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, excludeTitles, usedOpponentIds, duelChain){
+    duelChain = duelChain || [];
     wrap.innerHTML = `
       <div class="next-suggestion">
         <p class="next-suggestion-label cheeky-line">${pickRandomLine(DUEL_HEADING_LINES)}</p>
+        ${duelChain.length > 0 ? `<p class="inline-duel-progress">One more comparison to help place it precisely (${duelChain.length + 1} of up to 3)</p>` : ''}
         <div class="inline-duel-cards">
           <button class="inline-duel-ticket" id="inlineTicketA">
             <img src="${escapeHtml(movie.poster||'')}" alt="">
@@ -3223,17 +3350,18 @@
       </div>
     `;
 
-    function finishDuel(result){
+    async function finishDuel(result){
       wrap.innerHTML = `<p class="next-suggestion-loading">Saving...</p>`;
-      if(result !== 'tie'){
-        const won = result === 'win';
-        applyEloUpdate(movie, opponent, won);
-        opponent.votes = (opponent.votes || 1) + 1;
-      }
-      saveMovies().then(() => {
-        render();
+      const upset = await applyDuelResult(movie, opponent, result);
+      duelChain.push({ opponent, result, upset });
+      render();
+
+      const nextOpponent = decideNextDuel(movie, genre, duelChain);
+      if(nextOpponent){
+        renderSuggestionDuelStep(wrap, movie, nextOpponent, genre, excludeIds, excludeTitles, [...usedOpponentIds, nextOpponent.id], duelChain);
+      } else {
         showNextSuggestion(genre, [...excludeIds, movie.id], excludeTitles);
-      });
+      }
     }
 
     el('inlineTicketA').addEventListener('click', () => finishDuel('win'));
@@ -3242,7 +3370,7 @@
     el('inlineHaventSeen').addEventListener('click', () => {
       const altOpponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id, ...usedOpponentIds]);
       if(altOpponent){
-        renderSuggestionDuelStep(wrap, movie, altOpponent, genre, excludeIds, excludeTitles, [...usedOpponentIds, altOpponent.id]);
+        renderSuggestionDuelStep(wrap, movie, altOpponent, genre, excludeIds, excludeTitles, [...usedOpponentIds, altOpponent.id], duelChain);
       } else {
         // Ran out of alternates and still haven't seen it — settle without a nudge either way.
         finishDuel('tie');
@@ -3362,7 +3490,8 @@
           pending = {
             title, year, genre, poster, imdbID, imdbRating, existingMovie, tier: selectedTier,
             newId: existingMovie ? existingMovie.id : crypto.randomUUID(),
-            opponent: seedMovie, excludeIds: [seedMovie.id]
+            opponent: seedMovie, excludeIds: [seedMovie.id],
+            duelChain: [], movie: null
           };
           runDuelStep();
           return;
@@ -3390,7 +3519,8 @@
     pending = {
       title, year, genre, poster, imdbID, imdbRating, existingMovie, tier: selectedTier,
       newId: existingMovie ? existingMovie.id : crypto.randomUUID(),
-      opponent, excludeIds: [opponent.id]
+      opponent, excludeIds: [opponent.id],
+      duelChain: [], movie: null
     };
     runDuelStep();
   });
@@ -3424,8 +3554,8 @@
       ${opponent.year ? `<div class="t-year">${escapeHtml(opponent.year)}</div>` : ''}
     `;
 
-    tA.onclick = () => finalizeInsert(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier, { opponent, result: 'win' });
-    tB.onclick = () => finalizeInsert(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier, { opponent, result: 'lose' });
+    tA.onclick = () => handleDuelOutcome('win');
+    tB.onclick = () => handleDuelOutcome('lose');
 
     el('tooCloseBtn').onclick = () => {
       if(!pending.refinementUsed){
@@ -3433,7 +3563,7 @@
         pending.refinementUsed = true;
         if(alt){ pending.opponent = alt; pending.excludeIds.push(alt.id); runDuelStep(); return; }
       }
-      finalizeInsert(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier, { opponent, result: 'tie' });
+      handleDuelOutcome('tie');
     };
 
     el('haventSeenBtn').onclick = () => {
@@ -3443,11 +3573,45 @@
         if(alt){ pending.opponent = alt; pending.excludeIds.push(alt.id); runDuelStep(); return; }
       }
       // Ran out of alternates and still haven't seen it — settle without a nudge either way.
-      finalizeInsert(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier, { opponent, result: 'tie' });
+      handleDuelOutcome('tie');
     };
 
-    el('duelProgress').textContent = '';
+    el('duelProgress').textContent = pending.duelChain.length > 0
+      ? `One more comparison to help place it precisely (${pending.duelChain.length + 1} of up to 3)`
+      : '';
     el('duelOverlay').style.display = 'flex';
+  }
+
+  async function handleDuelOutcome(result){
+    if(!pending) return;
+    const opponent = pending.opponent;
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+
+    // First duel in the chain: create/save the movie and apply the tier
+    // rating once, before any Elo comparisons happen.
+    if(!pending.movie){
+      pending.movie = setupMovieForRating(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier);
+      await saveMovies();
+      const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[pending.tier] || null;
+      if(tierLabel) await saveUserRating(pending.movie.id, tierLabel);
+    }
+
+    const upset = await applyDuelResult(pending.movie, opponent, result);
+    pending.duelChain.push({ opponent, result, upset });
+
+    const nextOpponent = decideNextDuel(pending.movie, pending.genre, pending.duelChain);
+    if(nextOpponent){
+      pending.opponent = nextOpponent;
+      pending.excludeIds.push(nextOpponent.id);
+      pending.refinementUsed = false;
+      pending.seenRefinementUsed = false;
+      runDuelStep();
+    } else {
+      const movie = pending.movie;
+      el('duelOverlay').style.display = 'none';
+      pending = null;
+      await completeRatingFlow(movie);
+    }
   }
 
   el('duelExitBtn').addEventListener('click', () => {
@@ -3455,11 +3619,7 @@
     pending = null;
   });
 
-  async function finalizeInsert(title, year, genre, poster, imdbID, imdbRating, existingMovie, tierKey, comparison){
-    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    el('duelOverlay').style.display = 'none';
-    pending = null;
-
+  function setupMovieForRating(title, year, genre, poster, imdbID, imdbRating, existingMovie, tierKey){
     let movie;
     if(existingMovie){
       movie = existingMovie;
@@ -3491,28 +3651,10 @@
     }
 
     applyRatingAnchor(movie, tierKey);
+    return movie;
+  }
 
-    if(comparison && comparison.result !== 'tie'){
-      const won = comparison.result === 'win';
-      applyEloUpdate(movie, comparison.opponent, won);
-      comparison.opponent.votes = (comparison.opponent.votes || 1) + 1;
-    }
-
-    await saveMovies();
-
-    const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[tierKey] || null;
-    if(tierLabel) await saveUserRating(movie.id, tierLabel);
-
-    if(comparison){
-      const winnerId = comparison.result === 'win' ? movie.id : (comparison.result === 'lose' ? comparison.opponent.id : null);
-      await logVotes([{
-        user_id: currentUser.id,
-        movie_a_id: movie.id,
-        movie_b_id: comparison.opponent.id,
-        winner_id: winnerId
-      }]);
-    }
-
+  async function completeRatingFlow(movie){
     render();
     resetSearchPanel();
     if(window.location.hash.startsWith('#/movie/')){
@@ -3521,6 +3663,27 @@
       window.scrollTo(0,0);
       showNextSuggestion(movie.genre, [movie.id]);
     }
+  }
+
+  // Only used for the no-duel-available case (nothing to compare against
+  // yet in this genre). The duel-chain path goes through handleDuelOutcome
+  // instead, since it needs to keep the overlay open across multiple duels.
+  async function finalizeInsert(title, year, genre, poster, imdbID, imdbRating, existingMovie, tierKey, comparison){
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    el('duelOverlay').style.display = 'none';
+    pending = null;
+
+    const movie = setupMovieForRating(title, year, genre, poster, imdbID, imdbRating, existingMovie, tierKey);
+    await saveMovies();
+
+    const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[tierKey] || null;
+    if(tierLabel) await saveUserRating(movie.id, tierLabel);
+
+    if(comparison){
+      await applyDuelResult(movie, comparison.opponent, comparison.result);
+    }
+
+    await completeRatingFlow(movie);
   }
 
   // ---- Top search (instant, ungated ReelVote lookup) ----
