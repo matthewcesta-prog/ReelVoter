@@ -160,7 +160,7 @@
   .explainer-label{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
-    color:var(--muted);margin-bottom:14px;
+    color:#d4af37;margin-bottom:14px;
   }
   .explainer-grid{
     display:grid;
@@ -1463,6 +1463,7 @@
       </div>
     </div>
 
+    <div class="explainer-label intro-reveal-rest" style="margin-top:24px;">Recently ReelVoted:</div>
     <div id="posterGridWrap" class="intro-reveal-rest"></div>
   </div>
 
@@ -1495,7 +1496,7 @@
         <button class="btn btn-primary" id="pwSignInBtn">Sign in</button>
       </div>
       <p id="pwStatus" class="panel-sub" style="margin-top:8px;display:none;"></p>
-      <button class="duel-skip" id="pwCreateAccountBtn" style="margin-top:10px;text-align:center;font-weight:700;line-height:1.5;">Don't have an account?<br>Create one to become a ReelVoter</button>
+      <button class="duel-skip" id="pwCreateAccountBtn" style="margin:10px auto 0;text-align:center;font-weight:700;line-height:1.5;width:fit-content;">Don't have an account?<br>Create one to become a ReelVoter</button>
       <div id="pwFallbackOptions" style="display:none;margin-top:8px;">
         <button class="duel-skip" id="forgotPasswordBtn">Forgot your password?</button>
       </div>
@@ -3039,7 +3040,7 @@
   }
 
   async function renderTrending(){
-    const real = getFeaturedMovies(9);
+    const real = getFeaturedMovies(12);
     const source = real.length > 0 ? real : await getTrendingFallbackMovies();
     renderBanner(source);
     renderPosterGrid(source);
