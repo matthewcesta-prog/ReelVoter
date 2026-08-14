@@ -991,6 +991,11 @@
     filter:grayscale(1) contrast(1.05);
     background:var(--surface-2);
     display:block;
+    -webkit-touch-callout:none;
+    -webkit-user-drag:none;
+    user-drag:none;
+    -webkit-user-select:none;
+    user-select:none;
   }
   .rec-poster-chip .r-title{
     display:block;margin-top:8px;
@@ -2659,11 +2664,11 @@
           <div id="nextSuggestionWrap"></div>
           <div class="detail-info-col">
             <div class="detail-field"><b>GENRE:</b> <span>${escapeHtml(movie.genre)}</span></div>
-            <div class="detail-field" id="detailPlotField" style="display:none;"><b>BRIEF:</b> <span id="detailPlotText"></span></div>
-            <div class="detail-field" id="detailStarringField" style="display:none;"><b>STARRING:</b> <span id="detailStarringText"></span></div>
-            <div class="detail-field" id="detailDirectorField" style="display:none;"><b>DIRECTOR:</b> <span id="detailDirectorText"></span></div>
-            <div class="detail-field" id="detailWritersField" style="display:none;"><b>WRITERS:</b> <span id="detailWritersText"></span></div>
-            <div class="detail-field" id="detailWatchField" style="display:none;">
+            <div class="detail-field" id="detailPlotField"><b>BRIEF:</b> <span id="detailPlotText">Loading…</span></div>
+            <div class="detail-field" id="detailStarringField"><b>STARRING:</b> <span id="detailStarringText">Loading…</span></div>
+            <div class="detail-field" id="detailDirectorField"><b>DIRECTOR:</b> <span id="detailDirectorText">Loading…</span></div>
+            <div class="detail-field" id="detailWritersField"><b>WRITERS:</b> <span id="detailWritersText">Loading…</span></div>
+            <div class="detail-field" id="detailWatchField">
               <b>WHERE TO WATCH:</b>
               <div id="detailWatchProviders" class="watch-providers"></div>
             </div>
@@ -2693,26 +2698,43 @@
 
     const [data, wp] = await Promise.all([detailPromise, watchProvidersPromise]);
 
+    // These fields are already visible (with "Loading…" placeholders) in the
+    // initial render — we only ever swap their text in place here, never
+    // toggle display. Making a field appear/disappear after the user has
+    // started scrolling shifts everything below it, and since Safari has no
+    // scroll-anchoring support at all (unlike Chrome/Firefox), there's
+    // nothing to compensate for that shift — it reads as the page bouncing.
+    // Collapsing a field for genuinely missing data is the one exception:
+    // that's a rare shrink, not a page full of content suddenly growing.
     if(data){
       if(data.Plot && data.Plot !== 'N/A'){
         el('detailPlotText').textContent = data.Plot;
-        el('detailPlotField').style.display = 'block';
+      } else {
+        el('detailPlotField').style.display = 'none';
       }
       if(data.Actors && data.Actors !== 'N/A'){
         el('detailStarringText').textContent = data.Actors;
-        el('detailStarringField').style.display = 'block';
+      } else {
+        el('detailStarringField').style.display = 'none';
       }
       if(data.Director && data.Director !== 'N/A'){
         el('detailDirectorText').textContent = data.Director;
-        el('detailDirectorField').style.display = 'block';
+      } else {
+        el('detailDirectorField').style.display = 'none';
       }
       if(data.Writer && data.Writer !== 'N/A'){
         el('detailWritersText').textContent = data.Writer;
-        el('detailWritersField').style.display = 'block';
+      } else {
+        el('detailWritersField').style.display = 'none';
       }
+    } else {
+      el('detailPlotField').style.display = 'none';
+      el('detailStarringField').style.display = 'none';
+      el('detailDirectorField').style.display = 'none';
+      el('detailWritersField').style.display = 'none';
     }
 
-    if(wp){
+    if(wp && (wp.flatrate.length || wp.rent.length || wp.buy.length)){
       const groups = [];
       if(wp.flatrate.length) groups.push({ label: 'Stream', items: wp.flatrate });
       if(wp.rent.length) groups.push({ label: 'Rent', items: wp.rent });
@@ -2727,7 +2749,8 @@
       `).join('');
       const moreLink = wp.link ? `<a href="${escapeHtml(wp.link)}" target="_blank" rel="noopener" class="watch-more-link">More options</a>` : '';
       el('detailWatchProviders').innerHTML = groupsHtml + moreLink;
-      el('detailWatchField').style.display = 'block';
+    } else {
+      el('detailWatchField').style.display = 'none';
     }
   }
 
