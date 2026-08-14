@@ -103,7 +103,7 @@
     mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  .wrap{max-width:920px;margin:0 auto;padding:32px 20px 100px;}
+  .wrap{max-width:920px;margin:0 auto;padding-top:var(--top-nav-height, 70px);padding-left:20px;padding-right:20px;padding-bottom:100px;}
   @media (min-width:1000px){
     .wrap{max-width:1240px;}
   }
@@ -202,8 +202,8 @@
   .et-desc{color:var(--muted);}
   /* STICKY NAV */
   .top-nav{
-    position:sticky;
-    top:0;
+    position:fixed;
+    top:0;left:0;right:0;
     z-index:40;
     display:flex;
     align-items:flex-start;
@@ -211,7 +211,6 @@
     gap:20px;
     background:var(--bg);
     padding:12px 24px;
-    margin:-32px -20px 0;
   }
   .nav-left{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
   .nav-left-row{display:flex;align-items:flex-start;gap:14px;}
@@ -258,7 +257,7 @@
   .nav-search input::placeholder{color:rgba(255,255,255,0.65);}
   .nav-search input:focus{outline:none;border-color:var(--white);}
   @media (max-width:700px){
-    .top-nav{gap:10px;padding:10px 14px;justify-content:center;position:relative;}
+    .top-nav{gap:10px;padding:10px 14px;justify-content:center;}
     .nav-user-col{display:none;}
     .nav-right{display:none;}
     .nav-links{display:none;}
@@ -628,6 +627,16 @@
     display:flex;flex-direction:column;gap:18px;
   }
   .detail-field{font-size:0.92rem;line-height:1.6;color:var(--text);}
+  /* Reserve realistic space for async-loaded fields up front so the real
+     text swapping in doesn't grow the page height mid-scroll — a short
+     placeholder like "Loading…" isn't enough, since the actual text (e.g.
+     a 3-line synopsis) can be far taller than that one-liner. */
+  #detailPlotText, #detailStarringText, #detailDirectorText, #detailWritersText{
+    display:inline-block;min-height:1.6em;
+  }
+  #detailPlotField #detailPlotText{min-height:4.8em;}
+  #detailStarringField #detailStarringText{min-height:3.2em;}
+  #detailWritersField #detailWritersText{min-height:3.2em;}
   .detail-field b{
     display:block;
     font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;
@@ -1776,6 +1785,7 @@
     } else {
       el('loginStatus').textContent = '';
     }
+    if(typeof updateTopNavClearance === 'function') updateTopNavClearance();
   }
 
   el('pwSignInBtn').addEventListener('click', async () => {
@@ -1924,6 +1934,21 @@
   }
 
   window.addEventListener('hashchange', renderRoute);
+
+  // The top nav is now truly position:fixed (was sticky/relative before —
+  // both of those broke when the movie detail modal's scroll-lock technique
+  // shifted the whole page up, pushing the nav off-screen). Since fixed
+  // elements no longer reserve their own space in normal flow, measure the
+  // nav's real rendered height and feed it to .wrap's padding-top via a CSS
+  // variable, rather than guessing a fixed pixel value — a wrong guess here
+  // is exactly what caused an earlier "content cut off under the nav" bug.
+  function updateTopNavClearance(){
+    const nav = document.querySelector('.top-nav');
+    if(nav) document.documentElement.style.setProperty('--top-nav-height', nav.offsetHeight + 'px');
+  }
+  window.addEventListener('resize', updateTopNavClearance);
+  window.addEventListener('load', updateTopNavClearance);
+  updateTopNavClearance();
 
   function openSignInModal(){
     el('signInModal').style.display = 'flex';
