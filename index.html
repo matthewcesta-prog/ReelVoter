@@ -290,7 +290,9 @@
     font-size:0.62rem;
     padding:6px 2px;
     cursor:pointer;
+    transition:transform 0.08s ease;
   }
+  .tab-btn:active{transform:scale(0.9);}
   .tab-btn svg{width:22px;height:22px;}
   .tab-btn.tab-active{color:var(--white);}
   .tab-btn-center{
@@ -614,6 +616,12 @@
     width:220px;border-radius:6px;
     box-shadow:0 12px 34px rgba(0,0,0,0.55);
     filter:grayscale(1) contrast(1.05);
+    -webkit-touch-callout:none;
+    -webkit-user-drag:none;
+    user-drag:none;
+    -webkit-user-select:none;
+    user-select:none;
+    touch-action:pan-y;
   }
   .detail-info-col{
     flex:0 1 320px;max-width:320px;min-width:240px;order:3;
@@ -788,6 +796,13 @@
   }
   .search-panel #titleSearch:focus{outline:2px solid var(--white);outline-offset:1px;}
   .search-panel #titleSearch::placeholder{color:var(--muted);}
+  /* Global tap responsiveness: removes the native tap-highlight flash/delay
+     iOS Safari adds by default, and skips the 300ms click-delay browsers can
+     still apply when they're checking for a double-tap-to-zoom gesture. */
+  button, a, .clickable, [role="button"]{
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
   .btn{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-weight:600;
@@ -796,11 +811,12 @@
     border-radius:3px;
     padding:12px 22px;
     cursor:pointer;
-    transition:transform 0.12s ease, background 0.15s ease;
+    transition:transform 0.08s ease, background 0.15s ease;
   }
   .btn:focus-visible{outline:2px solid var(--white);outline-offset:2px;}
   .btn-primary{background:var(--white);color:#0a0a0a;}
   .btn-primary:hover{background:#d8d8d6;transform:translateY(-1px);}
+  .btn-primary:active, .btn-ghost:active{transform:scale(0.96);}
   .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text);}
   .btn-ghost:hover{border-color:var(--muted);}
   .btn:disabled{opacity:0.4;cursor:not-allowed;}
@@ -1188,6 +1204,15 @@
     font-size:1.8rem;
     color:#d4af37;
   }
+  @keyframes duelPickFlash{
+    0%{box-shadow:0 0 0 0 rgba(212,175,55,0);}
+    30%{box-shadow:0 0 0 3px rgba(212,175,55,0.95);}
+    100%{box-shadow:0 0 0 3px rgba(212,175,55,0);}
+  }
+  .duel-pick-flash{
+    animation:duelPickFlash 0.45s ease-out;
+    border-color:#d4af37 !important;
+  }
   .ticket{
     background:var(--card);
     color:var(--ink);
@@ -1200,13 +1225,14 @@
     flex-direction:column;
     gap:12px;
     min-height:150px;
-    transition:transform 0.12s ease, border-color 0.12s ease;
+    transition:transform 0.08s ease, border-color 0.12s ease;
     background-image:
       radial-gradient(circle at 0 18px, var(--bg) 5px, transparent 5.5px),
       radial-gradient(circle at 100% 18px, var(--bg) 5px, transparent 5.5px);
     background-repeat:no-repeat;
   }
   .ticket:hover{transform:translateY(-3px);border-color:var(--ink);}
+  .ticket:active{transform:scale(0.97);}
   .ticket:focus-visible{outline:none;border-color:var(--ink);}
   .ticket img{
     width:100%;height:120px;object-fit:cover;border-radius:3px;
@@ -1326,7 +1352,6 @@
           </span>
           <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
           <button id="signOutBtn" class="top-bar-signout" style="display:none;">Sign out</button>
-          <button id="setupPasskeyBtn" class="top-bar-signout" style="display:none;">Set up Face ID</button>
           <button id="setPasswordLinkDesktop" class="top-bar-signout">Set a password</button>
           <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener" class="top-bar-signout" id="supportLinkDesktop">Support ReelVoter</a>
         </div>
@@ -1470,13 +1495,11 @@
         <button class="btn btn-primary" id="pwSignInBtn">Sign in</button>
       </div>
       <p id="pwStatus" class="panel-sub" style="margin-top:8px;display:none;"></p>
-      <button class="duel-skip" id="pwCreateAccountBtn" style="margin-top:10px;">Don't have an account? Create one</button>
+      <button class="duel-skip" id="pwCreateAccountBtn" style="margin-top:10px;text-align:center;font-weight:700;line-height:1.5;">Don't have an account?<br>Create one to become a ReelVoter</button>
       <div id="pwFallbackOptions" style="display:none;margin-top:8px;">
         <button class="duel-skip" id="forgotPasswordBtn">Forgot your password?</button>
       </div>
     </div>
-
-    <button class="btn btn-primary" id="passkeySignInBtn" style="display:none;margin:16px auto 0;">Sign in with Face ID</button>
 
     <p id="loginStatus" class="panel-sub" style="margin-top:14px;"></p>
   </div>
@@ -1526,7 +1549,7 @@
       <div class="mrc-group">
         <label for="sortField">Sort by</label>
         <select id="sortField">
-          <option value="reelvote">ReelVote Score</option>
+          <option value="reelvote">ReelVote</option>
           <option value="yourRating">Your Vote</option>
           <option value="title">Title</option>
         </select>
@@ -1715,13 +1738,21 @@
 
   const SUPABASE_URL = 'https://kbowfliptdewzevcyjmr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_0gwFSQ66DZDLeXH82z1sZw_QwCeOXwt';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { experimental: { passkey: true } }
-  });
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const el = (id) => document.getElementById(id);
 
-  const passkeySupported = !!window.PublicKeyCredential;
+  // Quick, cancel-safe pick feedback for duel selections: a light haptic
+  // buzz plus a brief gold outline flash on the chosen ticket, then runs
+  // the actual result callback. Kept short (120ms) so it reads as instant
+  // feedback rather than added lag before the next screen appears.
+  function flashDuelPick(ticketEl, onDone){
+    if(navigator.vibrate) navigator.vibrate(15);
+    if(ticketEl){
+      ticketEl.classList.add('duel-pick-flash');
+    }
+    setTimeout(onDone, 120);
+  }
 
   function updateAuthUI(){
     const signedIn = !!currentUser;
@@ -1729,7 +1760,6 @@
     el('signOutBtn').style.display = signedIn ? 'block' : 'none';
     el('showSignInBtn').style.display = signedIn ? 'none' : 'block';
     el('myRatingsHeading').style.display = 'none'; // render() will re-show this if there's anything to show
-    el('setupPasskeyBtn').style.display = (signedIn && passkeySupported) ? 'block' : 'none';
     el('setPasswordLinkDesktop').style.display = signedIn ? 'block' : 'none';
     el('accountMenuSetPassword').style.display = signedIn ? 'block' : 'none';
     if(signedIn){
@@ -1739,27 +1769,6 @@
       el('loginStatus').textContent = '';
     }
   }
-
-  el('passkeySignInBtn').addEventListener('click', async () => {
-    el('loginStatus').textContent = 'Waiting for Face ID...';
-    const { error } = await supabaseClient.auth.signInWithPasskey();
-    if(error){
-      el('loginStatus').textContent = error.code === 'webauthn_credential_not_found'
-        ? 'No Face ID set up for this device yet — sign in with your password below, then set it up.'
-        : 'Face ID sign-in didn\'t work: ' + error.message;
-      return;
-    }
-    // A successful sign-in triggers onAuthStateChange, which handles the rest.
-  });
-
-  async function setupPasskey(btn){
-    const originalText = btn.textContent;
-    btn.textContent = 'Waiting for Face ID...';
-    const { data, error } = await supabaseClient.auth.registerPasskey();
-    btn.textContent = error ? 'Face ID setup failed' : 'Face ID enabled ✓';
-    setTimeout(() => { btn.textContent = originalText; }, 2500);
-  }
-  el('setupPasskeyBtn').addEventListener('click', (e) => setupPasskey(e.currentTarget));
 
   el('pwSignInBtn').addEventListener('click', async () => {
     const email = el('pwEmail').value.trim();
@@ -1910,7 +1919,6 @@
 
   function openSignInModal(){
     el('signInModal').style.display = 'flex';
-    el('passkeySignInBtn').style.display = passkeySupported ? 'block' : 'none';
     el('passwordStep').style.display = 'block';
     el('pwStatus').style.display = 'none';
     el('pwFallbackOptions').style.display = 'none';
@@ -3360,8 +3368,8 @@
       }
     }
 
-    el('inlineTicketA').addEventListener('click', () => finishDuel('win'));
-    el('inlineTicketB').addEventListener('click', () => finishDuel('loss'));
+    el('inlineTicketA').addEventListener('click', () => flashDuelPick(el('inlineTicketA'), () => finishDuel('win')));
+    el('inlineTicketB').addEventListener('click', () => flashDuelPick(el('inlineTicketB'), () => finishDuel('loss')));
     el('inlineTooClose').addEventListener('click', () => finishDuel('tie'));
     el('inlineHaventSeen').addEventListener('click', () => {
       addDismissedSuggestion(opponent.id);
@@ -3555,8 +3563,8 @@
       ${opponent.year ? `<div class="t-year">${escapeHtml(opponent.year)}</div>` : ''}
     `;
 
-    tA.onclick = () => handleDuelOutcome('win');
-    tB.onclick = () => handleDuelOutcome('lose');
+    tA.onclick = () => flashDuelPick(tA, () => handleDuelOutcome('win'));
+    tB.onclick = () => flashDuelPick(tB, () => handleDuelOutcome('lose'));
 
     el('tooCloseBtn').onclick = () => {
       if(!pending.refinementUsed){
