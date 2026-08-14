@@ -149,7 +149,14 @@
     .hero-tagline{font-size:1.35rem;}
     .hero-subline{ font-size:0.72rem; }
   }
+  @media (max-width:700px){
+    .hero-overlay{padding:12px 24px 6px;}
+    .hero-subline{margin:6px 0 0;}
+  }
   .explainer-section{margin:20px auto 8px;max-width:1000px;}
+  @media (max-width:700px){
+    .explainer-section{margin:12px auto 6px;}
+  }
   .explainer-label{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
@@ -172,6 +179,11 @@
     align-items:flex-start;
     gap:14px;
     position:relative;
+  }
+  @media (max-width:700px){
+    .explainer-tile{padding:13px 14px;}
+    .explainer-grid{gap:8px;}
+    .explainer-tile p{font-size:0.82rem;line-height:1.4;}
   }
   .et-why-trigger{
     position:absolute;top:10px;right:10px;
@@ -392,7 +404,7 @@
     display:block;
   }
   @media (min-width:1000px){ .banner-full-img{height:60vh;min-height:420px;max-height:680px;} }
-  @media (max-width:700px){ .banner-full-img{height:34vh;min-height:220px;max-height:340px;} }
+  @media (max-width:700px){ .banner-full-img{height:26vh;min-height:170px;max-height:260px;} }
   .banner-full-fade{
     position:absolute;left:0;right:0;bottom:0;
     height:60%;
@@ -2241,9 +2253,23 @@
   // something ranked HIGHER (to see if the true position is even higher);
   // after a loss, something ranked LOWER. This converges on the correct
   // slot directly instead of another semi-random comparison.
+  // Derives a lowercase title set from a list of movie ids — catches duplicate
+  // catalog rows for the same movie under a different id, which id-only
+  // exclusion would miss entirely (the exact bug class that hit "Se7en" and
+  // "The Raid" before).
+  function getExcludedTitleSet(ids){
+    const set = new Set();
+    ids.forEach(id => {
+      const m = movies.find(mv => mv.id === id);
+      if(m) set.add(m.title.toLowerCase());
+    });
+    return set;
+  }
+
   function pickDirectionalOpponent(movie, referenceOpponent, direction, genre, excludeIds){
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
-    let candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id));
+    const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
+    let candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()));
     candidates = direction === 'higher'
       ? candidates.filter(m => (m.score||5) > (referenceOpponent.score||5))
       : candidates.filter(m => (m.score||5) < (referenceOpponent.score||5));
@@ -2265,9 +2291,10 @@
   // strictly between the two opponents already faced.
   function pickBetweenOpponent(movie, opponentA, opponentB, genre, excludeIds){
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
+    const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
     const lo = Math.min(opponentA.score||5, opponentB.score||5);
     const hi = Math.max(opponentA.score||5, opponentB.score||5);
-    const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && (m.score||5) >= lo && (m.score||5) <= hi);
+    const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && (m.score||5) >= lo && (m.score||5) <= hi);
     if(candidates.length === 0) return null;
 
     const untested = currentUser
@@ -3273,7 +3300,8 @@
 
   function pickInlineDuelOpponent(movie, excludeIds){
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
-    const candidates = movies.filter(m => m.genre === movie.genre && !excludeSet.has(m.id));
+    const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
+    const candidates = movies.filter(m => m.genre === movie.genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()));
     if(candidates.length === 0) return null;
     const anchor = movie.score || 5;
 
@@ -3496,10 +3524,13 @@
   });
 
   function pickAlternateOpponent(pending){
+    const excludeIds = [pending.newId, ...pending.excludeIds];
+    const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
+    const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
     const candidates = movies.filter(m =>
       m.genre === pending.genre &&
-      m.id !== pending.newId &&
-      !pending.excludeIds.includes(m.id)
+      !excludeSet.has(m.id) &&
+      !excludeTitleSet.has(m.title.toLowerCase())
     );
     if(candidates.length === 0) return null;
     return candidates[Math.floor(Math.random() * candidates.length)];
