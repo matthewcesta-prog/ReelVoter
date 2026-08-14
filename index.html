@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ReelVoter — Rank Your Movies</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1742,14 +1742,16 @@
 
   const el = (id) => document.getElementById(id);
 
-  // Quick, cancel-safe pick feedback for duel selections: a light haptic
-  // buzz plus a brief gold outline flash on the chosen ticket, then runs
-  // the actual result callback. Kept short (120ms) so it reads as instant
-  // feedback rather than added lag before the next screen appears.
+  // Quick, cancel-safe pick feedback for duel selections: a brief gold
+  // outline flash on the chosen ticket, then runs the actual result
+  // callback. (Haptic vibration was tried here too, but the Vibration API
+  // has no support in Safari on iOS — and since every iOS browser is
+  // required to run on WebKit, that's a platform-wide gap with no
+  // workaround from a website, not something fixable in this code.)
   function flashDuelPick(ticketEl, onDone){
-    if(navigator.vibrate) navigator.vibrate(15);
     if(ticketEl){
       ticketEl.classList.add('duel-pick-flash');
+      setTimeout(() => ticketEl.classList.remove('duel-pick-flash'), 450);
     }
     setTimeout(onDone, 120);
   }
@@ -3037,7 +3039,7 @@
   }
 
   async function renderTrending(){
-    const real = getFeaturedMovies(6);
+    const real = getFeaturedMovies(9);
     const source = real.length > 0 ? real : await getTrendingFallbackMovies();
     renderBanner(source);
     renderPosterGrid(source);
@@ -3546,6 +3548,11 @@
 
   function runDuelStep(){
     if(!pending) return;
+    // Defensive: strip any leftover pick-flash from a previous click, since
+    // ticketA/ticketB are reused DOM nodes across duel steps, not recreated.
+    const tAReset = el('ticketA'), tBReset = el('ticketB');
+    if(tAReset) tAReset.classList.remove('duel-pick-flash');
+    if(tBReset) tBReset.classList.remove('duel-pick-flash');
     const opponent = pending.opponent;
 
     el('duelGenreLabel').textContent = pending.genre;
