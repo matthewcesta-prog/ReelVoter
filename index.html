@@ -1366,9 +1366,8 @@
 
   <div class="account-menu" id="accountMenu" style="display:none;">
     <div class="account-menu-email" id="accountMenuEmail"></div>
-    <button class="account-menu-signout" id="accountMenuSetupPasskey" style="display:none;margin-bottom:8px;">Set up Face ID</button>
-    <button class="account-menu-signout" id="accountMenuSetPassword" style="margin-bottom:8px;">Set a password</button>
     <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener" class="account-menu-signout" id="supportLinkMobile" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;">Support ReelVoter</a>
+    <button class="account-menu-signout" id="accountMenuSetPassword" style="margin-bottom:8px;">Set a password</button>
     <button class="account-menu-signout" id="accountMenuSignOut">Sign out</button>
     <button class="account-menu-signout" id="accountMenuSignIn" style="display:none;">Sign in</button>
   </div>
@@ -1399,9 +1398,9 @@
           </svg>
           <div>
             <p class="et-heading">1. Rate It.</p>
-            <p class="et-desc">Pick your rating — Great, Good, OK, Bad.</p>
+            <p class="et-desc">Pick your rating — Great, Good, OK, Bad. That's it.</p>
           </div>
-          <button class="et-why-trigger" data-why-title="No 5-Star Math." data-why-text="No half-stars, no decimals to argue about." aria-label="Why this matters">?</button>
+          <button class="et-why-trigger" data-why-title="Pick a Lane." data-why-text="No half-stars, no wiggle room. Pick a tier and mean it." aria-label="Why this matters">?</button>
         </div>
         <div class="explainer-tile intro-reveal-tile-2">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1410,9 +1409,9 @@
           </svg>
           <div>
             <p class="et-heading">2. Vote It.</p>
-            <p class="et-desc">Head-to-head, against similar films.</p>
+            <p class="et-desc">Head-to-head against a similar film, so the rating actually means something.</p>
           </div>
-          <button class="et-why-trigger" data-why-title="Not Just Another<br>Star Average." data-why-text="<strong>Real Comparisons</strong><br>Most sites average anonymous stars. ReelVoter's algorithm is built on real head-to-head votes.<br><br><strong>Real Ratings</strong><br>Account logins mean real ratings. No bots, no burners, no review-bombing. That's what makes the number mean something." aria-label="Why this matters">?</button>
+          <button class="et-why-trigger" data-why-title="Not Just Another<br>Star Average." data-why-text="<strong>Receipts, Not Vibes.</strong><br>Most sites average anonymous stars. The ReelVoter algorithm runs on real head-to-head votes — sharpening the community ranking, and yours.<br><br><strong>Real Ratings</strong><br>Account logins mean real ratings. No bots, no burners, no review-bombing. That's what makes the number mean something." aria-label="Why this matters">?</button>
         </div>
         <div class="explainer-tile intro-reveal-tile-3">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1420,9 +1419,9 @@
           </svg>
           <div>
             <p class="et-heading">3. Log It.</p>
-            <p class="et-desc">Every movie you rate joins your own list.</p>
+            <p class="et-desc">Every movie you rate automatically joins your own list.</p>
           </div>
-          <button class="et-why-trigger" data-why-title="A Record, Not a Diary." data-why-text="Every rating builds two scores: the verified community ReelVote, and your own.<br><br>It's that simple — not a wall of essays for people to scroll past." aria-label="Why this matters">?</button>
+          <button class="et-why-trigger" data-why-title="A Record, Not a Diary." data-why-text="Every rating builds two scores: the verified community <strong><em>ReelVote</em></strong>, and <strong><em>Your Vote</em></strong>.<br><br>It's that simple — not a wall of essays for people to scroll past." aria-label="Why this matters">?</button>
         </div>
       </div>
     </div>
@@ -1462,32 +1461,12 @@
       <div id="pwFallbackOptions" style="display:none;margin-top:10px;">
         <button class="duel-skip" id="pwCreateAccountBtn">Create an account with this email</button>
         <br>
-        <button class="duel-skip" id="pwUseCodeBtn" style="margin-top:8px;">Email me a code instead</button>
+        <button class="duel-skip" id="forgotPasswordBtn" style="margin-top:8px;">Forgot your password?</button>
       </div>
     </div>
 
     <button class="btn btn-primary" id="passkeySignInBtn" style="display:none;margin:16px auto 0;">Sign in with Face ID</button>
 
-    <button class="duel-skip" id="switchToCodeBtn" style="margin-top:16px;">Don't have a password? Email me a code</button>
-
-    <div id="emailStep" style="display:none;">
-      <div class="field">
-        <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
-      </div>
-      <div class="modal-actions" style="justify-content:center;">
-        <button class="btn btn-primary" id="sendCodeBtn">Send code</button>
-      </div>
-      <button class="duel-skip" id="backToPasswordBtn" style="margin-top:10px;">Back to password sign-in</button>
-    </div>
-    <div id="codeStep" style="display:none;">
-      <div class="field">
-        <input type="text" id="loginCode" placeholder="6-digit code" autocomplete="one-time-code" inputmode="numeric" maxlength="6">
-      </div>
-      <div class="modal-actions" style="justify-content:center;">
-        <button class="btn btn-primary" id="verifyCodeBtn">Verify code</button>
-      </div>
-      <button class="duel-skip" id="resendCodeBtn" style="margin-top:10px;">Use a different email</button>
-    </div>
     <p id="loginStatus" class="panel-sub" style="margin-top:14px;"></p>
   </div>
 </div>
@@ -1507,6 +1486,20 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="resetPasswordModal" style="display:none;">
+  <div class="modal" style="text-align:center;">
+    <h3>Set a new password</h3>
+    <p class="panel-sub">You're in — pick a new password to finish resetting your account.</p>
+    <div class="field">
+      <input type="password" id="resetPasswordInput" placeholder="New password" autocomplete="new-password">
+    </div>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="btn btn-primary" id="resetPasswordBtn">Set new password</button>
+    </div>
+    <p id="resetPasswordStatus" class="panel-sub" style="margin-top:10px;"></p>
+  </div>
+</div>
+
   <div id="page-my-ratings" style="display:none;">
     <div class="my-ratings-heading" id="myRatingsHeading" style="display:none;">
       <h2>My List</h2>
@@ -1523,7 +1516,7 @@
         <label for="sortField">Sort by</label>
         <select id="sortField">
           <option value="reelvote">ReelVote Score</option>
-          <option value="yourRating">Your Rating</option>
+          <option value="yourRating">Your Vote</option>
           <option value="title">Title</option>
         </select>
         <button id="sortDirBtn" type="button" title="Toggle sort direction">↓</button>
@@ -1726,33 +1719,22 @@
     el('showSignInBtn').style.display = signedIn ? 'none' : 'block';
     el('myRatingsHeading').style.display = 'none'; // render() will re-show this if there's anything to show
     el('setupPasskeyBtn').style.display = (signedIn && passkeySupported) ? 'block' : 'none';
-    el('accountMenuSetupPasskey').style.display = (signedIn && passkeySupported) ? 'block' : 'none';
     el('setPasswordLinkDesktop').style.display = signedIn ? 'block' : 'none';
     el('accountMenuSetPassword').style.display = signedIn ? 'block' : 'none';
     if(signedIn){
       el('userEmailDisplay').textContent = currentUser.email || '';
       closeSignInModal();
     } else {
-      // Reset the sign-in prompt back to the email step, in case it was left
-      // mid-code-entry from a previous session.
-      el('emailStep').style.display = 'block';
-      el('codeStep').style.display = 'none';
-      el('loginEmail').value = '';
-      el('loginCode').value = '';
       el('loginStatus').textContent = '';
-      pendingSignInEmail = null;
     }
   }
-
-  let pendingSignInEmail = null;
-  let justSignedInViaOtp = false;
 
   el('passkeySignInBtn').addEventListener('click', async () => {
     el('loginStatus').textContent = 'Waiting for Face ID...';
     const { error } = await supabaseClient.auth.signInWithPasskey();
     if(error){
       el('loginStatus').textContent = error.code === 'webauthn_credential_not_found'
-        ? 'No Face ID set up for this device yet — sign in with a code below, then set it up.'
+        ? 'No Face ID set up for this device yet — sign in with your password below, then set it up.'
         : 'Face ID sign-in didn\'t work: ' + error.message;
       return;
     }
@@ -1767,7 +1749,6 @@
     setTimeout(() => { btn.textContent = originalText; }, 2500);
   }
   el('setupPasskeyBtn').addEventListener('click', (e) => setupPasskey(e.currentTarget));
-  el('accountMenuSetupPasskey').addEventListener('click', (e) => setupPasskey(e.currentTarget));
 
   el('pwSignInBtn').addEventListener('click', async () => {
     const email = el('pwEmail').value.trim();
@@ -1802,27 +1783,6 @@
     el('pwStatus').style.display = 'none';
   });
 
-  function switchToCodeStep(){
-    const typedEmail = el('pwEmail').value.trim();
-    el('passwordStep').style.display = 'none';
-    el('passkeySignInBtn').style.display = 'none';
-    el('emailStep').style.display = 'block';
-    if(typedEmail) el('loginEmail').value = typedEmail;
-    el('loginStatus').textContent = '';
-    setTimeout(() => el('loginEmail').focus(), 100);
-  }
-  el('pwUseCodeBtn').addEventListener('click', switchToCodeStep);
-  el('switchToCodeBtn').addEventListener('click', switchToCodeStep);
-
-  el('backToPasswordBtn').addEventListener('click', () => {
-    el('emailStep').style.display = 'none';
-    el('codeStep').style.display = 'none';
-    el('passwordStep').style.display = 'block';
-    el('passkeySignInBtn').style.display = passkeySupported ? 'block' : 'none';
-    el('loginStatus').textContent = '';
-    setTimeout(() => el('pwEmail').focus(), 100);
-  });
-
   function openSetPasswordPrompt(){
     el('newPasswordInput').value = '';
     el('setPasswordStatus').textContent = '';
@@ -1851,52 +1811,35 @@
     el('setPasswordPromptModal').style.display = 'none';
   });
 
-  el('sendCodeBtn').addEventListener('click', async () => {
-    const email = el('loginEmail').value.trim();
-    if(!email){ el('loginEmail').focus(); return; }
-    el('loginStatus').textContent = 'Sending...';
-    // No emailRedirectTo — this requests a one-time code instead of a clickable link,
-    // which sidesteps email providers (Gmail included) silently "pre-clicking" magic
-    // links to scan them, consuming a link before the person ever sees it.
-    const { error } = await supabaseClient.auth.signInWithOtp({ email });
-    if(error){
-      el('loginStatus').textContent = 'Something went wrong: ' + error.message;
-      return;
-    }
-    pendingSignInEmail = email;
-    el('emailStep').style.display = 'none';
-    el('codeStep').style.display = 'block';
-    el('loginStatus').textContent = 'Check your email for a 6-digit code.';
-    el('loginCode').focus();
-  });
-
-  el('verifyCodeBtn').addEventListener('click', async () => {
-    const code = el('loginCode').value.trim();
-    if(!code){ el('loginCode').focus(); return; }
-    if(!pendingSignInEmail){ el('loginStatus').textContent = 'Please request a code first.'; return; }
-    el('loginStatus').textContent = 'Verifying...';
-    justSignedInViaOtp = true;
-    const { error } = await supabaseClient.auth.verifyOtp({
-      email: pendingSignInEmail,
-      token: code,
-      type: 'email'
+  el('forgotPasswordBtn').addEventListener('click', async () => {
+    const email = el('pwEmail').value.trim();
+    if(!email){ el('pwEmail').focus(); return; }
+    el('pwStatus').style.display = 'block';
+    el('pwStatus').textContent = 'Sending a reset link...';
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
     });
     if(error){
-      justSignedInViaOtp = false;
-      el('loginStatus').textContent = 'That code didn\'t work: ' + error.message;
+      el('pwStatus').textContent = 'Couldn\'t send that: ' + error.message;
       return;
     }
-    // A successful verify triggers onAuthStateChange, which handles the rest.
-    el('loginStatus').textContent = '';
+    el('pwStatus').textContent = 'Check your email for a reset link.';
   });
 
-  el('resendCodeBtn').addEventListener('click', () => {
-    pendingSignInEmail = null;
-    el('loginCode').value = '';
-    el('codeStep').style.display = 'none';
-    el('emailStep').style.display = 'block';
-    el('loginStatus').textContent = '';
-    el('loginEmail').focus();
+  el('resetPasswordBtn').addEventListener('click', async () => {
+    const password = el('resetPasswordInput').value;
+    if(!password || password.length < 6){
+      el('resetPasswordStatus').textContent = 'Password needs to be at least 6 characters.';
+      return;
+    }
+    el('resetPasswordStatus').textContent = 'Saving...';
+    const { error } = await supabaseClient.auth.updateUser({ password });
+    if(error){
+      el('resetPasswordStatus').textContent = 'Couldn\'t set that password: ' + error.message;
+      return;
+    }
+    el('resetPasswordStatus').textContent = 'Password set ✓';
+    setTimeout(() => { el('resetPasswordModal').style.display = 'none'; }, 1200);
   });
 
   el('signOutBtn').addEventListener('click', async () => {
@@ -1958,8 +1901,6 @@
     el('signInModal').style.display = 'flex';
     el('passkeySignInBtn').style.display = passkeySupported ? 'block' : 'none';
     el('passwordStep').style.display = 'block';
-    el('emailStep').style.display = 'none';
-    el('codeStep').style.display = 'none';
     el('pwStatus').style.display = 'none';
     el('pwFallbackOptions').style.display = 'none';
     el('pwPassword').value = '';
@@ -2065,13 +2006,14 @@
   supabaseClient.auth.onAuthStateChange((event, session) => {
     currentUser = session ? session.user : null;
     updateAuthUI();
-    loadAll().then(() => {
-      if(currentUser && justSignedInViaOtp){
-        justSignedInViaOtp = false;
-        closeSignInModal();
-        openSetPasswordPrompt();
-      }
-    });
+    if(event === 'PASSWORD_RECOVERY'){
+      closeSignInModal();
+      el('resetPasswordInput').value = '';
+      el('resetPasswordStatus').textContent = '';
+      el('resetPasswordModal').style.display = 'flex';
+      setTimeout(() => el('resetPasswordInput').focus(), 150);
+    }
+    loadAll();
   });
 
   async function loadAll(){
@@ -3395,6 +3337,7 @@
     el('inlineTicketB').addEventListener('click', () => finishDuel('loss'));
     el('inlineTooClose').addEventListener('click', () => finishDuel('tie'));
     el('inlineHaventSeen').addEventListener('click', () => {
+      addDismissedSuggestion(opponent.id);
       const altOpponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id, ...usedOpponentIds]);
       if(altOpponent){
         renderSuggestionDuelStep(wrap, movie, altOpponent, genre, excludeIds, excludeTitles, [...usedOpponentIds, altOpponent.id], duelChain);
@@ -3595,6 +3538,7 @@
     };
 
     el('haventSeenBtn').onclick = () => {
+      addDismissedSuggestion(pending.opponent.id);
       if(!pending.seenRefinementUsed){
         const alt = pickAlternateOpponent(pending);
         pending.seenRefinementUsed = true;
