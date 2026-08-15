@@ -450,27 +450,34 @@
   .poster-cell{border-radius:6px;overflow:hidden;aspect-ratio:2/3;background:var(--surface);}
   .poster-cell img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
 
-  .modal-overlay.detail-overlay{align-items:flex-start;overflow-y:auto;overflow-x:hidden;overflow-anchor:none;touch-action:pan-y;padding:0;z-index:35;}
+  /* The movie detail page used to be a position:fixed modal overlay with its
+     own independent scroll container, layered on top of a frozen body. That
+     architecture was the root cause behind this project's whole family of
+     scroll bugs (double scrollbars, body-lock quirks, the dvh issue) — two
+     competing scroll contexts stacked on each other, which iOS Safari
+     handles inconsistently. #movieDetailModal is now a genuine page, living
+     in the same normal body scroll as Home/Rankings/My List, with no
+     separate scroll container and no body-freezing at all. */
+  #movieDetailModal{display:none;}
   .detail-panel{
     background:var(--bg);
-    width:100%;
+    width:100vw;
+    position:relative;
+    left:50%;right:50%;
+    margin-left:-50vw;margin-right:-50vw;
     min-height:100vh;
     max-width:none;
     border-radius:0;
     padding:0;
-    position:relative;
     overflow-x:hidden;
     animation:fadeSlideIn 0.25s ease;
   }
   .detail-close{
-    position:fixed;top:76px;right:16px;z-index:36;
+    position:fixed;top:calc(var(--top-nav-height, 70px) + 10px);right:16px;z-index:41;
     background:rgba(0,0,0,0.6);
     border:none;color:var(--white);
     width:36px;height:36px;border-radius:50%;
     font-size:1.4rem;line-height:1;cursor:pointer;
-  }
-  @media (max-width:700px){
-    .detail-close{top:66px;}
   }
   .detail-hero-fullbg{
     position:absolute;inset:0;
@@ -490,9 +497,9 @@
     overflow-wrap:break-word;
   }
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
-  .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:130px 24px 60px;}
+  .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
   @media (max-width:700px){
-    .detail-body{padding-top:140px;}
+    .detail-body{padding-top:24px;}
   }
   #nextSuggestionWrap{flex-basis:100%;order:1;}
   #nextSuggestionWrap:empty{display:none;flex-basis:0;}
@@ -1605,11 +1612,11 @@
     <b id="totalCount">0</b> titles ranked
   </div>
 
-</div>
-
-<!-- MOVIE DETAIL OVERLAY -->
-<button class="detail-close" id="closeDetailBtn" style="display:none;">&times;</button>
-<div class="modal-overlay detail-overlay" id="movieDetailModal" style="display:none;">
+  <!-- MOVIE DETAIL PAGE — a normal page inside .wrap now, not a fixed
+       overlay with its own scroll context. See the comment on
+       #movieDetailModal / .detail-panel in the CSS for why. -->
+  <button class="detail-close" id="closeDetailBtn" style="display:none;">&times;</button>
+  <div id="movieDetailModal" style="display:none;">
   <div class="detail-panel">
     <div id="detailContent"></div>
     <div id="detailRateWidget" class="detail-rate-widget" style="display:none;">
@@ -1649,6 +1656,8 @@
       </div>
     </div>
   </div>
+  </div>
+
 </div>
 
 <!-- DUEL MODAL -->
@@ -1910,7 +1919,6 @@
         // will correctly re-run renderRoute-equivalent logic and recover it.
         el('movieDetailModal').style.display = 'none';
         el('closeDetailBtn').style.display = 'none';
-        unlockBodyScroll();
         PAGES.forEach(p => {
           const pageEl = el('page-' + p);
           if(pageEl) pageEl.style.display = (p === 'home') ? 'block' : 'none';
@@ -1919,7 +1927,6 @@
     } else {
       el('movieDetailModal').style.display = 'none';
       el('closeDetailBtn').style.display = 'none';
-      unlockBodyScroll();
       const activeRoute = PAGES.includes(routeName) ? routeName : 'home';
       PAGES.forEach(p => {
         const pageEl = el('page-' + p);
@@ -2704,10 +2711,8 @@
 
     el('detailRateBtn').onclick = () => startRateFromDetail(movie);
     if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    modal.style.display = 'flex';
+    modal.style.display = 'block';
     el('closeDetailBtn').style.display = 'inline-block';
-    lockBodyScroll();
-    modal.scrollTop = 0;
     window.scrollTo(0,0);
 
     renderTierCounts(movie.id);
@@ -2891,36 +2896,14 @@
     el('detailRateWidget').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  let lockedScrollY = 0;
-  function lockBodyScroll(){
-    lockedScrollY = window.scrollY || window.pageYOffset || 0;
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${lockedScrollY}px`;
-    document.body.style.width = '100%';
-  }
-  function unlockBodyScroll(){
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
-    window.scrollTo(0, lockedScrollY);
-  }
-
   function closeMovieDetail(){
     el('movieDetailModal').style.display = 'none';
     el('closeDetailBtn').style.display = 'none';
-    unlockBodyScroll();
     if(window.location.hash.startsWith('#/movie/')){
       window.history.back();
     }
   }
   el('closeDetailBtn').addEventListener('click', closeMovieDetail);
-  el('movieDetailModal').addEventListener('click', (e) => {
-    if(e.target.id === 'movieDetailModal') closeMovieDetail();
-  });
 
   let carouselInterval = null;
   let carouselIndex = 0;
@@ -3725,7 +3708,6 @@
     if(window.location.hash.startsWith('#/movie/')){
       await openMovieDetail(movie);
       await showNextSuggestion(movie.genre, [movie.id]);
-      el('movieDetailModal').scrollTop = 0;
       window.scrollTo(0,0);
     }
   }
