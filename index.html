@@ -447,6 +447,14 @@
   @media (min-width:1000px){
     .poster-grid{grid-template-columns:repeat(6, 1fr);max-width:900px;}
   }
+  .home-footer-links{
+    text-align:center;margin:0 0 32px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.82rem;
+  }
+  .home-footer-links a{color:var(--muted);text-decoration:underline;}
+  .home-footer-links a:hover{color:var(--text);}
+  .home-footer-divider{color:var(--line);margin:0 10px;}
   .poster-cell{border-radius:6px;overflow:hidden;aspect-ratio:2/3;background:var(--surface);}
   .poster-cell img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
 
@@ -1218,6 +1226,7 @@
   }
   .vs-mark{
     align-self:center;
+    text-align:center;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-style:italic;
     font-weight:800;
@@ -1373,7 +1382,6 @@
           <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
           <button id="signOutBtn" class="top-bar-signout" style="display:none;">Sign out</button>
           <button id="setPasswordLinkDesktop" class="top-bar-signout">Set a password</button>
-          <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener" class="top-bar-signout" id="supportLinkDesktop">Support ReelVoter</a>
         </div>
       </div>
     </div>
@@ -1423,7 +1431,6 @@
 
   <div class="account-menu" id="accountMenu" style="display:none;">
     <div class="account-menu-email" id="accountMenuEmail"></div>
-    <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener" class="account-menu-signout" id="supportLinkMobile" style="display:block;text-align:center;text-decoration:none;margin-bottom:8px;">Support ReelVoter</a>
     <button class="account-menu-signout" id="accountMenuSetPassword" style="margin-bottom:8px;">Set a password</button>
     <button class="account-menu-signout" id="accountMenuSignOut">Sign out</button>
     <button class="account-menu-signout" id="accountMenuSignIn" style="display:none;">Sign in</button>
@@ -1485,6 +1492,12 @@
 
     <div class="explainer-label intro-reveal-rest" style="margin-top:24px;">Recently ReelVoted:</div>
     <div id="posterGridWrap" class="intro-reveal-rest"></div>
+
+    <div class="home-footer-links intro-reveal-rest">
+      <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener">Support ReelVoter</a>
+      <span class="home-footer-divider">&middot;</span>
+      <a href="mailto:CONTACT_EMAIL_TBD">Contact</a>
+    </div>
   </div>
 
   <div class="modal-overlay" id="whyPopupModal" style="display:none;">
@@ -1776,7 +1789,7 @@
       ticketEl.classList.add('duel-pick-flash');
       setTimeout(() => ticketEl.classList.remove('duel-pick-flash'), 450);
     }
-    setTimeout(onDone, 120);
+    setTimeout(onDone, 70);
   }
 
   function updateAuthUI(){
@@ -2657,7 +2670,6 @@
                     <div class="dts-label">${t}</div>
                     <div class="dts-sub">${TIER_SUBTITLE[t]}</div>
                   </div>
-                  <span class="dts-count" id="dtsCount-${t}">0 votes</span>
                 </div>
               </div>
             `).join('')}
@@ -3755,12 +3767,20 @@
     if(firstResult) firstResult.click();
   });
 
+  // Strips everything but letters/numbers so "Stepbrothers" still matches
+  // "Step Brothers" — a missing space (or stray punctuation) shouldn't hide
+  // a movie that's obviously the one being searched for.
+  function normalizeForSearch(s){
+    return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
   async function runTopSearch(q){
     const box = el('topSearchResults');
     box.style.display = 'block';
     box.innerHTML = '';
 
-    const localMatches = movies.filter(m => m.title.toLowerCase().includes(q)).slice(0, 8);
+    const qNorm = normalizeForSearch(q);
+    const localMatches = movies.filter(m => m.title.toLowerCase().includes(q) || normalizeForSearch(m.title).includes(qNorm)).slice(0, 8);
     const localTitles = new Set(localMatches.map(m => m.title.toLowerCase()));
 
     localMatches.forEach(m => {
