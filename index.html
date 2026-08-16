@@ -593,8 +593,13 @@
     min-width:190px;
     order:1;
   }
+  .dts-heading{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
+    color:#d4af37;margin:0 0 4px;
+  }
   .dts-item{opacity:0.32;}
-  .dts-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  .dts-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .dts-label{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-weight:800;font-size:1.5rem;color:var(--white);
@@ -606,20 +611,29 @@
   .dts-item.dts-active .dts-label{color:var(--tier-color);}
   .dts-item.dts-active .dts-sub{color:var(--tier-color);opacity:0.85;}
   .dts-item.dts-active .dts-count{color:var(--tier-color);}
-  .detail-vote-rows{
+  .dts-inline-score{
+    display:flex;align-items:center;gap:6px;flex-shrink:0;
+  }
+  .dts-score-value{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:700;font-size:1.1rem;color:var(--tier-color);
+  }
+  .detail-your-vote{
     border-top:1px solid var(--line);
     margin-top:4px;padding-top:16px;
-    display:flex;flex-direction:column;gap:14px;
+    opacity:0.4;
   }
-  .detail-vote-row{display:flex;align-items:center;gap:10px;}
-  .detail-vote-row-text{flex:1;}
   .dvr-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);}
-  .dvr-value{
+  .your-vote-row{display:flex;align-items:center;gap:8px;margin-top:4px;}
+  .yv-tier{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-weight:700;font-size:0.95rem;text-transform:uppercase;
+    font-weight:800;font-size:1.1rem;color:var(--white);
+    text-transform:uppercase;letter-spacing:-0.01em;
   }
-  .dvr-value span{color:var(--muted);font-weight:400;text-transform:none;margin-left:4px;}
-  .dvr-meta{font-size:0.72rem;color:var(--muted);margin-top:1px;}
+  .yv-score{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:700;font-size:1rem;color:var(--white);
+  }
   .detail-center-col{
     display:flex;flex-direction:column;align-items:center;text-align:center;
     min-width:220px;max-width:220px;order:2;
@@ -708,9 +722,10 @@
     .dts-label{font-size:0.95rem;}
     .dts-sub{font-size:0.58rem;}
     .dts-count{font-size:0.58rem;}
+    .dts-score-value{font-size:0.95rem;}
     .dvr-label{font-size:0.6rem;}
-    .dvr-value{font-size:0.82rem;}
-    .dvr-meta{font-size:0.62rem;}
+    .yv-tier{font-size:0.95rem;}
+    .yv-score{font-size:0.85rem;}
     .detail-poster-big{width:120px;}
     .detail-rate-btn{padding:9px 16px;font-size:0.85rem;}
   }
@@ -1619,10 +1634,9 @@
     <div id="browseEmpty" class="empty-state" style="display:none;">
       <span class="cheeky-line">Nothing matches that combination yet.</span>
     </div>
-  </div>
-
-  <div class="page-footer">
-    <b id="totalCount">0</b> titles ranked
+    <div class="page-footer">
+      <b id="totalCount">0</b> titles ranked
+    </div>
   </div>
 
   <!-- MOVIE DETAIL PAGE — a normal page inside .wrap now, not a fixed
@@ -1830,7 +1844,12 @@
   el('pwCreateAccountBtn').addEventListener('click', async () => {
     const email = el('pwEmail').value.trim();
     const password = el('pwPassword').value;
-    if(!email || !password) return;
+    if(!email || !password){
+      el('pwStatus').style.display = 'block';
+      el('pwStatus').textContent = 'Enter an email and password above, then tap this again to create your account.';
+      el('pwEmail').focus();
+      return;
+    }
     el('pwStatus').style.display = 'block';
     el('pwStatus').textContent = 'Creating your account...';
     const { error } = await supabaseClient.auth.signUp({ email, password });
@@ -2650,7 +2669,6 @@
       });
     }
 
-    const hasRealSignal_ = hasRealSignal(movie);
     const currentTier = scoreToTier(movie.score);
 
     el('detailRateWidget').style.display = 'none';
@@ -2663,6 +2681,7 @@
       <div class="detail-body">
         <div class="detail-layout">
           <div class="detail-tier-scale">
+            <div class="dts-heading">ReelVote</div>
             ${TIER_ORDER_DESC.map(t => `
               <div class="dts-item${t === currentTier ? ' dts-active' : ''}" style="${t===currentTier ? `--tier-color:${TIER_VISUAL[t].color};` : ''}">
                 <div class="dts-row">
@@ -2670,28 +2689,25 @@
                     <div class="dts-label">${t}</div>
                     <div class="dts-sub">${TIER_SUBTITLE[t]}</div>
                   </div>
+                  ${t === currentTier ? `
+                    <div class="dts-inline-score">
+                      ${tierIcon(currentTier)}
+                      <span class="dts-score-value">${(movie.score||5).toFixed(1)}</span>
+                    </div>
+                  ` : ''}
                 </div>
               </div>
             `).join('')}
-            <div class="detail-vote-rows">
-              <div class="detail-vote-row">
-                ${tierIcon(currentTier)}
-                <div class="detail-vote-row-text">
-                  <div class="dvr-label">ReelVote</div>
-                  <div class="dvr-value" style="color:${TIER_VISUAL[currentTier].color};">${currentTier} <span>${(movie.score||5).toFixed(1)}</span></div>
-                  <div class="dvr-meta">${hasRealSignal_ ? formatVoteCount(uniqueVoterCount(movie.id)) : 'IMDb baseline — not yet ReelVoted'}</div>
+            ${myRatings[movie.id] ? `
+              <div class="detail-your-vote">
+                <div class="dvr-label">Your Vote</div>
+                <div class="your-vote-row">
+                  <span class="yv-tier">${myRatings[movie.id]}</span>
+                  ${tierIcon(myRatings[movie.id])}
+                  <span class="yv-score">${personalVoteScore(movie).toFixed(1)}</span>
                 </div>
               </div>
-              ${myRatings[movie.id] ? `
-                <div class="detail-vote-row">
-                  ${tierIcon(myRatings[movie.id])}
-                  <div class="detail-vote-row-text">
-                    <div class="dvr-label">Your Vote</div>
-                    <div class="dvr-value" style="color:${TIER_VISUAL[myRatings[movie.id]].color};">${myRatings[movie.id]} <span>${personalVoteScore(movie).toFixed(1)}</span></div>
-                  </div>
-                </div>
-              ` : ''}
-            </div>
+            ` : ''}
             ${myRatings[movie.id] ? `
               <button class="detail-update-link" id="detailRateBtn">Update your rating</button>
             ` : `
