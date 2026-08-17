@@ -1555,7 +1555,7 @@
 <div class="modal-overlay" id="signInModal" style="display:none;">
   <div class="modal" style="text-align:center;">
     <h3 id="authModalTitle">Sign in to rate a movie</h3>
-    <p class="panel-sub">One real person, one real vote — no burner accounts, no bots padding a number.</p>
+    <p class="panel-sub" id="authModalSubtitle">One real person, one real vote — no burner accounts, no bots padding a number.</p>
 
     <div class="auth-mode-toggle">
       <button type="button" class="auth-mode-btn active" id="authModeSignInBtn" data-mode="signin">Sign In</button>
@@ -2074,6 +2074,9 @@
     el('authModeSignInBtn').classList.toggle('active', !isCreate);
     el('authModeCreateBtn').classList.toggle('active', isCreate);
     el('authModalTitle').textContent = isCreate ? 'Create your account' : 'Sign in to rate a movie';
+    el('authModalSubtitle').textContent = isCreate
+      ? 'Add an email and password below, then tap Create Account.'
+      : 'One real person, one real vote — no burner accounts, no bots padding a number.';
     el('pwSignInBtn').style.display = isCreate ? 'none' : 'block';
     el('pwCreateAccountBtn').style.display = isCreate ? 'block' : 'none';
     el('pwPassword').autocomplete = isCreate ? 'new-password' : 'current-password';
