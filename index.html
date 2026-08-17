@@ -1541,6 +1541,7 @@
   <div class="modal" style="text-align:center;">
     <h3>Sign in to rate a movie</h3>
     <p class="panel-sub">One real person, one real vote — no burner accounts, no bots padding a number.</p>
+    <p class="panel-sub" style="margin-top:6px;">New here? Enter an email and a password below, then tap <b>"Create one"</b> underneath. Already have an account? Enter the same and tap <b>Sign in</b>.</p>
 
     <div id="passwordStep">
       <div class="field">
@@ -1872,7 +1873,7 @@
     el('pwFallbackOptions').style.display = 'none';
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if(error){
-      el('pwStatus').textContent = 'Incorrect password, or you haven\'t set one yet.';
+      el('pwStatus').textContent = 'Incorrect password — or if you\'re new here, tap "Create one" below instead of Sign in.';
       el('pwFallbackOptions').style.display = 'block';
       return;
     }
