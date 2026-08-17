@@ -1911,12 +1911,21 @@
     }
     el('pwStatus').style.display = 'block';
     el('pwStatus').textContent = 'Creating your account...';
-    const { error } = await supabaseClient.auth.signUp({ email, password });
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if(error){
       el('pwStatus').textContent = 'Couldn\'t create that account: ' + error.message;
       return;
     }
-    // A successful sign-up triggers onAuthStateChange, which handles the rest.
+    if(!data.session){
+      // Email confirmation is required before a session exists — signUp
+      // succeeding here does NOT mean they're signed in yet, so onAuthStateChange
+      // won't fire and the modal would otherwise just sit there with no
+      // feedback. Tell them explicitly what to do next.
+      el('pwStatus').textContent = 'Almost there — check your email and tap the confirmation link, then come back and sign in.';
+      return;
+    }
+    // A real session came back — signed in immediately, no confirmation
+    // required. onAuthStateChange handles closing the modal from here.
     el('pwStatus').style.display = 'none';
   });
 
