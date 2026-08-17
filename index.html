@@ -911,7 +911,7 @@
     .mrc-group label{font-size:0.68rem;}
     .mrc-group select{padding:5px 6px;font-size:0.74rem;}
   }
-  #sortDirBtn{
+  #sortDirBtn, #browseSortDirBtn{
     background:var(--surface-2);
     border:1px solid var(--line);
     color:var(--text);
@@ -2443,14 +2443,31 @@
     return set;
   }
 
-  function pickDirectionalOpponent(movie, referenceOpponent, direction, genre, excludeIds){
+  // No already-rated movie exists to duel against yet in this genre (either
+  // this is the person's first rating in it, or every rated candidate has
+  // been exhausted mid-chain) — source a similar, well-known film the same
+  // way "If you liked" does (TMDb's popularity-sorted genre pool, falling
+  // back to the small curated list if TMDb is unreachable), then create it
+  // as a real catalog entry so there's something concrete to duel against.
+  async function pickColdStartOpponent(genre, excludeTitleSet){
+    const tmdbPool = await fetchTmdbGenrePool(genre);
+    let candidates = tmdbPool.filter(c => !excludeTitleSet.has(c.title.toLowerCase()));
+    if(candidates.length === 0){
+      candidates = (CURATED[genre] || []).filter(c => !excludeTitleSet.has(c.title.toLowerCase()));
+    }
+    if(candidates.length === 0) return null;
+    const seed = candidates[Math.floor(Math.random() * candidates.length)];
+    return await getOrCreateMovieByTitle(seed.title, genre, seed.year);
+  }
+
+  async function pickDirectionalOpponent(movie, referenceOpponent, direction, genre, excludeIds){
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
-    let candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()));
+    let candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && myRatings[m.id]);
     candidates = direction === 'higher'
       ? candidates.filter(m => (m.score||5) > (referenceOpponent.score||5))
       : candidates.filter(m => (m.score||5) < (referenceOpponent.score||5));
-    if(candidates.length === 0) return null;
+    if(candidates.length === 0) return await pickColdStartOpponent(genre, excludeTitleSet);
 
     const untested = currentUser
       ? candidates.filter(m => !hasBeenComparedTo(currentUser.id, movie.id, m.id))
@@ -2466,13 +2483,13 @@
 
   // For a third, narrowing duel — picks the closest-to-midpoint candidate
   // strictly between the two opponents already faced.
-  function pickBetweenOpponent(movie, opponentA, opponentB, genre, excludeIds){
+  async function pickBetweenOpponent(movie, opponentA, opponentB, genre, excludeIds){
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
     const lo = Math.min(opponentA.score||5, opponentB.score||5);
     const hi = Math.max(opponentA.score||5, opponentB.score||5);
-    const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && (m.score||5) >= lo && (m.score||5) <= hi);
-    if(candidates.length === 0) return null;
+    const candidates = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && myRatings[m.id] && (m.score||5) >= lo && (m.score||5) <= hi);
+    if(candidates.length === 0) return await pickColdStartOpponent(genre, excludeTitleSet);
 
     const untested = currentUser
       ? candidates.filter(m => !hasBeenComparedTo(currentUser.id, movie.id, m.id))
@@ -2492,7 +2509,7 @@
   // two opponents faced), or it continued the trend as a genuine upset
   // (pushing even further in the same direction is more informative than
   // doubling back to search between two points already both confirmed).
-  function decideNextDuel(movie, genre, duelChain){
+  async function decideNextDuel(movie, genre, duelChain){
     if(duelChain.length >= 3) return null;
     const excludeIds = [movie.id, ...duelChain.map(c => c.opponent.id)];
 
@@ -2500,7 +2517,7 @@
       const { opponent, result } = duelChain[0];
       if(result === 'tie') return null;
       const direction = result === 'win' ? 'higher' : 'lower';
-      return pickDirectionalOpponent(movie, opponent, direction, genre, excludeIds);
+      return await pickDirectionalOpponent(movie, opponent, direction, genre, excludeIds);
     }
 
     if(duelChain.length === 2){
@@ -2509,7 +2526,7 @@
       if(!firstDirection) return null; // duel 1 was a tie — no direction was ever established
 
       if(second.result === 'tie'){
-        return pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
+        return await pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
       }
 
       const continuedTrend = (firstDirection === 'higher' && second.result === 'win') || (firstDirection === 'lower' && second.result === 'lose');
@@ -2517,10 +2534,10 @@
         // Still climbing (or falling) — only worth a third duel if duel 2
         // was itself surprising, and then it should push further in the
         // same direction, not double back between two confirmed points.
-        return second.upset ? pickDirectionalOpponent(movie, second.opponent, firstDirection, genre, excludeIds) : null;
+        return second.upset ? await pickDirectionalOpponent(movie, second.opponent, firstDirection, genre, excludeIds) : null;
       }
       // Direction reversed — the true position is bracketed between the two opponents faced.
-      return pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
+      return await pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
     }
 
     return null;
@@ -3493,7 +3510,7 @@
         wrap.innerHTML = `<p class="next-suggestion-loading">Saving...</p>`;
         await quickRateSuggestion(movie, btn.dataset.tier);
         render();
-        const opponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id]);
+        const opponent = await pickInlineDuelOpponent(movie, [...excludeIds, movie.id]);
         if(opponent){
           renderSuggestionDuelStep(wrap, movie, opponent, genre, excludeIds, excludeTitles, [opponent.id]);
         } else {
@@ -3513,11 +3530,11 @@
     );
   }
 
-  function pickInlineDuelOpponent(movie, excludeIds){
+  async function pickInlineDuelOpponent(movie, excludeIds){
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
-    const candidates = movies.filter(m => m.genre === movie.genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()));
-    if(candidates.length === 0) return null;
+    const candidates = movies.filter(m => m.genre === movie.genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && myRatings[m.id]);
+    if(candidates.length === 0) return await pickColdStartOpponent(movie.genre, excludeTitleSet);
     const anchor = movie.score || 5;
 
     // Prefer a movie this user has never actually been shown against this
@@ -3567,7 +3584,7 @@
       duelChain.push({ opponent, result, upset });
       render();
 
-      const nextOpponent = decideNextDuel(movie, genre, duelChain);
+      const nextOpponent = await decideNextDuel(movie, genre, duelChain);
       if(nextOpponent){
         renderSuggestionDuelStep(wrap, movie, nextOpponent, genre, excludeIds, excludeTitles, [...usedOpponentIds, nextOpponent.id], duelChain);
       } else {
@@ -3578,9 +3595,9 @@
     el('inlineTicketA').addEventListener('click', () => flashDuelPick(el('inlineTicketA'), () => finishDuel('win')));
     el('inlineTicketB').addEventListener('click', () => flashDuelPick(el('inlineTicketB'), () => finishDuel('loss')));
     el('inlineTooClose').addEventListener('click', () => finishDuel('tie'));
-    el('inlineHaventSeen').addEventListener('click', () => {
+    el('inlineHaventSeen').addEventListener('click', async () => {
       addDismissedSuggestion(opponent.id);
-      const altOpponent = pickInlineDuelOpponent(movie, [...excludeIds, movie.id, ...usedOpponentIds]);
+      const altOpponent = await pickInlineDuelOpponent(movie, [...excludeIds, movie.id, ...usedOpponentIds]);
       if(altOpponent){
         renderSuggestionDuelStep(wrap, movie, altOpponent, genre, excludeIds, excludeTitles, [...usedOpponentIds, altOpponent.id], duelChain);
       } else {
@@ -3595,8 +3612,16 @@
     if(!wrap) return;
     wrap.innerHTML = '';
 
-    const pool = CURATED[movie.genre] || [];
-    const suggestions = pool.filter(p => p.title.trim().toLowerCase() !== movie.title.trim().toLowerCase()).slice(0, 6);
+    const tmdbPool = await fetchTmdbGenrePool(movie.genre);
+    let suggestions = tmdbPool
+      .filter(p => p.title.trim().toLowerCase() !== movie.title.trim().toLowerCase())
+      .slice(0, 6);
+    if(suggestions.length === 0){
+      // TMDb unreachable or returned nothing usable — fall back to the small
+      // curated list rather than showing an empty section.
+      const pool = CURATED[movie.genre] || [];
+      suggestions = pool.filter(p => p.title.trim().toLowerCase() !== movie.title.trim().toLowerCase()).slice(0, 6);
+    }
     if(suggestions.length === 0) return;
 
     wrap.innerHTML = `
@@ -3690,29 +3715,26 @@
     const genre = el('genreInput').value;
 
     const dismissedSet = new Set(getDismissedSuggestions());
-    const candidates = movies.filter(m => m.genre === genre && (!existingMovie || m.id !== existingMovie.id) && !dismissedSet.has(m.id));
+    const candidates = movies.filter(m => m.genre === genre && (!existingMovie || m.id !== existingMovie.id) && !dismissedSet.has(m.id) && myRatings[m.id]);
 
     if(candidates.length === 0){
-      const pool = (CURATED[genre] || []).filter(c => c.title !== title);
-      if(pool.length > 0){
-        const seed = pool[Math.floor(Math.random() * pool.length)];
-        el('continueAddBtn').disabled = true;
-        const seedMovie = await getOrCreateMovieByTitle(seed.title, genre, seed.year);
-        el('continueAddBtn').disabled = false;
-        if(seedMovie){
-          pending = {
-            title, year, genre, poster, imdbID, imdbRating, existingMovie, tier: selectedTier,
-            newId: existingMovie ? existingMovie.id : crypto.randomUUID(),
-            opponent: seedMovie, excludeIds: [seedMovie.id],
-            duelChain: [], movie: null
-          };
-          runDuelStep();
-          return;
-        }
-        // Seed fetch failed (e.g. network issue) — fall through to a direct
-        // rating rather than leaving the person stuck with no way forward.
+      const excludeTitleSet = new Set([title.toLowerCase()]);
+      el('continueAddBtn').disabled = true;
+      const seedMovie = await pickColdStartOpponent(genre, excludeTitleSet);
+      el('continueAddBtn').disabled = false;
+      if(seedMovie){
+        pending = {
+          title, year, genre, poster, imdbID, imdbRating, existingMovie, tier: selectedTier,
+          newId: existingMovie ? existingMovie.id : crypto.randomUUID(),
+          opponent: seedMovie, excludeIds: [seedMovie.id],
+          duelChain: [], movie: null
+        };
+        runDuelStep();
+        return;
       }
-      // No curated option for this genre (e.g. "Other") — nothing to compare against yet.
+      // Nothing available at all (e.g. TMDb unreachable and no curated
+      // option for this genre) — fall through to a direct rating rather
+      // than leaving the person stuck with no way forward.
       finalizeInsert(title, year, genre, poster, imdbID, imdbRating, existingMovie, selectedTier, null);
       return;
     }
@@ -3738,16 +3760,17 @@
     runDuelStep();
   });
 
-  function pickAlternateOpponent(pending){
+  async function pickAlternateOpponent(pending){
     const excludeIds = [pending.newId, ...pending.excludeIds];
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
     const candidates = movies.filter(m =>
       m.genre === pending.genre &&
       !excludeSet.has(m.id) &&
-      !excludeTitleSet.has(m.title.toLowerCase())
+      !excludeTitleSet.has(m.title.toLowerCase()) &&
+      myRatings[m.id]
     );
-    if(candidates.length === 0) return null;
+    if(candidates.length === 0) return await pickColdStartOpponent(pending.genre, excludeTitleSet);
     return candidates[Math.floor(Math.random() * candidates.length)];
   }
 
@@ -3778,19 +3801,19 @@
     tA.onclick = () => flashDuelPick(tA, () => handleDuelOutcome('win'));
     tB.onclick = () => flashDuelPick(tB, () => handleDuelOutcome('lose'));
 
-    el('tooCloseBtn').onclick = () => {
+    el('tooCloseBtn').onclick = async () => {
       if(!pending.refinementUsed){
-        const alt = pickAlternateOpponent(pending);
+        const alt = await pickAlternateOpponent(pending);
         pending.refinementUsed = true;
         if(alt){ pending.opponent = alt; pending.excludeIds.push(alt.id); runDuelStep(); return; }
       }
       handleDuelOutcome('tie');
     };
 
-    el('haventSeenBtn').onclick = () => {
+    el('haventSeenBtn').onclick = async () => {
       addDismissedSuggestion(pending.opponent.id);
       if(!pending.seenRefinementUsed){
-        const alt = pickAlternateOpponent(pending);
+        const alt = await pickAlternateOpponent(pending);
         pending.seenRefinementUsed = true;
         if(alt){ pending.opponent = alt; pending.excludeIds.push(alt.id); runDuelStep(); return; }
       }
@@ -3821,7 +3844,7 @@
     const upset = await applyDuelResult(pending.movie, opponent, result);
     pending.duelChain.push({ opponent, result, upset });
 
-    const nextOpponent = decideNextDuel(pending.movie, pending.genre, pending.duelChain);
+    const nextOpponent = await decideNextDuel(pending.movie, pending.genre, pending.duelChain);
     if(nextOpponent){
       pending.opponent = nextOpponent;
       pending.excludeIds.push(nextOpponent.id);
