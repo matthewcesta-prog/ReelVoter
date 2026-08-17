@@ -1419,8 +1419,8 @@
             </svg>
           </span>
           <button id="showSignInBtn" class="top-bar-signout" style="display:none;">Sign in</button>
+          <button id="setPasswordLinkDesktop" class="top-bar-signout">Reset password</button>
           <button id="signOutBtn" class="top-bar-signout" style="display:none;">Sign out</button>
-          <button id="setPasswordLinkDesktop" class="top-bar-signout">Set a password</button>
         </div>
       </div>
     </div>
@@ -1470,7 +1470,7 @@
 
   <div class="account-menu" id="accountMenu" style="display:none;">
     <div class="account-menu-email" id="accountMenuEmail"></div>
-    <button class="account-menu-signout" id="accountMenuSetPassword" style="margin-bottom:8px;">Set a password</button>
+    <button class="account-menu-signout" id="accountMenuSetPassword" style="margin-bottom:8px;">Reset password</button>
     <button class="account-menu-signout" id="accountMenuSignOut">Sign out</button>
     <button class="account-menu-signout" id="accountMenuSignIn" style="display:none;">Sign in</button>
   </div>
@@ -1687,6 +1687,7 @@
         <select id="browseTierFilter">
           <option value="all">All Tiers</option>
         </select>
+        <button id="browseSortDirBtn" type="button" title="Toggle sort direction">↓</button>
       </div>
     </div>
     <div id="browseResults"></div>
@@ -2074,8 +2075,8 @@
     el('authModeSignInBtn').classList.toggle('active', !isCreate);
     el('authModeCreateBtn').classList.toggle('active', isCreate);
     el('authModalTitle').textContent = isCreate ? 'Create your account' : 'Sign in to rate a movie';
-    el('authModalSubtitle').textContent = isCreate
-      ? 'Add an email and password below, then tap Create Account.'
+    el('authModalSubtitle').innerHTML = isCreate
+      ? 'Add an email and password below,<br>then tap Create Account.'
       : 'One real person, one real vote — no burner accounts, no bots padding a number.';
     el('pwSignInBtn').style.display = isCreate ? 'none' : 'block';
     el('pwCreateAccountBtn').style.display = isCreate ? 'block' : 'none';
@@ -2569,6 +2570,7 @@
   let myRatingsGenreFilter = 'all';
   let browseGenreFilter = 'all';
   let browseTierFilter = 'all';
+  let browseSortDir = -1; // -1 = high-to-low, 1 = low-to-high
   const TIER_RANK = { Bad: 1, OK: 2, Good: 3, Great: 4 };
 
   function render(){
@@ -2676,7 +2678,7 @@
     let results = movies.slice();
     if(browseGenreFilter !== 'all') results = results.filter(m => m.genre === browseGenreFilter);
     if(browseTierFilter !== 'all') results = results.filter(m => scoreToTier(m.score) === browseTierFilter);
-    results.sort((a, b) => (b.score || 0) - (a.score || 0));
+    results.sort((a, b) => browseSortDir === -1 ? (b.score || 0) - (a.score || 0) : (a.score || 0) - (b.score || 0));
 
     const wrap = el('browseResults');
     const emptyEl = el('browseEmpty');
@@ -2719,6 +2721,11 @@
 
   el('browseGenreFilter').addEventListener('change', () => renderBrowsePage());
   el('browseTierFilter').addEventListener('change', () => renderBrowsePage());
+  el('browseSortDirBtn').addEventListener('click', () => {
+    browseSortDir *= -1;
+    el('browseSortDirBtn').textContent = browseSortDir === -1 ? '↓' : '↑';
+    renderBrowsePage();
+  });
 
 
   el('sortField').addEventListener('change', () => {
@@ -3322,7 +3329,31 @@
     }catch(e){ /* localStorage unavailable — degrade gracefully, just no cross-session memory */ }
   }
 
-  function pickNextSuggestion(genre, excludeIds, excludeTitles){
+  const TMDB_GENRE_IDS = {
+    "Action": 28, "Animation": 16, "Comedy": 35, "Documentary": 99,
+    "Drama": 18, "Horror": 27, "Romance": 10749, "Sci-Fi": 878, "Thriller": 53
+  };
+
+  // Pulls a rotating pool of well-known movies for a genre from TMDb's
+  // popularity-sorted discover endpoint, instead of the tiny 5-per-genre
+  // hardcoded CURATED list. vote_count.gte filters out obscure titles so
+  // this stays "popular/well-known," not truly random. Picks one of the
+  // first few pages at random for some variety across calls, while staying
+  // within TMDb's genuinely popular tier.
+  async function fetchTmdbGenrePool(genre){
+    const genreId = TMDB_GENRE_IDS[genre];
+    if(!genreId || !TMDB_KEY) return [];
+    try{
+      const page = 1 + Math.floor(Math.random() * 5);
+      const r = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${encodeURIComponent(TMDB_KEY)}&with_genres=${genreId}&sort_by=popularity.desc&vote_count.gte=300&page=${page}`);
+      const data = await r.json();
+      return (data.results || [])
+        .map(m => ({ title: m.title, year: (m.release_date || '').slice(0, 4) || null }))
+        .filter(m => m.title && m.year);
+    }catch(e){ return []; }
+  }
+
+  async function pickNextSuggestion(genre, excludeIds, excludeTitles){
     const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
     const excludeTitleSet = new Set((excludeTitles || []).map(t => t.toLowerCase()));
     // Also derive titles from the excluded ids themselves, in case a
@@ -3338,6 +3369,23 @@
     if(candidates.length > 0){
       return candidates[Math.floor(Math.random() * candidates.length)];
     }
+
+    // Same-genre pool of already-known movies is exhausted (e.g. the whole
+    // catalog's been rated) — pull a much larger, popularity-sorted pool
+    // from TMDb rather than running dry on 5 hardcoded titles.
+    const tmdbPool = await fetchTmdbGenrePool(genre);
+    const freshTmdbPicks = tmdbPool.filter(c =>
+      !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()) &&
+      !excludeTitleSet.has(c.title.toLowerCase())
+    );
+    if(freshTmdbPicks.length > 0){
+      const seed = freshTmdbPicks[Math.floor(Math.random() * freshTmdbPicks.length)];
+      return { needsCreation: true, title: seed.title, year: seed.year, genre };
+    }
+
+    // Small hardcoded list as a last-resort same-genre fallback, in case
+    // TMDb is unreachable or every result on the sampled page is already
+    // known/dismissed.
     const pool = (CURATED[genre] || []).filter(c =>
       !movies.some(m => m.title.toLowerCase() === c.title.toLowerCase()) && !excludeTitleSet.has(c.title.toLowerCase())
     );
@@ -3345,7 +3393,7 @@
       const seed = pool[Math.floor(Math.random() * pool.length)];
       return { needsCreation: true, title: seed.title, year: seed.year, genre };
     }
-    // This genre's pool (real + curated) is exhausted — fall back across the
+    // This genre's pool (real + curated + TMDb) is exhausted — fall back across the
     // whole catalog rather than suggesting nothing at all.
     const anyCandidates = movies.filter(m =>
       !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && !myRatings[m.id]
@@ -3397,7 +3445,7 @@
     const wrap = el('nextSuggestionWrap');
     if(!wrap) return;
 
-    const pick = pickNextSuggestion(genre, excludeIds, excludeTitles);
+    const pick = await pickNextSuggestion(genre, excludeIds, excludeTitles);
     if(!pick){ wrap.innerHTML = ''; return; }
 
     let movie = pick;
