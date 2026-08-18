@@ -485,11 +485,8 @@
     margin:0 0 8px;color:var(--white);
   }
   .rp-library-grid{
-    display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;
+    display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;
     margin-top:20px;
-  }
-  @media (min-width:700px){
-    .rp-library-grid{grid-template-columns:repeat(4, 1fr);}
   }
   .rp-library-tile{
     position:relative;cursor:pointer;border-radius:6px;overflow:hidden;
@@ -1786,7 +1783,7 @@
       <p class="panel-sub" style="text-align:center;">Choose up to 8 from your own "Good" or "Great" rated movies — whatever matches the mood, we'll take it from there.</p>
       <div id="rpLibraryGrid" class="rp-library-grid"></div>
       <div style="text-align:center;margin-top:14px;">
-        <button class="duel-skip" id="rpRefreshBtn" type="button" style="display:none;">Show different movies</button>
+        <button class="duel-skip" id="rpRefreshBtn" type="button" style="display:none;">Refresh unselected movies</button>
       </div>
       <div class="modal-actions" style="justify-content:center;margin-top:20px;">
         <button class="btn btn-primary" id="rpStep1Continue" disabled>Continue</button>
@@ -3968,7 +3965,7 @@
     let candidates = Object.values(overlapCounts)
       .filter(c => !myRatedTitles.has(c.title.toLowerCase()))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+      .slice(0, 20);
 
     if(candidates.length === 0){
       // No usable similarity data at all (e.g. TMDb unreachable, or every
@@ -3980,7 +3977,7 @@
       const tmdbPool = await fetchTmdbGenrePool(topGenre);
       candidates = tmdbPool
         .filter(c => !myRatedTitles.has(c.title.toLowerCase()))
-        .slice(0, 8)
+        .slice(0, 20)
         .map(c => ({ ...c, count: 0 }));
     }
 
@@ -3989,16 +3986,21 @@
       return;
     }
 
+    // Only Good/Great actually gets suggested — the whole point is a
+    // confident pick, not a coin flip. A middling score wastes the exact
+    // time this feature exists to save.
     const resolved = [];
     for(const c of candidates){
       if(resolved.length >= 5) break;
       const existing = movies.find(m => m.title.toLowerCase() === c.title.toLowerCase());
       const movie = existing || await getOrCreateMovieByTitle(c.title, finalists[0].genre, c.year);
-      if(movie && !resolved.some(r => r.id === movie.id)) resolved.push(movie);
+      if(!movie || resolved.some(r => r.id === movie.id)) continue;
+      if(scoreToTier(movie.score) !== 'Good' && scoreToTier(movie.score) !== 'Great') continue;
+      resolved.push(movie);
     }
 
     if(resolved.length === 0){
-      shortlistEl.innerHTML = `<p class="rp-loading">Couldn't find a fresh match this time — try different picks.</p>`;
+      shortlistEl.innerHTML = `<p class="rp-loading">Nothing Good-or-better turned up from these picks — try a different combination.</p>`;
       return;
     }
 
