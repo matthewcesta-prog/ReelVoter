@@ -463,9 +463,12 @@
   }
   .reelpicker-slot img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
   .reelpicker-slot.rp-empty{
-    border:1px dashed var(--line);
-    background:transparent;
-    opacity:0.4;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,0.06), transparent 55%),
+      radial-gradient(circle at 70% 70%, rgba(255,255,255,0.05), transparent 60%),
+      var(--surface);
+    filter:blur(3px);
+    opacity:0.5;
   }
   .reelpicker-status{
     text-align:center;font-size:0.85rem;color:var(--muted);
@@ -496,7 +499,8 @@
   .rp-library-tile img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);display:block;}
   .rp-library-tile.rp-selected{border-color:#d4af37;}
   .rp-library-tile.rp-selected::after{
-    content:'✓';position:absolute;top:6px;right:6px;
+    content:attr(data-rp-order);
+    position:absolute;top:6px;right:6px;
     width:22px;height:22px;border-radius:50%;
     background:#d4af37;color:#0a0a0a;font-weight:800;font-size:0.8rem;
     display:flex;align-items:center;justify-content:center;
@@ -1606,7 +1610,7 @@
       ReelPicker
       <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick a handful of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, duel them down to your favorites, and we'll suggest something similar you haven't seen yet — backed by real ReelVotes, not a random guess.<br><br>Needs at least 8 movies rated Good or better to unlock." aria-label="What is ReelPicker">?</button>
     </div>
-    <div id="reelPickerTracker"></div>
+    <div id="reelPickerTracker" class="reelpicker-tracker"></div>
 
     <div class="home-footer-links intro-reveal-rest">
       <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener">Support ReelVoter</a>
@@ -1781,6 +1785,9 @@
       <h2 class="rp-step-heading">Pick a few movies with tonight's vibe</h2>
       <p class="panel-sub" style="text-align:center;">Choose up to 8 from your own "Good" or "Great" rated movies — whatever matches the mood, we'll take it from there.</p>
       <div id="rpLibraryGrid" class="rp-library-grid"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <button class="duel-skip" id="rpRefreshBtn" type="button" style="display:none;">Show different movies</button>
+      </div>
       <div class="modal-actions" style="justify-content:center;margin-top:20px;">
         <button class="btn btn-primary" id="rpStep1Continue" disabled>Continue</button>
       </div>
@@ -3789,42 +3796,90 @@
 
   // ===== REELPICKER PAGE =====
   let rpSelected = [];
-  let rpPool = [];
+  let rpFullLibrary = [];
+  let rpShownIds = [];
+  const RP_PAGE_SIZE = 16;
 
   function renderRpLibrary(){
     const grid = el('rpLibraryGrid');
     if(!grid) return;
     rpSelected = [];
-    const qualifying = movies.filter(m => myRatings[m.id] === 'Good' || myRatings[m.id] === 'Great');
-    grid.innerHTML = qualifying.map(m => `
+    rpFullLibrary = movies.filter(m => myRatings[m.id] === 'Good' || myRatings[m.id] === 'Great');
+    // Shuffle once so repeated visits don't always show the same first page.
+    const shuffled = [...rpFullLibrary].sort(() => Math.random() - 0.5);
+    rpShownIds = shuffled.slice(0, RP_PAGE_SIZE).map(m => m.id);
+    el('rpStep1Continue').disabled = true;
+    renderRpGrid();
+  }
+
+  function renderRpGrid(){
+    const grid = el('rpLibraryGrid');
+    const shown = rpShownIds.map(id => rpFullLibrary.find(m => m.id === id)).filter(Boolean);
+    grid.innerHTML = shown.map(m => `
       <div class="rp-library-tile" data-id="${m.id}">
         <img src="${escapeHtml(m.poster||'')}" alt="">
       </div>
     `).join('');
     grid.querySelectorAll('.rp-library-tile').forEach(tile => {
-      tile.addEventListener('click', () => {
-        const id = tile.dataset.id;
-        const idx = rpSelected.indexOf(id);
-        if(idx > -1){
-          rpSelected.splice(idx, 1);
-          tile.classList.remove('rp-selected');
-        } else {
-          if(rpSelected.length >= 8) return;
-          rpSelected.push(id);
-          tile.classList.add('rp-selected');
-        }
-        const atCap = rpSelected.length >= 8;
-        grid.querySelectorAll('.rp-library-tile').forEach(t => {
-          t.classList.toggle('rp-disabled', atCap && !t.classList.contains('rp-selected'));
-        });
-        el('rpStep1Continue').disabled = rpSelected.length < 4;
-      });
+      const idx = rpSelected.indexOf(tile.dataset.id);
+      if(idx > -1){
+        tile.classList.add('rp-selected');
+        tile.dataset.rpOrder = idx + 1;
+      }
+      tile.addEventListener('click', () => toggleRpTile(tile));
     });
-    el('rpStep1Continue').disabled = true;
+    updateRpTileStates();
+    const refreshBtn = el('rpRefreshBtn');
+    if(refreshBtn) refreshBtn.style.display = rpFullLibrary.length > RP_PAGE_SIZE ? 'inline-block' : 'none';
   }
 
+  function toggleRpTile(tile){
+    const id = tile.dataset.id;
+    const idx = rpSelected.indexOf(id);
+    if(idx > -1){
+      rpSelected.splice(idx, 1);
+      tile.classList.remove('rp-selected');
+      tile.removeAttribute('data-rp-order');
+    } else {
+      if(rpSelected.length >= 8) return;
+      rpSelected.push(id);
+      tile.classList.add('rp-selected');
+    }
+    // Renumber every currently-selected tile in pick order, since removing
+    // one from the middle shifts everything after it.
+    document.querySelectorAll('.rp-library-tile.rp-selected').forEach(t => {
+      const order = rpSelected.indexOf(t.dataset.id);
+      if(order > -1) t.dataset.rpOrder = order + 1;
+    });
+    updateRpTileStates();
+    el('rpStep1Continue').disabled = rpSelected.length < 4;
+  }
+
+  function updateRpTileStates(){
+    const atCap = rpSelected.length >= 8;
+    document.querySelectorAll('.rp-library-tile').forEach(t => {
+      t.classList.toggle('rp-disabled', atCap && !t.classList.contains('rp-selected'));
+    });
+  }
+
+  el('rpRefreshBtn').addEventListener('click', () => {
+    // Keep every selected movie pinned in place; only reshuffle the
+    // unselected tiles in with a fresh sample from the rest of the library.
+    const unseen = rpFullLibrary
+      .filter(m => !rpShownIds.includes(m.id) || rpSelected.includes(m.id))
+      .filter(m => !rpSelected.includes(m.id));
+    const pool = unseen.length > 0
+      ? unseen
+      : rpFullLibrary.filter(m => !rpSelected.includes(m.id)); // ran out of fresh ones — cycle back
+    const shuffledPool = [...pool].sort(() => Math.random() - 0.5);
+    const slotsToFill = RP_PAGE_SIZE - rpSelected.length;
+    rpShownIds = [...rpSelected, ...shuffledPool.slice(0, slotsToFill).map(m => m.id)];
+    renderRpGrid();
+  });
+
   el('rpStep1Continue').addEventListener('click', () => {
-    rpPool = rpSelected.map(id => movies.find(m => m.id === id)).filter(Boolean);
+    const rpPoolMovies = rpSelected.map(id => movies.find(m => m.id === id)).filter(Boolean);
+    rpPool = rpPoolMovies;
     el('rpStep1').style.display = 'none';
     if(rpPool.length <= 4){
       showRpStep3();
@@ -3833,6 +3888,9 @@
       runRpDuelRound();
     }
   });
+
+  let rpPool = [];
+
 
   function runRpDuelRound(){
     if(rpPool.length <= 4){
@@ -3880,6 +3938,18 @@
     // one value per movie and known to sometimes be wrong).
     const overlapCounts = {};
     for(const finalist of finalists){
+      // tmdb_id is only ever set lazily (opening a movie's detail page, or
+      // creating it fresh) — an older catalog movie may have never picked
+      // one up. Resolve it on the spot rather than silently skipping this
+      // finalist's similarity data.
+      if(!finalist.tmdb_id && finalist.imdb_id && TMDB_KEY){
+        const resolved = await fetchTmdbMovieData(finalist.imdb_id);
+        if(resolved && resolved.tmdbId){
+          finalist.tmdb_id = resolved.tmdbId;
+          const realMovie = movies.find(m => m.id === finalist.id);
+          if(realMovie) realMovie.tmdb_id = resolved.tmdbId;
+        }
+      }
       if(!finalist.tmdb_id || !TMDB_KEY) continue;
       try{
         const r = await fetch(`https://api.themoviedb.org/3/movie/${finalist.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
@@ -3895,10 +3965,24 @@
     }
 
     const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
-    const candidates = Object.values(overlapCounts)
+    let candidates = Object.values(overlapCounts)
       .filter(c => !myRatedTitles.has(c.title.toLowerCase()))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
+
+    if(candidates.length === 0){
+      // No usable similarity data at all (e.g. TMDb unreachable, or every
+      // similar result happened to already be rated) — fall back to the
+      // most common genre among the finalists rather than a dead end.
+      const genreCounts = {};
+      finalists.forEach(m => { genreCounts[m.genre] = (genreCounts[m.genre] || 0) + 1; });
+      const topGenre = Object.keys(genreCounts).sort((a, b) => genreCounts[b] - genreCounts[a])[0];
+      const tmdbPool = await fetchTmdbGenrePool(topGenre);
+      candidates = tmdbPool
+        .filter(c => !myRatedTitles.has(c.title.toLowerCase()))
+        .slice(0, 8)
+        .map(c => ({ ...c, count: 0 }));
+    }
 
     if(candidates.length === 0){
       shortlistEl.innerHTML = `<p class="rp-loading">Couldn't find a fresh match this time — try different picks.</p>`;
