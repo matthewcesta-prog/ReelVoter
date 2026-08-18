@@ -439,7 +439,7 @@
   /* POSTER GRID */
   .poster-grid{
     display:grid;
-    grid-template-columns:repeat(3, 1fr);
+    grid-template-columns:repeat(4, 1fr);
     gap:8px;
     max-width:640px;
     margin:24px auto 40px;
@@ -447,6 +447,76 @@
   @media (min-width:1000px){
     .poster-grid{grid-template-columns:repeat(6, 1fr);max-width:900px;}
   }
+  .reelpicker-tracker{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:8px;
+    max-width:640px;
+    margin:8px auto 12px;
+  }
+  @media (min-width:1000px){
+    .reelpicker-tracker{max-width:900px;}
+  }
+  .reelpicker-slot{
+    aspect-ratio:2/3;border-radius:6px;overflow:hidden;
+    background:var(--surface);
+  }
+  .reelpicker-slot img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);}
+  .reelpicker-slot.rp-empty{
+    border:1px dashed var(--line);
+    background:transparent;
+    opacity:0.4;
+  }
+  .reelpicker-status{
+    text-align:center;font-size:0.85rem;color:var(--muted);
+    margin:0 0 24px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+  }
+  .reelpicker-status.rp-ready{
+    color:var(--text);cursor:pointer;font-weight:600;
+  }
+  .reelpicker-status.rp-ready:hover{color:#d4af37;}
+  .rp-step{max-width:700px;margin:32px auto;padding:0 20px;}
+  .rp-step-heading{
+    text-align:center;font-size:1.4rem;font-weight:800;
+    margin:0 0 8px;color:var(--white);
+  }
+  .rp-library-grid{
+    display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;
+    margin-top:20px;
+  }
+  @media (min-width:700px){
+    .rp-library-grid{grid-template-columns:repeat(4, 1fr);}
+  }
+  .rp-library-tile{
+    position:relative;cursor:pointer;border-radius:6px;overflow:hidden;
+    aspect-ratio:2/3;background:var(--surface);
+    border:2px solid transparent;
+  }
+  .rp-library-tile img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);display:block;}
+  .rp-library-tile.rp-selected{border-color:#d4af37;}
+  .rp-library-tile.rp-selected::after{
+    content:'✓';position:absolute;top:6px;right:6px;
+    width:22px;height:22px;border-radius:50%;
+    background:#d4af37;color:#0a0a0a;font-weight:800;font-size:0.8rem;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .rp-library-tile.rp-disabled{opacity:0.35;cursor:not-allowed;}
+  .rp-shortlist{display:flex;flex-direction:column;gap:12px;margin-top:20px;}
+  .rp-shortlist-item{
+    display:flex;align-items:center;gap:14px;cursor:pointer;
+    background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:12px;
+  }
+  .rp-shortlist-item:hover{border-color:#d4af37;}
+  .rp-shortlist-item img{width:56px;height:80px;object-fit:cover;border-radius:4px;filter:grayscale(1) contrast(1.05);flex-shrink:0;}
+  .rp-shortlist-title{font-weight:700;font-size:0.98rem;color:var(--white);}
+  .rp-shortlist-year{color:var(--muted);font-size:0.8rem;margin-left:4px;}
+  .rp-shortlist-score{
+    display:flex;align-items:center;gap:6px;margin-top:4px;
+    font-size:0.85rem;font-weight:700;color:#d4af37;
+  }
+  .rp-loading{text-align:center;color:var(--muted);margin:40px auto;font-style:italic;}
   .home-footer-links{
     text-align:center;margin:0 0 32px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1532,6 +1602,12 @@
     <div class="explainer-label intro-reveal-rest" style="margin-top:24px;">Recently ReelVoted:</div>
     <div id="posterGridWrap" class="intro-reveal-rest"></div>
 
+    <div class="explainer-label intro-reveal-rest" style="margin-top:24px;display:flex;align-items:center;gap:8px;">
+      ReelPicker
+      <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick a handful of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, duel them down to your favorites, and we'll suggest something similar you haven't seen yet — backed by real ReelVotes, not a random guess.<br><br>Needs at least 8 movies rated Good or better to unlock." aria-label="What is ReelPicker">?</button>
+    </div>
+    <div id="reelPickerTracker"></div>
+
     <div class="home-footer-links intro-reveal-rest">
       <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener">Support ReelVoter</a>
       <span class="home-footer-divider">&middot;</span>
@@ -1696,6 +1772,37 @@
     </div>
     <div class="page-footer">
       <b id="totalCount">0</b> titles ranked
+    </div>
+  </div>
+
+  <!-- REELPICKER PAGE -->
+  <div id="page-reelpicker" style="display:none;">
+    <div id="rpStep1" class="rp-step">
+      <h2 class="rp-step-heading">Pick a few movies with tonight's vibe</h2>
+      <p class="panel-sub" style="text-align:center;">Choose up to 8 from your own "Good" or "Great" rated movies — whatever matches the mood, we'll take it from there.</p>
+      <div id="rpLibraryGrid" class="rp-library-grid"></div>
+      <div class="modal-actions" style="justify-content:center;margin-top:20px;">
+        <button class="btn btn-primary" id="rpStep1Continue" disabled>Continue</button>
+      </div>
+    </div>
+
+    <div id="rpStep2" class="rp-step" style="display:none;">
+      <h2 class="rp-step-heading">Which one, tonight?</h2>
+      <p id="rpStep2Progress" class="panel-sub" style="text-align:center;"></p>
+      <div class="duel-cards" id="rpDuelCards">
+        <button class="ticket" id="rpTicketA"></button>
+        <div class="vs-mark">vs</div>
+        <button class="ticket" id="rpTicketB"></button>
+      </div>
+    </div>
+
+    <div id="rpStep3" class="rp-step" style="display:none;">
+      <h2 class="rp-step-heading">Based on your picks</h2>
+      <p class="panel-sub" style="text-align:center;">Well-ReelVoted, and nothing you've already rated.</p>
+      <div id="rpShortlist" class="rp-shortlist"></div>
+      <div class="modal-actions" style="justify-content:center;margin-top:20px;">
+        <button class="duel-skip" id="rpStartOver">Start over</button>
+      </div>
     </div>
   </div>
 
@@ -1993,7 +2100,7 @@
     await supabaseClient.auth.signOut();
   });
 
-  const PAGES = ['home', 'my-ratings', 'browse'];
+  const PAGES = ['home', 'my-ratings', 'browse', 'reelpicker'];
 
   function navigateTo(route){
     window.location.hash = PAGES.includes(route) ? ('#/' + route) : ('#/movie/' + route);
@@ -2036,6 +2143,20 @@
       el('tabHomeBtn').classList.toggle('tab-active', activeRoute === 'home');
       el('tabBrowseBtn').classList.toggle('tab-active', activeRoute === 'browse');
       el('tabRatingsBtn').classList.toggle('tab-active', activeRoute === 'my-ratings');
+
+      if(activeRoute === 'reelpicker'){
+        const qualifying = movies.filter(m => myRatings[m.id] === 'Good' || myRatings[m.id] === 'Great');
+        if(!currentUser || qualifying.length < REELPICKER_REQUIRED){
+          // Reached directly (e.g. a stale link) without actually
+          // qualifying — bounce back to Home rather than show a broken step.
+          navigateTo('home');
+        } else {
+          el('rpStep1').style.display = 'block';
+          el('rpStep2').style.display = 'none';
+          el('rpStep3').style.display = 'none';
+          renderRpLibrary();
+        }
+      }
     }
     window.scrollTo(0, 0);
   }
@@ -2109,17 +2230,16 @@
   document.querySelectorAll('.explainer-tile').forEach(tile => {
     const btn = tile.querySelector('.et-why-trigger');
     if(!btn) return;
-    const openPopup = () => {
-      el('whyPopupTitle').innerHTML = btn.dataset.whyTitle;
-      el('whyPopupText').innerHTML = btn.dataset.whyText;
-      el('whyPopupModal').style.display = 'flex';
-    };
     tile.style.cursor = 'pointer';
-    tile.addEventListener('click', openPopup);
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation(); // avoid firing the tile's own listener too and opening it twice
-      openPopup();
-    });
+    tile.addEventListener('click', () => btn.click());
+  });
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.et-why-trigger');
+    if(!btn) return;
+    e.stopPropagation(); // avoid double-firing an enclosing .explainer-tile's own listener
+    el('whyPopupTitle').innerHTML = btn.dataset.whyTitle;
+    el('whyPopupText').innerHTML = btn.dataset.whyText;
+    el('whyPopupModal').style.display = 'flex';
   });
   el('whyPopupCloseBtn').addEventListener('click', () => {
     el('whyPopupModal').style.display = 'none';
@@ -2607,6 +2727,7 @@
     el('heroOverlay').style.display = 'flex';
 
     renderTrending();
+    renderReelPickerTracker();
 
     const byGenre = {};
     myMovies.forEach(m => { (byGenre[m.genre] = byGenre[m.genre] || []).push(m); });
@@ -3219,6 +3340,65 @@
     }
   }
 
+  const REELPICKER_REQUIRED = 8;
+
+  function renderReelPickerTracker(){
+    const wrap = el('reelPickerTracker');
+    if(!wrap) return;
+
+    let statusEl = document.getElementById('reelPickerStatus');
+    if(!statusEl){
+      statusEl = document.createElement('div');
+      statusEl.id = 'reelPickerStatus';
+      statusEl.className = 'reelpicker-status';
+      wrap.insertAdjacentElement('afterend', statusEl);
+    }
+
+    if(!currentUser){
+      wrap.innerHTML = Array.from({length: REELPICKER_REQUIRED}).map(() => `<div class="reelpicker-slot rp-empty"></div>`).join('');
+      statusEl.className = 'reelpicker-status';
+      statusEl.textContent = 'Sign in and start rating to unlock this.';
+      statusEl.onclick = null;
+      return;
+    }
+
+    const qualifying = movies.filter(m => myRatings[m.id] === 'Good' || myRatings[m.id] === 'Great');
+
+    // Order by most recent vote involving that movie, for this user only —
+    // same recency technique getFeaturedMovies uses site-wide, just scoped.
+    const latest = {};
+    votesLog.forEach(v => {
+      if(v.user_id !== currentUser.id) return;
+      const t = new Date(v.created_at || 0).getTime();
+      [v.movie_a_id, v.movie_b_id].forEach(id => {
+        if(id && (!latest[id] || t > latest[id])) latest[id] = t;
+      });
+    });
+    const ordered = [...qualifying].sort((a, b) => (latest[b.id]||0) - (latest[a.id]||0));
+    const shown = ordered.slice(0, REELPICKER_REQUIRED);
+
+    const slots = [];
+    for(let i = 0; i < REELPICKER_REQUIRED; i++){
+      slots.push(shown[i]
+        ? `<div class="reelpicker-slot"><img src="${escapeHtml(shown[i].poster||'')}" alt=""></div>`
+        : `<div class="reelpicker-slot rp-empty"></div>`
+      );
+    }
+    wrap.innerHTML = slots.join('');
+
+    const count = qualifying.length;
+    if(count >= REELPICKER_REQUIRED){
+      statusEl.className = 'reelpicker-status rp-ready';
+      statusEl.textContent = "Ready — tap to pick tonight's movie \u2192";
+      statusEl.onclick = () => navigateTo('reelpicker');
+    } else {
+      const remaining = REELPICKER_REQUIRED - count;
+      statusEl.className = 'reelpicker-status';
+      statusEl.textContent = `Rate ${remaining} more movie${remaining === 1 ? '' : 's'} "Good" or better to unlock (${count} of ${REELPICKER_REQUIRED})`;
+      statusEl.onclick = null;
+    }
+  }
+
   async function renderTrending(){
     const real = getFeaturedMovies(12);
     const source = real.length > 0 ? real : await getTrendingFallbackMovies();
@@ -3606,6 +3786,157 @@
       }
     });
   }
+
+  // ===== REELPICKER PAGE =====
+  let rpSelected = [];
+  let rpPool = [];
+
+  function renderRpLibrary(){
+    const grid = el('rpLibraryGrid');
+    if(!grid) return;
+    rpSelected = [];
+    const qualifying = movies.filter(m => myRatings[m.id] === 'Good' || myRatings[m.id] === 'Great');
+    grid.innerHTML = qualifying.map(m => `
+      <div class="rp-library-tile" data-id="${m.id}">
+        <img src="${escapeHtml(m.poster||'')}" alt="">
+      </div>
+    `).join('');
+    grid.querySelectorAll('.rp-library-tile').forEach(tile => {
+      tile.addEventListener('click', () => {
+        const id = tile.dataset.id;
+        const idx = rpSelected.indexOf(id);
+        if(idx > -1){
+          rpSelected.splice(idx, 1);
+          tile.classList.remove('rp-selected');
+        } else {
+          if(rpSelected.length >= 8) return;
+          rpSelected.push(id);
+          tile.classList.add('rp-selected');
+        }
+        const atCap = rpSelected.length >= 8;
+        grid.querySelectorAll('.rp-library-tile').forEach(t => {
+          t.classList.toggle('rp-disabled', atCap && !t.classList.contains('rp-selected'));
+        });
+        el('rpStep1Continue').disabled = rpSelected.length < 4;
+      });
+    });
+    el('rpStep1Continue').disabled = true;
+  }
+
+  el('rpStep1Continue').addEventListener('click', () => {
+    rpPool = rpSelected.map(id => movies.find(m => m.id === id)).filter(Boolean);
+    el('rpStep1').style.display = 'none';
+    if(rpPool.length <= 4){
+      showRpStep3();
+    } else {
+      el('rpStep2').style.display = 'block';
+      runRpDuelRound();
+    }
+  });
+
+  function runRpDuelRound(){
+    if(rpPool.length <= 4){
+      el('rpStep2').style.display = 'none';
+      showRpStep3();
+      return;
+    }
+    const remaining = rpPool.length - 4;
+    el('rpStep2Progress').textContent = `${remaining} more comparison${remaining === 1 ? '' : 's'} to narrow it down`;
+    let i = Math.floor(Math.random() * rpPool.length);
+    let j = Math.floor(Math.random() * rpPool.length);
+    while(j === i) j = Math.floor(Math.random() * rpPool.length);
+    const movieA = rpPool[i];
+    const movieB = rpPool[j];
+    const tA = el('rpTicketA'), tB = el('rpTicketB');
+    tA.innerHTML = `
+      ${movieA.poster ? `<img src="${escapeHtml(movieA.poster)}" alt="">` : ''}
+      <div class="t-title">${escapeHtml(movieA.title)}</div>
+      ${movieA.year ? `<div class="t-year">${escapeHtml(movieA.year)}</div>` : ''}
+    `;
+    tB.innerHTML = `
+      ${movieB.poster ? `<img src="${escapeHtml(movieB.poster)}" alt="">` : ''}
+      <div class="t-title">${escapeHtml(movieB.title)}</div>
+      ${movieB.year ? `<div class="t-year">${escapeHtml(movieB.year)}</div>` : ''}
+    `;
+    tA.onclick = () => flashDuelPick(tA, () => resolveRpDuel(movieB));
+    tB.onclick = () => flashDuelPick(tB, () => resolveRpDuel(movieA));
+  }
+
+  function resolveRpDuel(loser){
+    rpPool = rpPool.filter(m => m.id !== loser.id);
+    runRpDuelRound();
+  }
+
+  async function showRpStep3(){
+    el('rpStep3').style.display = 'block';
+    const shortlistEl = el('rpShortlist');
+    shortlistEl.innerHTML = `<p class="rp-loading">Finding something you'll like...</p>`;
+
+    const finalists = rpPool.slice(0, 4);
+
+    // Pull each finalist's TMDb "similar" list and count overlap — a title
+    // similar to 2-3 of the finalists is a far stronger "matches your vibe"
+    // signal than trusting any single genre tag (this app's genre field is
+    // one value per movie and known to sometimes be wrong).
+    const overlapCounts = {};
+    for(const finalist of finalists){
+      if(!finalist.tmdb_id || !TMDB_KEY) continue;
+      try{
+        const r = await fetch(`https://api.themoviedb.org/3/movie/${finalist.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
+        const data = await r.json();
+        (data.results || []).slice(0, 10).forEach(item => {
+          if(!item.title) return;
+          const key = item.title.trim().toLowerCase();
+          const year = (item.release_date || '').slice(0, 4) || null;
+          if(!overlapCounts[key]) overlapCounts[key] = { title: item.title, year, count: 0 };
+          overlapCounts[key].count++;
+        });
+      }catch(e){ /* skip this finalist's similar list on failure */ }
+    }
+
+    const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
+    const candidates = Object.values(overlapCounts)
+      .filter(c => !myRatedTitles.has(c.title.toLowerCase()))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    if(candidates.length === 0){
+      shortlistEl.innerHTML = `<p class="rp-loading">Couldn't find a fresh match this time — try different picks.</p>`;
+      return;
+    }
+
+    const resolved = [];
+    for(const c of candidates){
+      if(resolved.length >= 5) break;
+      const existing = movies.find(m => m.title.toLowerCase() === c.title.toLowerCase());
+      const movie = existing || await getOrCreateMovieByTitle(c.title, finalists[0].genre, c.year);
+      if(movie && !resolved.some(r => r.id === movie.id)) resolved.push(movie);
+    }
+
+    if(resolved.length === 0){
+      shortlistEl.innerHTML = `<p class="rp-loading">Couldn't find a fresh match this time — try different picks.</p>`;
+      return;
+    }
+
+    shortlistEl.innerHTML = resolved.map(m => `
+      <div class="rp-shortlist-item" data-id="${m.id}">
+        <img src="${escapeHtml(m.poster||'')}" alt="">
+        <div>
+          <div class="rp-shortlist-title">${escapeHtml(m.title)}<span class="rp-shortlist-year">${escapeHtml(m.year||'')}</span></div>
+          <div class="rp-shortlist-score">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
+        </div>
+      </div>
+    `).join('');
+    shortlistEl.querySelectorAll('.rp-shortlist-item').forEach(item => {
+      item.addEventListener('click', () => navigateTo(item.dataset.id));
+    });
+  }
+
+  el('rpStartOver').addEventListener('click', () => {
+    el('rpStep3').style.display = 'none';
+    el('rpStep1').style.display = 'block';
+    renderRpLibrary();
+  });
 
   async function renderMovieRecommendations(movie){
     const wrap = el('movieRecsWrap');
