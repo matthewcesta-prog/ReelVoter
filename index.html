@@ -500,6 +500,13 @@
     border:2px solid transparent;
   }
   .rp-library-tile img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);display:block;}
+  .rp-library-tile-title{
+    position:absolute;left:0;right:0;bottom:0;
+    padding:16px 6px 6px;
+    background:linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    color:#fff;font-size:0.68rem;font-weight:700;line-height:1.25;
+    text-align:center;pointer-events:none;
+  }
   .rp-library-tile.rp-selected{border-color:#d4af37;}
   .rp-library-tile.rp-selected::after{
     content:attr(data-rp-order);
@@ -536,7 +543,7 @@
   }
   .rp-suggestion-tile-score{
     display:flex;align-items:center;gap:4px;margin-top:2px;
-    font-size:0.72rem;font-weight:700;color:#d4af37;
+    font-size:0.72rem;font-weight:700;
   }
   .rp-loading{text-align:center;color:var(--muted);margin:40px auto;font-style:italic;}
   .home-footer-links{
@@ -1804,7 +1811,7 @@
       <p class="panel-sub" style="text-align:center;">Choose up to 8 from your own "Good" or "Great" rated movies — whatever matches the mood, we'll take it from there.</p>
       <div id="rpLibraryGrid" class="rp-library-grid"></div>
       <div style="text-align:center;margin-top:14px;">
-        <button class="duel-skip" id="rpRefreshBtn" type="button" style="display:none;">Refresh unselected movies</button>
+        <button class="btn btn-ghost" id="rpRefreshBtn" type="button" style="display:none;">Refresh unselected movies</button>
       </div>
       <div class="modal-actions" style="justify-content:center;margin-top:20px;">
         <button class="btn btn-primary" id="rpStep1Continue" disabled>Continue</button>
@@ -1821,6 +1828,9 @@
         <button class="ticket" id="rpTicketA"></button>
         <div class="vs-mark">or</div>
         <button class="ticket" id="rpTicketB"></button>
+      </div>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="duel-skip" id="rpReseedBtn" type="button">Don't love this matchup? Reseed</button>
       </div>
     </div>
 
@@ -2178,7 +2188,12 @@
           // Reached directly (e.g. a stale link) without actually
           // qualifying — bounce back to Home rather than show a broken step.
           navigateTo('home');
-        } else {
+        } else if(!rpSessionActive){
+          // A genuinely fresh start (tapped in from Home) — reset to step 1.
+          // If this is instead someone returning via the browser back button
+          // from a suggested movie's detail page, rpSessionActive is already
+          // true and we leave whatever step/results were showing intact.
+          rpSessionActive = true;
           el('rpStep1').style.display = 'block';
           el('rpStep2').style.display = 'none';
           el('rpStep3').style.display = 'none';
@@ -3369,6 +3384,7 @@
   }
 
   const REELPICKER_REQUIRED = 8;
+  let rpSessionActive = false;
 
   function renderReelPickerTracker(){
     const wrap = el('reelPickerTracker');
@@ -3421,7 +3437,7 @@
       statusEl.className = 'reelpicker-status rp-ready';
       statusEl.textContent = 'Pick a movie for me';
       statusEl.disabled = false;
-      statusEl.onclick = () => navigateTo('reelpicker');
+      statusEl.onclick = () => { rpSessionActive = false; navigateTo('reelpicker'); };
     } else {
       const remaining = REELPICKER_REQUIRED - count;
       statusEl.className = 'reelpicker-status';
@@ -3843,6 +3859,7 @@
     grid.innerHTML = shown.map(m => `
       <div class="rp-library-tile" data-id="${m.id}">
         <img src="${escapeHtml(m.poster||'')}" alt="">
+        <div class="rp-library-tile-title">${escapeHtml(m.title)}</div>
       </div>
     `).join('');
     grid.querySelectorAll('.rp-library-tile').forEach(tile => {
@@ -3916,6 +3933,11 @@
     }
   });
 
+  el('rpReseedBtn').addEventListener('click', () => {
+    setUpRpDuelQueue();
+    runRpDuelRound();
+  });
+
   let rpPool = [];
   let rpDuelQueue = [];   // pairs still to fight, seeded strongest-vs-weakest
   let rpByes = [];        // movies that skip the duel round entirely
@@ -3932,10 +3954,13 @@
     const duelsNeeded = sorted.length - 4;
     const byeCount = sorted.length - (duelsNeeded * 2);
     rpByes = sorted.slice(duelsNeeded, duelsNeeded + byeCount);
-    rpDuelQueue = [];
-    for(let i = 0; i < duelsNeeded; i++){
-      rpDuelQueue.push([sorted[i], sorted[sorted.length - 1 - i]]);
-    }
+    const topHalf = sorted.slice(0, duelsNeeded);
+    // The bottom (weaker) half is shuffled before pairing — a strong pick
+    // never faces another strong pick either way, but which specific weak
+    // pick it's matched against varies each time, so "Reseed" actually
+    // produces a different bracket rather than repeating the same one.
+    const bottomHalf = sorted.slice(duelsNeeded + byeCount).sort(() => Math.random() - 0.5);
+    rpDuelQueue = topHalf.map((m, i) => [m, bottomHalf[i]]);
     rpWinners = [];
   }
 
@@ -3998,6 +4023,37 @@
   // for actually-recognized titles (same vote_count threshold used
   // elsewhere in this feature), and require Good/Great once resolved,
   // since the whole point is a confident pick, not a coin flip.
+  // TMDb's /similar endpoint is collaborative-filtering based — "people who
+  // watched X also watched Y" — which is closer to "commercially adjacent"
+  // than "actually feels like the same movie." Keywords (real tags like
+  // "heist," "grief," "small-town") plus genre give a candidate that
+  // genuinely shares thematic DNA with the finalist, not just audience
+  // overlap. /similar is kept only as a fallback if a finalist has no
+  // usable keywords.
+  async function fetchTmdbKeywordMatches(tmdbId, genre, excludeTitle){
+    if(!tmdbId || !TMDB_KEY) return [];
+    try{
+      const kwRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/keywords?api_key=${encodeURIComponent(TMDB_KEY)}`);
+      const kwData = await kwRes.json();
+      const keywordIds = (kwData.keywords || []).slice(0, 5).map(k => k.id);
+      if(keywordIds.length === 0) return [];
+
+      const genreId = TMDB_GENRE_IDS[genre];
+      const params = new URLSearchParams({
+        api_key: TMDB_KEY,
+        with_keywords: keywordIds.join('|'),
+        'vote_count.gte': '300',
+        sort_by: 'popularity.desc'
+      });
+      if(genreId) params.set('with_genres', String(genreId));
+      const r = await fetch(`https://api.themoviedb.org/3/discover/movie?${params.toString()}`);
+      const data = await r.json();
+      return (data.results || [])
+        .filter(item => item.title && item.title.trim().toLowerCase() !== excludeTitle)
+        .map(item => ({ title: item.title, year: (item.release_date || '').slice(0, 4) || null }));
+    }catch(e){ return []; }
+  }
+
   async function buildRpRow(finalist, myRatedTitles){
     if(!finalist.tmdb_id && finalist.imdb_id && TMDB_KEY){
       const resolvedTmdb = await fetchTmdbMovieData(finalist.imdb_id);
@@ -4010,6 +4066,11 @@
 
     let candidates = [];
     if(finalist.tmdb_id && TMDB_KEY){
+      const keywordMatches = await fetchTmdbKeywordMatches(finalist.tmdb_id, finalist.genre, finalist.title.trim().toLowerCase());
+      candidates = keywordMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
+    }
+    if(candidates.length === 0 && finalist.tmdb_id && TMDB_KEY){
+      // No usable keyword data for this finalist — fall back to /similar.
       try{
         const r = await fetch(`https://api.themoviedb.org/3/movie/${finalist.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
         const data = await r.json();
@@ -4030,8 +4091,11 @@
   }
 
   async function fillRpRow(row){
+    // Resolve a small buffer beyond the 4 needed, then sort by score so a
+    // Great-tier candidate always surfaces ahead of a merely-Good one,
+    // rather than just taking whichever 4 happened to resolve first.
     const resolved = [];
-    while(resolved.length < 4 && row.remainingQueue.length > 0){
+    while(resolved.length < 6 && row.remainingQueue.length > 0){
       const c = row.remainingQueue.shift();
       const existing = movies.find(m => m.title.toLowerCase() === c.title.toLowerCase());
       const movie = existing || await getOrCreateMovieByTitle(c.title, row.finalist.genre, c.year);
@@ -4039,7 +4103,8 @@
       if(scoreToTier(movie.score) !== 'Good' && scoreToTier(movie.score) !== 'Great') continue;
       resolved.push(movie);
     }
-    row.movies = resolved;
+    resolved.sort((a, b) => (b.score||5) - (a.score||5));
+    row.movies = resolved.slice(0, 4);
   }
 
   function renderRpShortlist(){
@@ -4064,7 +4129,7 @@
               <div class="rp-suggestion-tile" data-id="${m.id}">
                 <img src="${escapeHtml(m.poster||'')}" alt="">
                 <div class="rp-suggestion-tile-title">${escapeHtml(m.title)}</div>
-                <div class="rp-suggestion-tile-score">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
+                <div class="rp-suggestion-tile-score" style="color:${TIER_VISUAL[scoreToTier(m.score)].color};">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
               </div>
             `).join('')}
           </div>
