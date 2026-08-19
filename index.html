@@ -2480,22 +2480,6 @@
     render();
     renderRoute();
 
-    // One-time backfill: movies this user originally added before the Your
-    // Vote / ReelVote split existed won't have a user_ratings row yet.
-    // Runs in the background so it can't block the first render.
-    if(currentUser){
-      (async () => {
-        let changed = false;
-        for(const m of movies){
-          if(m.user_id === currentUser.id && !myRatings[m.id]){
-            await saveUserRating(m.id, scoreToTier(m.score));
-            changed = true;
-          }
-        }
-        if(changed) render();
-      })();
-    }
-
     // One-time backfill: movies already in the catalog before the IMDb-anchored
     // scoring existed won't have imdb_rating stored yet. Fetched in parallel in
     // the background — this used to run one movie at a time, sequentially,
@@ -3281,6 +3265,17 @@
       existingMovie: movie
     };
     el('genreInput').value = movie.genre;
+    // Genre lives on the shared movie row, not per-rating — if it stayed
+    // editable forever, whoever rates last could silently overwrite what
+    // everyone before them saw, and since duels are genre-scoped, that
+    // quietly drifts which other movies it gets compared against. Lock it
+    // once the movie has genuine community signal; while it's still just
+    // an IMDb baseline nobody's actually rated yet, the current rater is
+    // effectively the first real contributor and their call should stick.
+    const genreLocked = hasRealSignal(movie);
+    el('genreInput').disabled = genreLocked;
+    const genreHint = el('genreDisplay') ? el('genreDisplay').querySelector('span:last-child') : null;
+    if(genreHint) genreHint.textContent = genreLocked ? '' : 'tap to change';
     updateGenreDisplay();
     updateContinueState();
     el('rateWidgetLine').textContent = pickRandomLine(RATE_WIDGET_LINES);
@@ -4189,6 +4184,22 @@
     }catch(e){ return []; }
   }
 
+  // TMDb's own separate /recommendations algorithm — a different signal
+  // than /similar — used here to widen the candidate pool, not replace the
+  // stricter keyword-overlap match. A title that shows up via keywords
+  // stays the primary, higher-confidence source; recommendations only fill
+  // in afterward, and only with titles the keyword pass didn't already find.
+  async function fetchTmdbRecommendations(tmdbId, excludeTitle, page){
+    if(!tmdbId || !TMDB_KEY) return [];
+    try{
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/recommendations?api_key=${encodeURIComponent(TMDB_KEY)}&page=${page || 1}`);
+      const data = await r.json();
+      return (data.results || [])
+        .filter(item => item.title && item.title.trim().toLowerCase() !== excludeTitle && (item.vote_count || 0) >= 300)
+        .map(item => ({ title: item.title, year: (item.release_date || '').slice(0, 4) || null }));
+    }catch(e){ return []; }
+  }
+
   async function buildRpRow(finalist, myRatedTitles){
     if(!finalist.tmdb_id && finalist.imdb_id && TMDB_KEY){
       const resolvedTmdb = await fetchTmdbMovieData(finalist.imdb_id);
@@ -4205,11 +4216,17 @@
     let usingKeywordSource = true;
 
     if(finalist.tmdb_id && TMDB_KEY){
-      const keywordMatches = await fetchTmdbKeywordMatches(finalist.tmdb_id, excludeTitle, 1);
-      candidates = keywordMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
+      const [keywordMatches, recMatches] = await Promise.all([
+        fetchTmdbKeywordMatches(finalist.tmdb_id, excludeTitle, 1),
+        fetchTmdbRecommendations(finalist.tmdb_id, excludeTitle, 1)
+      ]);
+      const primary = keywordMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
+      const seenTitles = new Set(primary.map(c => c.title.toLowerCase()));
+      const supplementary = recMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()) && !seenTitles.has(c.title.toLowerCase()));
+      candidates = [...primary, ...supplementary];
     }
     if(candidates.length === 0 && finalist.tmdb_id && TMDB_KEY){
-      // No usable keyword data for this finalist — fall back to /similar.
+      // No usable keyword or recommendation data — fall back to /similar.
       usingKeywordSource = false;
       try{
         const r = await fetch(`https://api.themoviedb.org/3/movie/${finalist.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
