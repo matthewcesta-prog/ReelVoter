@@ -486,9 +486,22 @@
   .reelpicker-status.rp-ready:hover{background:#d8d8d6;}
   .reelpicker-status.rp-ready:active{transform:scale(0.97);}
   .rp-step{max-width:700px;margin:32px auto;padding:0 20px;}
+  .rp-step1-actionbar{
+    position:fixed;left:0;right:0;bottom:0;
+    display:flex;gap:10px;justify-content:center;align-items:center;
+    padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+    background:var(--bg);border-top:1px solid var(--line);
+    z-index:38;
+  }
+  @media (max-width:700px){
+    .rp-step1-actionbar{bottom:86px;}
+  }
   .rp-step-heading{
-    text-align:center;font-size:1.4rem;font-weight:800;
-    margin:0 0 8px;color:var(--white);
+    text-align:center;font-size:1.15rem;font-weight:800;
+    margin:0 0 8px;color:var(--white);white-space:nowrap;
+  }
+  @media (max-width:400px){
+    .rp-step-heading{font-size:0.98rem;}
   }
   .rp-library-grid{
     display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;
@@ -531,17 +544,21 @@
     display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;
     scrollbar-width:thin;overscroll-behavior-x:contain;
   }
-  .rp-suggestion-tile{flex:0 0 auto;width:120px;cursor:pointer;}
+  .rp-suggestion-tile{flex:0 0 auto;width:112px;cursor:pointer;}
   .rp-suggestion-tile img{
-    width:120px;height:172px;object-fit:cover;border-radius:6px;
+    width:112px;height:160px;object-fit:cover;border-radius:6px;
     filter:grayscale(1) contrast(1.05);display:block;
     border:2px solid transparent;
     -webkit-touch-callout:none;-webkit-user-drag:none;user-drag:none;
     -webkit-user-select:none;user-select:none;
   }
   @media (max-width:480px){
-    .rp-suggestion-tile{width:104px;}
-    .rp-suggestion-tile img{width:104px;height:150px;}
+    .rp-suggestion-tile{width:86px;}
+    .rp-suggestion-tile img{width:86px;height:124px;}
+  }
+  .rp-suggestion-scroll-hint{
+    flex:0 0 auto;width:32px;display:flex;align-items:center;justify-content:center;
+    color:#d4af37;opacity:0.7;
   }
   .rp-suggestion-tile:hover img{border-color:#d4af37;}
   .rp-suggestion-tile-title{
@@ -576,7 +593,7 @@
   }
   .rp-duel-subtitle{
     color:#c9852c;font-style:italic;font-weight:600;
-    font-size:0.78rem;line-height:1.4;margin:0 0 4px;
+    font-size:0.8rem;line-height:1.4;margin:0 0 4px;white-space:nowrap;
   }
   .rp-duel-progress{
     color:#c9852c;font-style:italic;font-weight:600;
@@ -604,6 +621,7 @@
   }
   .rp-duel-or{font-style:italic;font-weight:800;color:#d4af37;font-size:1.1rem;margin:2px 0;}
   .rp-duel-reseed{margin-top:14px;}
+  .rp-duel-reseed #rpReseedBtn{display:inline-block;}
   .home-footer-links{
     text-align:center;margin:0 0 32px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1864,23 +1882,21 @@
 
   <!-- REELPICKER PAGE -->
   <div id="page-reelpicker" style="display:none;">
-    <div id="rpStep1" class="rp-step">
+    <div id="rpStep1" class="rp-step" style="padding-bottom:110px;">
       <h2 class="rp-step-heading">Pick a few movies with tonight's vibe</h2>
-      <p class="panel-sub" style="text-align:center;">Choose up to 8 from your own "Good" or "Great" rated movies — whatever matches the mood, we'll take it from there.</p>
+      <p class="panel-sub" style="text-align:center;">Choose up to 8 of your own rated movies — whatever matches the mood.<br>Hit continue and we'll take it from there.</p>
       <div id="rpLibraryGrid" class="rp-library-grid"></div>
-      <div style="text-align:center;margin-top:14px;">
-        <button class="btn btn-ghost" id="rpRefreshBtn" type="button" style="display:none;">Refresh unselected movies</button>
-      </div>
-      <div class="modal-actions" style="justify-content:center;margin-top:20px;">
-        <button class="btn btn-primary" id="rpStep1Continue" disabled>Continue</button>
-      </div>
+    </div>
+    <div class="rp-step1-actionbar" id="rpStep1ActionBar">
+      <button class="btn btn-ghost" id="rpRefreshBtn" type="button" style="display:none;">Refresh unselected</button>
+      <button class="btn btn-primary" id="rpStep1Continue" disabled>Continue</button>
     </div>
 
     <div id="rpStep2" class="rp-step" style="display:none;">
       <div class="rp-duel-wrap">
         <div class="rp-duel-eyebrow">ReelPicker</div>
         <h3 class="rp-duel-title">Which one, tonight?</h3>
-        <p class="rp-duel-subtitle">Select whichever film is more of what you're looking for tonight.</p>
+        <p class="rp-duel-subtitle">Pick whichever fits tonight's mood.</p>
         <p id="rpStep2Progress" class="rp-duel-progress"></p>
         <div class="rp-duel-pair">
           <button class="rp-duel-ticket" id="rpTicketA"></button>
@@ -2254,6 +2270,7 @@
           // true and we leave whatever step/results were showing intact.
           rpSessionActive = true;
           el('rpStep1').style.display = 'block';
+          el('rpStep1ActionBar').style.display = 'flex';
           el('rpStep2').style.display = 'none';
           el('rpStep3').style.display = 'none';
           renderRpLibrary();
@@ -3984,6 +4001,7 @@
     const rpPoolMovies = rpSelected.map(id => movies.find(m => m.id === id)).filter(Boolean);
     rpPool = rpPoolMovies;
     el('rpStep1').style.display = 'none';
+    el('rpStep1ActionBar').style.display = 'none';
     window.scrollTo(0, 0);
     if(rpPool.length <= 4){
       showRpStep3();
@@ -3995,7 +4013,20 @@
   });
 
   el('rpReseedBtn').addEventListener('click', () => {
-    setUpRpDuelQueue();
+    // Reseeding should only reshuffle whichever movies haven't fought yet —
+    // it must never discard duels already decided (rpWinners/rpByes stay
+    // exactly as they are), or "don't love this matchup" would wipe out
+    // real progress instead of just changing the current pairing.
+    const stillUndecided = rpDuelQueue.flat();
+    if(stillUndecided.length >= 2){
+      const sorted = [...stillUndecided].sort((a, b) => (b.score||5) - (a.score||5));
+      const pairCount = Math.floor(sorted.length / 2);
+      const topHalf = sorted.slice(0, pairCount);
+      const bottomHalf = sorted.slice(sorted.length - pairCount).sort(() => Math.random() - 0.5);
+      const leftover = sorted.slice(pairCount, sorted.length - pairCount);
+      rpByes.push(...leftover); // only happens with an odd undecided count
+      rpDuelQueue = topHalf.map((m, i) => [m, bottomHalf[i]]);
+    }
     runRpDuelRound();
   });
 
@@ -4261,6 +4292,11 @@
                 <div class="rp-suggestion-tile-score" style="color:${TIER_VISUAL[scoreToTier(m.score)].color};">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
               </div>
             `).join('')}
+            ${row.movies.length > 2 ? `
+              <div class="rp-suggestion-scroll-hint" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -4283,6 +4319,7 @@
   el('rpStartOver').addEventListener('click', () => {
     el('rpStep3').style.display = 'none';
     el('rpStep1').style.display = 'block';
+    el('rpStep1ActionBar').style.display = 'flex';
     window.scrollTo(0, 0);
     renderRpLibrary();
   });
