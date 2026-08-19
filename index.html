@@ -471,14 +471,20 @@
     opacity:0.5;
   }
   .reelpicker-status{
-    text-align:center;font-size:0.85rem;color:var(--muted);
-    margin:0 0 24px;
+    display:block;text-align:center;font-size:0.85rem;color:var(--muted);
+    margin:0 auto 24px;padding:0;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    background:none;border:none;cursor:default;
   }
   .reelpicker-status.rp-ready{
-    color:var(--text);cursor:pointer;font-weight:600;
+    display:block;cursor:pointer;font-weight:700;font-size:0.95rem;
+    color:#0a0a0a;background:var(--white);
+    padding:12px 22px;border-radius:3px;border:none;
+    max-width:280px;margin:0 auto 24px;
+    transition:transform 0.08s ease, background 0.15s ease;
   }
-  .reelpicker-status.rp-ready:hover{color:#d4af37;}
+  .reelpicker-status.rp-ready:hover{background:#d8d8d6;}
+  .reelpicker-status.rp-ready:active{transform:scale(0.97);}
   .rp-step{max-width:700px;margin:32px auto;padding:0 20px;}
   .rp-step-heading{
     text-align:center;font-size:1.4rem;font-weight:800;
@@ -503,19 +509,34 @@
     display:flex;align-items:center;justify-content:center;
   }
   .rp-library-tile.rp-disabled{opacity:0.35;cursor:not-allowed;}
-  .rp-shortlist{display:flex;flex-direction:column;gap:12px;margin-top:20px;}
-  .rp-shortlist-item{
-    display:flex;align-items:center;gap:14px;cursor:pointer;
-    background:var(--surface);border:1px solid var(--line);border-radius:8px;
-    padding:12px;
+  .rp-shortlist{display:flex;flex-direction:column;gap:28px;margin-top:20px;}
+  .rp-suggestion-row-heading{
+    display:flex;align-items:center;justify-content:space-between;
+    font-weight:700;font-size:0.95rem;color:var(--white);
+    margin-bottom:10px;
   }
-  .rp-shortlist-item:hover{border-color:#d4af37;}
-  .rp-shortlist-item img{width:56px;height:80px;object-fit:cover;border-radius:4px;filter:grayscale(1) contrast(1.05);flex-shrink:0;}
-  .rp-shortlist-title{font-weight:700;font-size:0.98rem;color:var(--white);}
-  .rp-shortlist-year{color:var(--muted);font-size:0.8rem;margin-left:4px;}
-  .rp-shortlist-score{
-    display:flex;align-items:center;gap:6px;margin-top:4px;
-    font-size:0.85rem;font-weight:700;color:#d4af37;
+  .rp-row-refresh{
+    background:none;border:none;color:var(--muted);
+    font-size:0.75rem;text-decoration:underline;cursor:pointer;padding:0;
+  }
+  .rp-row-refresh:hover{color:var(--text);}
+  .rp-suggestion-row-posters{
+    display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;
+  }
+  .rp-suggestion-tile{cursor:pointer;}
+  .rp-suggestion-tile img{
+    width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:6px;
+    filter:grayscale(1) contrast(1.05);display:block;
+    border:2px solid transparent;
+  }
+  .rp-suggestion-tile:hover img{border-color:#d4af37;}
+  .rp-suggestion-tile-title{
+    font-size:0.72rem;font-weight:600;color:var(--text);
+    margin-top:6px;line-height:1.3;
+  }
+  .rp-suggestion-tile-score{
+    display:flex;align-items:center;gap:4px;margin-top:2px;
+    font-size:0.72rem;font-weight:700;color:#d4af37;
   }
   .rp-loading{text-align:center;color:var(--muted);margin:40px auto;font-style:italic;}
   .home-footer-links{
@@ -1791,11 +1812,14 @@
     </div>
 
     <div id="rpStep2" class="rp-step" style="display:none;">
-      <h2 class="rp-step-heading">Which one, tonight?</h2>
-      <p id="rpStep2Progress" class="panel-sub" style="text-align:center;"></p>
+      <div class="duel-heading">
+        <div class="eyebrow">ReelPicker</div>
+        <h3>Which one, tonight?</h3>
+        <p id="rpStep2Progress" class="cheeky-line duel-subtitle"></p>
+      </div>
       <div class="duel-cards" id="rpDuelCards">
         <button class="ticket" id="rpTicketA"></button>
-        <div class="vs-mark">vs</div>
+        <div class="vs-mark">or</div>
         <button class="ticket" id="rpTicketB"></button>
       </div>
     </div>
@@ -3352,7 +3376,8 @@
 
     let statusEl = document.getElementById('reelPickerStatus');
     if(!statusEl){
-      statusEl = document.createElement('div');
+      statusEl = document.createElement('button');
+      statusEl.type = 'button';
       statusEl.id = 'reelPickerStatus';
       statusEl.className = 'reelpicker-status';
       wrap.insertAdjacentElement('afterend', statusEl);
@@ -3362,6 +3387,7 @@
       wrap.innerHTML = Array.from({length: REELPICKER_REQUIRED}).map(() => `<div class="reelpicker-slot rp-empty"></div>`).join('');
       statusEl.className = 'reelpicker-status';
       statusEl.textContent = 'Sign in and start rating to unlock this.';
+      statusEl.disabled = true;
       statusEl.onclick = null;
       return;
     }
@@ -3393,12 +3419,14 @@
     const count = qualifying.length;
     if(count >= REELPICKER_REQUIRED){
       statusEl.className = 'reelpicker-status rp-ready';
-      statusEl.textContent = "Ready — tap to pick tonight's movie \u2192";
+      statusEl.textContent = 'Pick a movie for me';
+      statusEl.disabled = false;
       statusEl.onclick = () => navigateTo('reelpicker');
     } else {
       const remaining = REELPICKER_REQUIRED - count;
       statusEl.className = 'reelpicker-status';
       statusEl.textContent = `Rate ${remaining} more movie${remaining === 1 ? '' : 's'} "Good" or better to unlock (${count} of ${REELPICKER_REQUIRED})`;
+      statusEl.disabled = true;
       statusEl.onclick = null;
     }
   }
@@ -3878,30 +3906,50 @@
     const rpPoolMovies = rpSelected.map(id => movies.find(m => m.id === id)).filter(Boolean);
     rpPool = rpPoolMovies;
     el('rpStep1').style.display = 'none';
+    window.scrollTo(0, 0);
     if(rpPool.length <= 4){
       showRpStep3();
     } else {
       el('rpStep2').style.display = 'block';
+      setUpRpDuelQueue();
       runRpDuelRound();
     }
   });
 
   let rpPool = [];
+  let rpDuelQueue = [];   // pairs still to fight, seeded strongest-vs-weakest
+  let rpByes = [];        // movies that skip the duel round entirely
+  let rpWinners = [];
 
+  // Seeds duels by score instead of pairing at random — strongest vs
+  // weakest, 2nd-strongest vs 2nd-weakest, etc. This means your top picks
+  // are matched against your weakest ones first, so two genuine favorites
+  // can never accidentally knock each other out in round one. The people
+  // in the genuinely uncertain middle of the pack are what the duel
+  // actually needs to settle.
+  function setUpRpDuelQueue(){
+    const sorted = [...rpPool].sort((a, b) => (b.score||5) - (a.score||5));
+    const duelsNeeded = sorted.length - 4;
+    const byeCount = sorted.length - (duelsNeeded * 2);
+    rpByes = sorted.slice(duelsNeeded, duelsNeeded + byeCount);
+    rpDuelQueue = [];
+    for(let i = 0; i < duelsNeeded; i++){
+      rpDuelQueue.push([sorted[i], sorted[sorted.length - 1 - i]]);
+    }
+    rpWinners = [];
+  }
 
   function runRpDuelRound(){
-    if(rpPool.length <= 4){
+    if(rpDuelQueue.length === 0){
+      rpPool = [...rpByes, ...rpWinners];
       el('rpStep2').style.display = 'none';
+      window.scrollTo(0, 0);
       showRpStep3();
       return;
     }
-    const remaining = rpPool.length - 4;
+    const remaining = rpDuelQueue.length;
     el('rpStep2Progress').textContent = `${remaining} more comparison${remaining === 1 ? '' : 's'} to narrow it down`;
-    let i = Math.floor(Math.random() * rpPool.length);
-    let j = Math.floor(Math.random() * rpPool.length);
-    while(j === i) j = Math.floor(Math.random() * rpPool.length);
-    const movieA = rpPool[i];
-    const movieB = rpPool[j];
+    const [movieA, movieB] = rpDuelQueue[0];
     const tA = el('rpTicketA'), tB = el('rpTicketB');
     tA.innerHTML = `
       ${movieA.poster ? `<img src="${escapeHtml(movieA.poster)}" alt="">` : ''}
@@ -3913,14 +3961,18 @@
       <div class="t-title">${escapeHtml(movieB.title)}</div>
       ${movieB.year ? `<div class="t-year">${escapeHtml(movieB.year)}</div>` : ''}
     `;
-    tA.onclick = () => flashDuelPick(tA, () => resolveRpDuel(movieB));
-    tB.onclick = () => flashDuelPick(tB, () => resolveRpDuel(movieA));
+    tA.onclick = () => flashDuelPick(tA, () => resolveRpDuel(movieA));
+    tB.onclick = () => flashDuelPick(tB, () => resolveRpDuel(movieB));
   }
 
-  function resolveRpDuel(loser){
-    rpPool = rpPool.filter(m => m.id !== loser.id);
+  function resolveRpDuel(winner){
+    rpDuelQueue.shift();
+    rpWinners.push(winner);
     runRpDuelRound();
   }
+
+  let rpFinalists = [];
+  let rpFinalistRows = [];
 
   async function showRpStep3(){
     el('rpStep3').style.display = 'block';
@@ -3928,99 +3980,116 @@
     shortlistEl.innerHTML = `<p class="rp-loading">Finding something you'll like...</p>`;
 
     const finalists = rpPool.slice(0, 4);
+    rpFinalists = finalists;
+    const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
 
-    // Pull each finalist's TMDb "similar" list and count overlap — a title
-    // similar to 2-3 of the finalists is a far stronger "matches your vibe"
-    // signal than trusting any single genre tag (this app's genre field is
-    // one value per movie and known to sometimes be wrong).
-    const overlapCounts = {};
-    for(const finalist of finalists){
-      // tmdb_id is only ever set lazily (opening a movie's detail page, or
-      // creating it fresh) — an older catalog movie may have never picked
-      // one up. Resolve it on the spot rather than silently skipping this
-      // finalist's similarity data.
-      if(!finalist.tmdb_id && finalist.imdb_id && TMDB_KEY){
-        const resolved = await fetchTmdbMovieData(finalist.imdb_id);
-        if(resolved && resolved.tmdbId){
-          finalist.tmdb_id = resolved.tmdbId;
-          const realMovie = movies.find(m => m.id === finalist.id);
-          if(realMovie) realMovie.tmdb_id = resolved.tmdbId;
-        }
+    // Build each finalist's own row independently and in parallel — both
+    // for speed (four network round-trips at once instead of one after
+    // another), and because a per-finalist list is far more reliable than
+    // hunting for cross-finalist overlap, which could turn up anywhere
+    // from 0 to 4 results depending on luck. "Films like X" always gets
+    // its own dedicated row of up to 4, sourced from X specifically.
+    rpFinalistRows = await Promise.all(finalists.map(f => buildRpRow(f, myRatedTitles)));
+    renderRpShortlist();
+  }
+
+  // A movie can have a decent score from a handful of voters and still be
+  // something almost nobody's heard of — filter TMDb's "similar" results
+  // for actually-recognized titles (same vote_count threshold used
+  // elsewhere in this feature), and require Good/Great once resolved,
+  // since the whole point is a confident pick, not a coin flip.
+  async function buildRpRow(finalist, myRatedTitles){
+    if(!finalist.tmdb_id && finalist.imdb_id && TMDB_KEY){
+      const resolvedTmdb = await fetchTmdbMovieData(finalist.imdb_id);
+      if(resolvedTmdb && resolvedTmdb.tmdbId){
+        finalist.tmdb_id = resolvedTmdb.tmdbId;
+        const realMovie = movies.find(m => m.id === finalist.id);
+        if(realMovie) realMovie.tmdb_id = resolvedTmdb.tmdbId;
       }
-      if(!finalist.tmdb_id || !TMDB_KEY) continue;
+    }
+
+    let candidates = [];
+    if(finalist.tmdb_id && TMDB_KEY){
       try{
         const r = await fetch(`https://api.themoviedb.org/3/movie/${finalist.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
         const data = await r.json();
-        (data.results || []).slice(0, 10).forEach(item => {
-          if(!item.title) return;
-          const key = item.title.trim().toLowerCase();
-          const year = (item.release_date || '').slice(0, 4) || null;
-          if(!overlapCounts[key]) overlapCounts[key] = { title: item.title, year, count: 0 };
-          overlapCounts[key].count++;
-        });
-      }catch(e){ /* skip this finalist's similar list on failure */ }
+        candidates = (data.results || [])
+          .filter(item => item.title && (item.vote_count || 0) >= 300)
+          .map(item => ({ title: item.title, year: (item.release_date || '').slice(0, 4) || null }))
+          .filter(c => !myRatedTitles.has(c.title.toLowerCase()));
+      }catch(e){ /* fall through to the genre fallback below */ }
     }
-
-    const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
-    let candidates = Object.values(overlapCounts)
-      .filter(c => !myRatedTitles.has(c.title.toLowerCase()))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
-
     if(candidates.length === 0){
-      // No usable similarity data at all (e.g. TMDb unreachable, or every
-      // similar result happened to already be rated) — fall back to the
-      // most common genre among the finalists rather than a dead end.
-      const genreCounts = {};
-      finalists.forEach(m => { genreCounts[m.genre] = (genreCounts[m.genre] || 0) + 1; });
-      const topGenre = Object.keys(genreCounts).sort((a, b) => genreCounts[b] - genreCounts[a])[0];
-      const tmdbPool = await fetchTmdbGenrePool(topGenre);
-      candidates = tmdbPool
-        .filter(c => !myRatedTitles.has(c.title.toLowerCase()))
-        .slice(0, 20)
-        .map(c => ({ ...c, count: 0 }));
+      const tmdbPool = await fetchTmdbGenrePool(finalist.genre);
+      candidates = tmdbPool.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
     }
 
-    if(candidates.length === 0){
-      shortlistEl.innerHTML = `<p class="rp-loading">Couldn't find a fresh match this time — try different picks.</p>`;
-      return;
-    }
+    const row = { finalist, movies: [], remainingQueue: candidates };
+    await fillRpRow(row);
+    return row;
+  }
 
-    // Only Good/Great actually gets suggested — the whole point is a
-    // confident pick, not a coin flip. A middling score wastes the exact
-    // time this feature exists to save.
+  async function fillRpRow(row){
     const resolved = [];
-    for(const c of candidates){
-      if(resolved.length >= 5) break;
+    while(resolved.length < 4 && row.remainingQueue.length > 0){
+      const c = row.remainingQueue.shift();
       const existing = movies.find(m => m.title.toLowerCase() === c.title.toLowerCase());
-      const movie = existing || await getOrCreateMovieByTitle(c.title, finalists[0].genre, c.year);
-      if(!movie || resolved.some(r => r.id === movie.id)) continue;
+      const movie = existing || await getOrCreateMovieByTitle(c.title, row.finalist.genre, c.year);
+      if(!movie || movie.id === row.finalist.id || resolved.some(r => r.id === movie.id)) continue;
       if(scoreToTier(movie.score) !== 'Good' && scoreToTier(movie.score) !== 'Great') continue;
       resolved.push(movie);
     }
+    row.movies = resolved;
+  }
 
-    if(resolved.length === 0){
+  function renderRpShortlist(){
+    const shortlistEl = el('rpShortlist');
+    const rowsWithResults = rpFinalistRows.filter(row => row.movies.length > 0);
+
+    if(rowsWithResults.length === 0){
       shortlistEl.innerHTML = `<p class="rp-loading">Nothing Good-or-better turned up from these picks — try a different combination.</p>`;
       return;
     }
 
-    shortlistEl.innerHTML = resolved.map(m => `
-      <div class="rp-shortlist-item" data-id="${m.id}">
-        <img src="${escapeHtml(m.poster||'')}" alt="">
-        <div>
-          <div class="rp-shortlist-title">${escapeHtml(m.title)}<span class="rp-shortlist-year">${escapeHtml(m.year||'')}</span></div>
-          <div class="rp-shortlist-score">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
+    shortlistEl.innerHTML = rpFinalistRows.map((row, i) => {
+      if(row.movies.length === 0) return '';
+      return `
+        <div class="rp-suggestion-row">
+          <div class="rp-suggestion-row-heading">
+            <span>Films like ${escapeHtml(row.finalist.title)}</span>
+            ${row.remainingQueue.length > 0 ? `<button type="button" class="rp-row-refresh" data-row="${i}">Refresh</button>` : ''}
+          </div>
+          <div class="rp-suggestion-row-posters">
+            ${row.movies.map(m => `
+              <div class="rp-suggestion-tile" data-id="${m.id}">
+                <img src="${escapeHtml(m.poster||'')}" alt="">
+                <div class="rp-suggestion-tile-title">${escapeHtml(m.title)}</div>
+                <div class="rp-suggestion-tile-score">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
+              </div>
+            `).join('')}
+          </div>
         </div>
-      </div>
-    `).join('');
-    shortlistEl.querySelectorAll('.rp-shortlist-item').forEach(item => {
-      item.addEventListener('click', () => navigateTo(item.dataset.id));
+      `;
+    }).join('');
+
+    shortlistEl.querySelectorAll('.rp-suggestion-tile').forEach(tile => {
+      tile.addEventListener('click', () => navigateTo(tile.dataset.id));
+    });
+    shortlistEl.querySelectorAll('.rp-row-refresh').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const row = rpFinalistRows[Number(btn.dataset.row)];
+        btn.disabled = true;
+        btn.textContent = '...';
+        await fillRpRow(row);
+        renderRpShortlist();
+      });
     });
   }
 
   el('rpStartOver').addEventListener('click', () => {
     el('rpStep3').style.display = 'none';
     el('rpStep1').style.display = 'block';
+    window.scrollTo(0, 0);
     renderRpLibrary();
   });
 
