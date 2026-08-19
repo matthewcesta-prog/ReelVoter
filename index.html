@@ -553,13 +553,21 @@
     font-size:0.72rem;font-weight:700;
   }
   .rp-loading{text-align:center;color:var(--muted);margin:40px auto;font-style:italic;}
+  .rp-loading-reel{animation:rpReelSpin 1.4s linear infinite;margin-bottom:10px;}
+  @keyframes rpReelSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
   .rp-duel-card{
     max-width:640px;margin:0 auto;position:static;
+    padding:20px 16px;
   }
-  .rp-duel-heading{padding:0;}
-  .rp-duel-heading h3{white-space:nowrap;}
+  .rp-duel-heading{padding:0;margin-bottom:12px;}
+  .rp-duel-heading h3{white-space:nowrap;margin:2px 0;}
+  .rp-duel-heading .duel-subtitle{margin-top:4px;}
+  #rpStep2{padding-left:8px;padding-right:8px;}
+  #rpStep2 .duel-cards{gap:10px;}
+  #rpStep2 .ticket img{height:100px;}
   @media (max-width:480px){
-    .rp-duel-heading h3{font-size:1.3rem;}
+    .rp-duel-heading h3{font-size:1.2rem;}
+    .rp-duel-card{padding:16px 12px;}
   }
   .home-footer-links{
     text-align:center;margin:0 0 32px;
@@ -3031,6 +3039,7 @@
             <div class="detail-field" id="detailStarringField"><b>STARRING:</b> <span id="detailStarringText">Loading…</span></div>
             <div class="detail-field" id="detailDirectorField"><b>DIRECTOR:</b> <span id="detailDirectorText">Loading…</span></div>
             <div class="detail-field" id="detailWritersField"><b>WRITERS:</b> <span id="detailWritersText">Loading…</span></div>
+            <div class="detail-field" id="detailThemesField" style="display:none;"><b>THEMES:</b> <span id="detailThemesText"></span></div>
             <div class="detail-field" id="detailWatchField">
               <b>WHERE TO WATCH:</b>
               <div id="detailWatchProviders" class="watch-providers"></div>
@@ -3049,6 +3058,7 @@
 
     renderTierCounts(movie.id);
     renderMovieRecommendations(movie);
+    renderMovieThemes(movie);
 
     const detailPromise = movie.imdb_id
       ? fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(movie.imdb_id)}&plot=short`).then(r => r.json()).catch(() => null)
@@ -4020,7 +4030,18 @@
   async function showRpStep3(){
     el('rpStep3').style.display = 'block';
     const shortlistEl = el('rpShortlist');
-    shortlistEl.innerHTML = `<p class="rp-loading">Finding something you'll like...</p>`;
+    shortlistEl.innerHTML = `
+      <div class="rp-loading">
+        <svg class="rp-loading-reel" width="36" height="36" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="15" cy="15" r="13" stroke="#d4af37" stroke-width="2"/>
+          <circle cx="15" cy="4" r="3.4" fill="#d4af37"/>
+          <circle cx="26" cy="15" r="3.4" fill="#d4af37"/>
+          <circle cx="15" cy="26" r="3.4" fill="#d4af37"/>
+          <circle cx="4" cy="15" r="3.4" fill="#d4af37"/>
+        </svg>
+        <p>Just a moment! Finding something you'll like...</p>
+      </div>
+    `;
 
     const finalists = rpPool.slice(0, 4);
     rpFinalists = finalists;
@@ -4064,23 +4085,42 @@
     try{
       const detailRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${encodeURIComponent(TMDB_KEY)}&append_to_response=keywords`);
       const detail = await detailRes.json();
-      const keywordIds = ((detail.keywords && detail.keywords.keywords) || []).slice(0, 5).map(k => k.id);
+      const keywordIds = ((detail.keywords && detail.keywords.keywords) || []).slice(0, 6).map(k => k.id);
       const genreIds = (detail.genres || []).map(g => g.id);
-      if(keywordIds.length === 0) return [];
+      if(keywordIds.length < 2) return []; // too few keywords to ever require overlap — caller falls back to /similar
 
-      const params = new URLSearchParams({
-        api_key: TMDB_KEY,
-        with_keywords: keywordIds.join('|'),
-        'vote_count.gte': '300',
-        sort_by: 'popularity.desc',
-        page: String(page || 1)
-      });
-      if(genreIds.length > 0) params.set('with_genres', genreIds.join('|'));
-      const r = await fetch(`https://api.themoviedb.org/3/discover/movie?${params.toString()}`);
-      const data = await r.json();
-      return (data.results || [])
-        .filter(item => item.title && item.title.trim().toLowerCase() !== excludeTitle)
-        .map(item => ({ title: item.title, year: (item.release_date || '').slice(0, 4) || null }));
+      // Query each keyword SEPARATELY rather than one OR'd query, then count
+      // how many of those separate queries a candidate shows up in. A
+      // single shared keyword is often too generic (a decade tag, "based
+      // on novel") to mean two films actually feel alike — requiring at
+      // least 2 distinct shared keywords is real evidence of thematic
+      // overlap, not just a loose, single coincidental tag in common.
+      const overlap = {};
+      await Promise.all(keywordIds.map(async kwId => {
+        const params = new URLSearchParams({
+          api_key: TMDB_KEY,
+          with_keywords: String(kwId),
+          'vote_count.gte': '300',
+          sort_by: 'popularity.desc',
+          page: String(page || 1)
+        });
+        if(genreIds.length > 0) params.set('with_genres', genreIds.join('|'));
+        try{
+          const r = await fetch(`https://api.themoviedb.org/3/discover/movie?${params.toString()}`);
+          const data = await r.json();
+          (data.results || []).forEach(item => {
+            if(!item.title) return;
+            const key = item.title.trim().toLowerCase();
+            if(key === excludeTitle) return;
+            if(!overlap[key]) overlap[key] = { title: item.title, year: (item.release_date || '').slice(0, 4) || null, count: 0 };
+            overlap[key].count++;
+          });
+        }catch(e){ /* skip this one keyword on failure */ }
+      }));
+
+      return Object.values(overlap)
+        .filter(c => c.count >= 2)
+        .sort((a, b) => b.count - a.count);
     }catch(e){ return []; }
   }
 
@@ -4213,21 +4253,65 @@
     renderRpLibrary();
   });
 
+  // Real thematic tags from TMDb, shown alongside (not replacing) this
+  // app's own single genre field — an informational enrichment, not a
+  // change to how genre powers duel-matching/filtering elsewhere.
+  async function renderMovieThemes(movie){
+    if(!movie.tmdb_id && movie.imdb_id && TMDB_KEY){
+      const resolvedTmdb = await fetchTmdbMovieData(movie.imdb_id);
+      if(resolvedTmdb && resolvedTmdb.tmdbId) movie.tmdb_id = resolvedTmdb.tmdbId;
+    }
+    if(!movie.tmdb_id || !TMDB_KEY) return;
+    try{
+      const r = await fetch(`https://api.themoviedb.org/3/movie/${movie.tmdb_id}/keywords?api_key=${encodeURIComponent(TMDB_KEY)}`);
+      const data = await r.json();
+      const names = (data.keywords || []).slice(0, 6).map(k => k.name);
+      if(names.length === 0) return;
+      el('detailThemesText').textContent = names.map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(', ');
+      el('detailThemesField').style.display = 'block';
+    }catch(e){ /* leave the field hidden on failure */ }
+  }
+
   async function renderMovieRecommendations(movie){
     const wrap = el('movieRecsWrap');
     if(!wrap) return;
     wrap.innerHTML = '';
 
-    const tmdbPool = await fetchTmdbGenrePool(movie.genre);
-    let suggestions = tmdbPool
-      .filter(p => p.title.trim().toLowerCase() !== movie.title.trim().toLowerCase())
-      .slice(0, 6);
+    // Same approach as ReelPicker: real TMDb genres + keywords instead of
+    // this app's own single genre field (which can be mistagged — e.g. a
+    // horror movie stored as "Drama" would otherwise silently corrupt this
+    // match) and instead of TMDb's /similar endpoint (collaborative
+    // filtering — closer to "commercially adjacent" than "actually similar").
+    if(!movie.tmdb_id && movie.imdb_id && TMDB_KEY){
+      const resolvedTmdb = await fetchTmdbMovieData(movie.imdb_id);
+      if(resolvedTmdb && resolvedTmdb.tmdbId) movie.tmdb_id = resolvedTmdb.tmdbId;
+    }
+    const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
+    const excludeTitle = movie.title.trim().toLowerCase();
+
+    let suggestions = [];
+    if(movie.tmdb_id && TMDB_KEY){
+      const keywordMatches = await fetchTmdbKeywordMatches(movie.tmdb_id, excludeTitle, 1);
+      suggestions = keywordMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
+    }
+    if(suggestions.length === 0 && movie.tmdb_id && TMDB_KEY){
+      // No usable keyword data for this movie — fall back to /similar.
+      try{
+        const r = await fetch(`https://api.themoviedb.org/3/movie/${movie.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
+        const data = await r.json();
+        suggestions = (data.results || [])
+          .filter(item => item.title && (item.vote_count || 0) >= 300)
+          .map(item => ({ title: item.title, year: (item.release_date || '').slice(0, 4) || null }))
+          .filter(c => !myRatedTitles.has(c.title.toLowerCase()));
+      }catch(e){ /* fall through to the genre fallback below */ }
+    }
     if(suggestions.length === 0){
       // TMDb unreachable or returned nothing usable — fall back to the small
       // curated list rather than showing an empty section.
       const pool = CURATED[movie.genre] || [];
-      suggestions = pool.filter(p => p.title.trim().toLowerCase() !== movie.title.trim().toLowerCase()).slice(0, 6);
+      suggestions = pool.filter(p => p.title.trim().toLowerCase() !== excludeTitle);
     }
+    suggestions = suggestions.slice(0, 6);
     if(suggestions.length === 0) return;
 
     wrap.innerHTML = `
