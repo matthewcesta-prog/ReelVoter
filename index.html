@@ -528,13 +528,20 @@
   }
   .rp-row-refresh:hover{color:var(--text);}
   .rp-suggestion-row-posters{
-    display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;
+    display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;
+    scrollbar-width:thin;overscroll-behavior-x:contain;
   }
-  .rp-suggestion-tile{cursor:pointer;}
+  .rp-suggestion-tile{flex:0 0 auto;width:120px;cursor:pointer;}
   .rp-suggestion-tile img{
-    width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:6px;
+    width:120px;height:172px;object-fit:cover;border-radius:6px;
     filter:grayscale(1) contrast(1.05);display:block;
     border:2px solid transparent;
+    -webkit-touch-callout:none;-webkit-user-drag:none;user-drag:none;
+    -webkit-user-select:none;user-select:none;
+  }
+  @media (max-width:480px){
+    .rp-suggestion-tile{width:104px;}
+    .rp-suggestion-tile img{width:104px;height:150px;}
   }
   .rp-suggestion-tile:hover img{border-color:#d4af37;}
   .rp-suggestion-tile-title{
@@ -546,6 +553,14 @@
     font-size:0.72rem;font-weight:700;
   }
   .rp-loading{text-align:center;color:var(--muted);margin:40px auto;font-style:italic;}
+  .rp-duel-card{
+    max-width:640px;margin:0 auto;position:static;
+  }
+  .rp-duel-heading{padding:0;}
+  .rp-duel-heading h3{white-space:nowrap;}
+  @media (max-width:480px){
+    .rp-duel-heading h3{font-size:1.3rem;}
+  }
   .home-footer-links{
     text-align:center;margin:0 0 32px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1819,18 +1834,21 @@
     </div>
 
     <div id="rpStep2" class="rp-step" style="display:none;">
-      <div class="duel-heading">
-        <div class="eyebrow">ReelPicker</div>
-        <h3>Which one, tonight?</h3>
-        <p id="rpStep2Progress" class="cheeky-line duel-subtitle"></p>
-      </div>
-      <div class="duel-cards" id="rpDuelCards">
-        <button class="ticket" id="rpTicketA"></button>
-        <div class="vs-mark">or</div>
-        <button class="ticket" id="rpTicketB"></button>
-      </div>
-      <div style="text-align:center;margin-top:16px;">
-        <button class="duel-skip" id="rpReseedBtn" type="button">Don't love this matchup? Reseed</button>
+      <div class="duel-modal rp-duel-card">
+        <div class="duel-heading rp-duel-heading">
+          <div class="eyebrow">ReelPicker</div>
+          <h3>Which one, tonight?</h3>
+          <p class="cheeky-line duel-subtitle">Select whichever film is more of what you're looking for tonight.</p>
+          <p id="rpStep2Progress" class="cheeky-line duel-subtitle" style="margin-top:4px;"></p>
+        </div>
+        <div class="duel-cards" id="rpDuelCards">
+          <button class="ticket" id="rpTicketA"></button>
+          <div class="vs-mark">or</div>
+          <button class="ticket" id="rpTicketB"></button>
+        </div>
+        <div style="text-align:center;margin-top:16px;">
+          <button class="duel-skip" id="rpReseedBtn" type="button">Don't love this matchup? Reseed</button>
+        </div>
       </div>
     </div>
 
@@ -4030,22 +4048,34 @@
   // genuinely shares thematic DNA with the finalist, not just audience
   // overlap. /similar is kept only as a fallback if a finalist has no
   // usable keywords.
-  async function fetchTmdbKeywordMatches(tmdbId, genre, excludeTitle){
+  // TMDb's /similar endpoint is collaborative-filtering based — "people who
+  // watched X also watched Y" — which is closer to "commercially adjacent"
+  // than "actually feels like the same movie." Keywords (real tags like
+  // "heist," "grief," "small-town") plus genre give a candidate that
+  // genuinely shares thematic DNA with the finalist. Critically, this uses
+  // the movie's own real TMDb genres, not this app's single genre field —
+  // that field is known to sometimes be tagged wrong, and using it here
+  // was very likely why something like The Notebook could show up under a
+  // horror finalist (a mistagged genre would silently corrupt the filter).
+  // Supports pagination so a "Refresh" can pull an actually-new page
+  // instead of quickly running out after the first fetch.
+  async function fetchTmdbKeywordMatches(tmdbId, excludeTitle, page){
     if(!tmdbId || !TMDB_KEY) return [];
     try{
-      const kwRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/keywords?api_key=${encodeURIComponent(TMDB_KEY)}`);
-      const kwData = await kwRes.json();
-      const keywordIds = (kwData.keywords || []).slice(0, 5).map(k => k.id);
+      const detailRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${encodeURIComponent(TMDB_KEY)}&append_to_response=keywords`);
+      const detail = await detailRes.json();
+      const keywordIds = ((detail.keywords && detail.keywords.keywords) || []).slice(0, 5).map(k => k.id);
+      const genreIds = (detail.genres || []).map(g => g.id);
       if(keywordIds.length === 0) return [];
 
-      const genreId = TMDB_GENRE_IDS[genre];
       const params = new URLSearchParams({
         api_key: TMDB_KEY,
         with_keywords: keywordIds.join('|'),
         'vote_count.gte': '300',
-        sort_by: 'popularity.desc'
+        sort_by: 'popularity.desc',
+        page: String(page || 1)
       });
-      if(genreId) params.set('with_genres', String(genreId));
+      if(genreIds.length > 0) params.set('with_genres', genreIds.join('|'));
       const r = await fetch(`https://api.themoviedb.org/3/discover/movie?${params.toString()}`);
       const data = await r.json();
       return (data.results || [])
@@ -4064,13 +4094,18 @@
       }
     }
 
+    const excludeTitle = finalist.title.trim().toLowerCase();
     let candidates = [];
+    let nextPage = 2; // page 1 already used for the initial fetch below
+    let usingKeywordSource = true;
+
     if(finalist.tmdb_id && TMDB_KEY){
-      const keywordMatches = await fetchTmdbKeywordMatches(finalist.tmdb_id, finalist.genre, finalist.title.trim().toLowerCase());
+      const keywordMatches = await fetchTmdbKeywordMatches(finalist.tmdb_id, excludeTitle, 1);
       candidates = keywordMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
     }
     if(candidates.length === 0 && finalist.tmdb_id && TMDB_KEY){
       // No usable keyword data for this finalist — fall back to /similar.
+      usingKeywordSource = false;
       try{
         const r = await fetch(`https://api.themoviedb.org/3/movie/${finalist.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
         const data = await r.json();
@@ -4081,21 +4116,41 @@
       }catch(e){ /* fall through to the genre fallback below */ }
     }
     if(candidates.length === 0){
+      usingKeywordSource = false;
       const tmdbPool = await fetchTmdbGenrePool(finalist.genre);
       candidates = tmdbPool.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
     }
 
-    const row = { finalist, movies: [], remainingQueue: candidates };
+    const row = {
+      finalist, movies: [], remainingQueue: candidates,
+      myRatedTitles, nextPage, usingKeywordSource, exhausted: false
+    };
     await fillRpRow(row);
     return row;
   }
 
   async function fillRpRow(row){
-    // Resolve a small buffer beyond the 4 needed, then sort by score so a
-    // Great-tier candidate always surfaces ahead of a merely-Good one,
-    // rather than just taking whichever 4 happened to resolve first.
+    // Resolve a buffer beyond the 8 needed, then sort by score so a
+    // Great-tier candidate always surfaces ahead of a merely-Good one.
     const resolved = [];
-    while(resolved.length < 6 && row.remainingQueue.length > 0){
+    while(resolved.length < 12){
+      if(row.remainingQueue.length === 0){
+        // Out of candidates from the current page — pull a fresh page
+        // instead of just stopping, so "Refresh" has somewhere new to go
+        // rather than running dry after one use.
+        if(!row.usingKeywordSource || !row.finalist.tmdb_id || row.nextPage > 5){
+          row.exhausted = true;
+          break;
+        }
+        const more = await fetchTmdbKeywordMatches(row.finalist.tmdb_id, row.finalist.title.trim().toLowerCase(), row.nextPage);
+        row.nextPage++;
+        const fresh = more.filter(c => !row.myRatedTitles.has(c.title.toLowerCase()));
+        if(fresh.length === 0){
+          if(row.nextPage > 5){ row.exhausted = true; break; }
+          continue;
+        }
+        row.remainingQueue.push(...fresh);
+      }
       const c = row.remainingQueue.shift();
       const existing = movies.find(m => m.title.toLowerCase() === c.title.toLowerCase());
       const movie = existing || await getOrCreateMovieByTitle(c.title, row.finalist.genre, c.year);
@@ -4104,7 +4159,7 @@
       resolved.push(movie);
     }
     resolved.sort((a, b) => (b.score||5) - (a.score||5));
-    row.movies = resolved.slice(0, 4);
+    row.movies = resolved.slice(0, 8);
   }
 
   function renderRpShortlist(){
@@ -4122,7 +4177,7 @@
         <div class="rp-suggestion-row">
           <div class="rp-suggestion-row-heading">
             <span>Films like ${escapeHtml(row.finalist.title)}</span>
-            ${row.remainingQueue.length > 0 ? `<button type="button" class="rp-row-refresh" data-row="${i}">Refresh</button>` : ''}
+            ${!row.exhausted ? `<button type="button" class="rp-row-refresh" data-row="${i}">Refresh</button>` : ''}
           </div>
           <div class="rp-suggestion-row-posters">
             ${row.movies.map(m => `
