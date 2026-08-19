@@ -555,20 +555,55 @@
   .rp-loading{text-align:center;color:var(--muted);margin:40px auto;font-style:italic;}
   .rp-loading-reel{animation:rpReelSpin 1.4s linear infinite;margin-bottom:10px;}
   @keyframes rpReelSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-  .rp-duel-card{
-    max-width:640px;margin:0 auto;position:static;
-    padding:20px 16px;
+  #rpStep2{padding-left:10px;padding-right:10px;}
+  .rp-duel-wrap{
+    max-width:440px;margin:0 auto;
+    padding:18px 14px;
+    border:1px solid #d4af37;border-radius:8px;
+    box-shadow:0 0 10px rgba(212,175,55,0.4);
+    background:var(--surface);
+    text-align:center;
   }
-  .rp-duel-heading{padding:0;margin-bottom:12px;}
-  .rp-duel-heading h3{white-space:nowrap;margin:2px 0;}
-  .rp-duel-heading .duel-subtitle{margin-top:4px;}
-  #rpStep2{padding-left:8px;padding-right:8px;}
-  #rpStep2 .duel-cards{gap:10px;}
-  #rpStep2 .ticket img{height:100px;}
-  @media (max-width:480px){
-    .rp-duel-heading h3{font-size:1.2rem;}
-    .rp-duel-card{padding:16px 12px;}
+  .rp-duel-eyebrow{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+    color:var(--muted);margin-bottom:4px;
   }
+  .rp-duel-title{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:1.25rem;font-weight:800;color:var(--white);
+    margin:2px 0 8px;white-space:nowrap;
+  }
+  .rp-duel-subtitle{
+    color:#c9852c;font-style:italic;font-weight:600;
+    font-size:0.78rem;line-height:1.4;margin:0 0 4px;
+  }
+  .rp-duel-progress{
+    color:#c9852c;font-style:italic;font-weight:600;
+    font-size:0.78rem;margin:0 0 14px;
+  }
+  .rp-duel-pair{display:flex;flex-direction:column;gap:10px;align-items:center;}
+  .rp-duel-ticket{
+    width:100%;max-width:260px;
+    background:var(--card);color:var(--ink);
+    border-radius:6px;border:2px solid transparent;
+    cursor:pointer;padding:10px;text-align:center;
+  }
+  .rp-duel-ticket:active{transform:scale(0.97);}
+  .rp-duel-ticket img{
+    width:100%;height:84px;object-fit:cover;border-radius:3px;
+    filter:grayscale(1) contrast(1.05);display:block;
+  }
+  .rp-duel-ticket-title{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-weight:700;font-size:0.9rem;line-height:1.2;margin-top:6px;
+  }
+  .rp-duel-ticket-year{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:0.72rem;color:#555;margin-top:2px;
+  }
+  .rp-duel-or{font-style:italic;font-weight:800;color:#d4af37;font-size:1.1rem;margin:2px 0;}
+  .rp-duel-reseed{margin-top:14px;}
   .home-footer-links{
     text-align:center;margin:0 0 32px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1842,19 +1877,17 @@
     </div>
 
     <div id="rpStep2" class="rp-step" style="display:none;">
-      <div class="duel-modal rp-duel-card">
-        <div class="duel-heading rp-duel-heading">
-          <div class="eyebrow">ReelPicker</div>
-          <h3>Which one, tonight?</h3>
-          <p class="cheeky-line duel-subtitle">Select whichever film is more of what you're looking for tonight.</p>
-          <p id="rpStep2Progress" class="cheeky-line duel-subtitle" style="margin-top:4px;"></p>
+      <div class="rp-duel-wrap">
+        <div class="rp-duel-eyebrow">ReelPicker</div>
+        <h3 class="rp-duel-title">Which one, tonight?</h3>
+        <p class="rp-duel-subtitle">Select whichever film is more of what you're looking for tonight.</p>
+        <p id="rpStep2Progress" class="rp-duel-progress"></p>
+        <div class="rp-duel-pair">
+          <button class="rp-duel-ticket" id="rpTicketA"></button>
+          <div class="rp-duel-or">or</div>
+          <button class="rp-duel-ticket" id="rpTicketB"></button>
         </div>
-        <div class="duel-cards" id="rpDuelCards">
-          <button class="ticket" id="rpTicketA"></button>
-          <div class="vs-mark">or</div>
-          <button class="ticket" id="rpTicketB"></button>
-        </div>
-        <div style="text-align:center;margin-top:16px;">
+        <div class="rp-duel-reseed">
           <button class="duel-skip" id="rpReseedBtn" type="button">Don't love this matchup? Reseed</button>
         </div>
       </div>
@@ -4006,13 +4039,13 @@
     const tA = el('rpTicketA'), tB = el('rpTicketB');
     tA.innerHTML = `
       ${movieA.poster ? `<img src="${escapeHtml(movieA.poster)}" alt="">` : ''}
-      <div class="t-title">${escapeHtml(movieA.title)}</div>
-      ${movieA.year ? `<div class="t-year">${escapeHtml(movieA.year)}</div>` : ''}
+      <div class="rp-duel-ticket-title">${escapeHtml(movieA.title)}</div>
+      ${movieA.year ? `<div class="rp-duel-ticket-year">${escapeHtml(movieA.year)}</div>` : ''}
     `;
     tB.innerHTML = `
       ${movieB.poster ? `<img src="${escapeHtml(movieB.poster)}" alt="">` : ''}
-      <div class="t-title">${escapeHtml(movieB.title)}</div>
-      ${movieB.year ? `<div class="t-year">${escapeHtml(movieB.year)}</div>` : ''}
+      <div class="rp-duel-ticket-title">${escapeHtml(movieB.title)}</div>
+      ${movieB.year ? `<div class="rp-duel-ticket-year">${escapeHtml(movieB.year)}</div>` : ''}
     `;
     tA.onclick = () => flashDuelPick(tA, () => resolveRpDuel(movieA));
     tB.onclick = () => flashDuelPick(tB, () => resolveRpDuel(movieB));
@@ -4032,12 +4065,13 @@
     const shortlistEl = el('rpShortlist');
     shortlistEl.innerHTML = `
       <div class="rp-loading">
-        <svg class="rp-loading-reel" width="36" height="36" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <circle cx="15" cy="15" r="13" stroke="#d4af37" stroke-width="2"/>
-          <circle cx="15" cy="4" r="3.4" fill="#d4af37"/>
-          <circle cx="26" cy="15" r="3.4" fill="#d4af37"/>
-          <circle cx="15" cy="26" r="3.4" fill="#d4af37"/>
-          <circle cx="4" cy="15" r="3.4" fill="#d4af37"/>
+        <svg class="rp-loading-reel" width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" stroke="#d4af37" stroke-width="4"/>
+          <circle cx="50" cy="50" r="9" fill="#d4af37"/>
+          <circle cx="50" cy="19" r="9" fill="#d4af37"/>
+          <circle cx="81" cy="50" r="9" fill="#d4af37"/>
+          <circle cx="50" cy="81" r="9" fill="#d4af37"/>
+          <circle cx="19" cy="50" r="9" fill="#d4af37"/>
         </svg>
         <p>Just a moment! Finding something you'll like...</p>
       </div>
@@ -4085,7 +4119,7 @@
     try{
       const detailRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${encodeURIComponent(TMDB_KEY)}&append_to_response=keywords`);
       const detail = await detailRes.json();
-      const keywordIds = ((detail.keywords && detail.keywords.keywords) || []).slice(0, 6).map(k => k.id);
+      const keywordIds = ((detail.keywords && detail.keywords.keywords) || []).slice(0, 12).map(k => k.id);
       const genreIds = (detail.genres || []).map(g => g.id);
       if(keywordIds.length < 2) return []; // too few keywords to ever require overlap — caller falls back to /similar
 
@@ -4173,7 +4207,7 @@
     // Resolve a buffer beyond the 8 needed, then sort by score so a
     // Great-tier candidate always surfaces ahead of a merely-Good one.
     const resolved = [];
-    while(resolved.length < 12){
+    while(resolved.length < 20){
       if(row.remainingQueue.length === 0){
         // Out of candidates from the current page — pull a fresh page
         // instead of just stopping, so "Refresh" has somewhere new to go
