@@ -1709,7 +1709,7 @@
 
     <div class="explainer-label intro-reveal-rest" style="margin-top:24px;display:flex;align-items:center;gap:8px;">
       ReelPicker
-      <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick a handful of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, duel them down to your favorites, and we'll suggest something similar you haven't seen yet — backed by real ReelVotes, not a random guess.<br><br>Needs at least 8 movies rated Good or better to unlock." aria-label="What is ReelPicker">?</button>
+      <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick 4 of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, and we'll suggest something similar you haven't seen yet — backed by real ReelVotes, not a random guess.<br><br>Needs at least 10 movies rated Good or better to unlock." aria-label="What is ReelPicker">?</button>
     </div>
     <div id="reelPickerTracker" class="reelpicker-tracker"></div>
 
@@ -1883,8 +1883,8 @@
   <!-- REELPICKER PAGE -->
   <div id="page-reelpicker" style="display:none;">
     <div id="rpStep1" class="rp-step" style="padding-bottom:110px;">
-      <h2 class="rp-step-heading">Pick a few movies with tonight's vibe</h2>
-      <p class="panel-sub" style="text-align:center;">Pick exactly 4 of your own rated movies — whatever matches the mood.<br>Hit continue and we'll take it from there.</p>
+      <h2 class="rp-step-heading">Pick 4 movies with tonight's vibe</h2>
+      <p class="panel-sub" style="text-align:center;">Hit continue and we'll take it from there.</p>
       <div id="rpLibraryGrid" class="rp-library-grid"></div>
     </div>
     <div class="rp-step1-actionbar" id="rpStep1ActionBar">
@@ -3456,7 +3456,7 @@
     }
   }
 
-  const REELPICKER_REQUIRED = 8;
+  const REELPICKER_REQUIRED = 10;
   let rpSessionActive = false;
 
   function renderReelPickerTracker(){
