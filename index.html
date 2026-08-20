@@ -447,6 +447,11 @@
   @media (min-width:1000px){
     .poster-grid{grid-template-columns:repeat(6, 1fr);max-width:900px;}
   }
+  @media (max-width:999px){
+    /* 8 posters on mobile (4 cols x 2 rows), matching the ReelPicker
+       tracker's own 8-slot symmetry — desktop keeps the full 12. */
+    .poster-grid > *:nth-child(n+9){display:none;}
+  }
   .reelpicker-tracker{
     display:grid;
     grid-template-columns:repeat(4, 1fr);
@@ -503,6 +508,23 @@
   @media (max-width:400px){
     .rp-step-heading{font-size:0.98rem;}
   }
+  .rp-selection-preview{
+    display:flex;justify-content:center;gap:16px;
+    max-width:360px;margin:20px auto 8px;
+  }
+  .rp-preview-slot{
+    flex:0 0 auto;width:88px;aspect-ratio:2/3;border-radius:6px;overflow:hidden;
+    background:var(--surface);
+  }
+  .rp-preview-slot img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05);display:block;}
+  .rp-preview-slot.rp-empty{
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,0.06), transparent 55%),
+      radial-gradient(circle at 70% 70%, rgba(255,255,255,0.05), transparent 60%),
+      var(--surface);
+    filter:blur(3px);
+    opacity:0.5;
+  }
   .rp-library-grid{
     display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;
     margin-top:20px;
@@ -535,14 +557,8 @@
     font-weight:700;font-size:0.95rem;color:var(--white);
     margin-bottom:10px;
   }
-  .rp-row-refresh{
-    background:none;border:none;color:var(--muted);
-    font-size:0.75rem;text-decoration:underline;cursor:pointer;padding:0;
-  }
-  .rp-row-refresh:hover{color:var(--text);}
   .rp-suggestion-row-posters{
-    display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;
-    scrollbar-width:thin;overscroll-behavior-x:contain;
+    display:flex;gap:12px;justify-content:center;
   }
   .rp-suggestion-tile{flex:0 0 auto;width:112px;cursor:pointer;}
   .rp-suggestion-tile img{
@@ -553,12 +569,8 @@
     -webkit-user-select:none;user-select:none;
   }
   @media (max-width:480px){
-    .rp-suggestion-tile{width:86px;}
-    .rp-suggestion-tile img{width:86px;height:124px;}
-  }
-  .rp-suggestion-scroll-hint{
-    flex:0 0 auto;width:32px;display:flex;align-items:center;justify-content:center;
-    color:#d4af37;opacity:0.7;
+    .rp-suggestion-tile{width:96px;}
+    .rp-suggestion-tile img{width:96px;height:138px;}
   }
   .rp-suggestion-tile:hover img{border-color:#d4af37;}
   .rp-suggestion-tile-title{
@@ -569,59 +581,24 @@
     display:flex;align-items:center;gap:4px;margin-top:2px;
     font-size:0.72rem;font-weight:700;
   }
+  .rp-wildcard-row{margin-top:32px;}
+  .rp-wildcard-tile{
+    display:flex;align-items:center;gap:16px;cursor:pointer;
+    max-width:360px;margin:0 auto;
+    background:var(--surface);border:1px solid #d4af37;border-radius:8px;
+    box-shadow:0 0 10px rgba(212,175,55,0.3);
+    padding:14px;
+  }
+  .rp-wildcard-tile img{
+    width:80px;height:114px;object-fit:cover;border-radius:5px;flex-shrink:0;
+    filter:grayscale(1) contrast(1.05);
+    -webkit-touch-callout:none;-webkit-user-drag:none;user-drag:none;
+    -webkit-user-select:none;user-select:none;
+  }
+  .rp-wildcard-title{font-size:1rem;font-weight:700;color:var(--white);}
   .rp-loading{text-align:center;color:var(--muted);margin:40px auto;font-style:italic;}
   .rp-loading-reel{animation:rpReelSpin 1.4s linear infinite;margin-bottom:10px;}
   @keyframes rpReelSpin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-  #rpStep2{padding-left:10px;padding-right:10px;}
-  .rp-duel-wrap{
-    max-width:440px;margin:0 auto;
-    padding:18px 14px;
-    border:1px solid #d4af37;border-radius:8px;
-    box-shadow:0 0 10px rgba(212,175,55,0.4);
-    background:var(--surface);
-    text-align:center;
-  }
-  .rp-duel-eyebrow{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
-    color:var(--muted);margin-bottom:4px;
-  }
-  .rp-duel-title{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-size:1.25rem;font-weight:800;color:var(--white);
-    margin:2px 0 8px;white-space:nowrap;
-  }
-  .rp-duel-subtitle{
-    color:#c9852c;font-style:italic;font-weight:600;
-    font-size:0.8rem;line-height:1.4;margin:0 0 4px;white-space:nowrap;
-  }
-  .rp-duel-progress{
-    color:#c9852c;font-style:italic;font-weight:600;
-    font-size:0.78rem;margin:0 0 14px;
-  }
-  .rp-duel-pair{display:flex;flex-direction:column;gap:10px;align-items:center;}
-  .rp-duel-ticket{
-    width:100%;max-width:260px;
-    background:var(--card);color:var(--ink);
-    border-radius:6px;border:2px solid transparent;
-    cursor:pointer;padding:10px;text-align:center;
-  }
-  .rp-duel-ticket:active{transform:scale(0.97);}
-  .rp-duel-ticket img{
-    width:100%;height:84px;object-fit:cover;border-radius:3px;
-    filter:grayscale(1) contrast(1.05);display:block;
-  }
-  .rp-duel-ticket-title{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-weight:700;font-size:0.9rem;line-height:1.2;margin-top:6px;
-  }
-  .rp-duel-ticket-year{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-size:0.72rem;color:#555;margin-top:2px;
-  }
-  .rp-duel-or{font-style:italic;font-weight:800;color:#d4af37;font-size:1.1rem;margin:2px 0;}
-  .rp-duel-reseed{margin-top:14px;}
-  .rp-duel-reseed #rpReseedBtn{display:inline-block;}
   .home-footer-links{
     text-align:center;margin:0 0 32px;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1883,30 +1860,18 @@
   <!-- REELPICKER PAGE -->
   <div id="page-reelpicker" style="display:none;">
     <div id="rpStep1" class="rp-step" style="padding-bottom:110px;">
-      <h2 class="rp-step-heading">Pick 4 movies with tonight's vibe</h2>
+      <h2 class="rp-step-heading">Pick 3 movies with tonight's vibe</h2>
       <p class="panel-sub" style="text-align:center;">Hit continue and we'll take it from there.</p>
+      <div id="rpSelectionPreview" class="rp-selection-preview">
+        <div class="rp-preview-slot rp-empty"></div>
+        <div class="rp-preview-slot rp-empty"></div>
+        <div class="rp-preview-slot rp-empty"></div>
+      </div>
       <div id="rpLibraryGrid" class="rp-library-grid"></div>
     </div>
     <div class="rp-step1-actionbar" id="rpStep1ActionBar">
       <button class="btn btn-ghost" id="rpRefreshBtn" type="button" style="display:none;">Refresh unselected</button>
       <button class="btn btn-primary" id="rpStep1Continue" disabled>Continue</button>
-    </div>
-
-    <div id="rpStep2" class="rp-step" style="display:none;">
-      <div class="rp-duel-wrap">
-        <div class="rp-duel-eyebrow">ReelPicker</div>
-        <h3 class="rp-duel-title">Which one, tonight?</h3>
-        <p class="rp-duel-subtitle">Pick whichever fits tonight's mood.</p>
-        <p id="rpStep2Progress" class="rp-duel-progress"></p>
-        <div class="rp-duel-pair">
-          <button class="rp-duel-ticket" id="rpTicketA"></button>
-          <div class="rp-duel-or">or</div>
-          <button class="rp-duel-ticket" id="rpTicketB"></button>
-        </div>
-        <div class="rp-duel-reseed">
-          <button class="duel-skip" id="rpReseedBtn" type="button">Don't love this matchup? Reseed</button>
-        </div>
-      </div>
     </div>
 
     <div id="rpStep3" class="rp-step" style="display:none;">
@@ -2271,7 +2236,6 @@
           rpSessionActive = true;
           el('rpStep1').style.display = 'block';
           el('rpStep1ActionBar').style.display = 'flex';
-          el('rpStep2').style.display = 'none';
           el('rpStep3').style.display = 'none';
           renderRpLibrary();
         }
@@ -3456,7 +3420,7 @@
     }
   }
 
-  const REELPICKER_REQUIRED = 10;
+  const REELPICKER_REQUIRED = 8;
   let rpSessionActive = false;
 
   function renderReelPickerTracker(){
@@ -3923,6 +3887,7 @@
     const shuffled = [...rpFullLibrary].sort(() => Math.random() - 0.5);
     rpShownIds = shuffled.slice(0, RP_PAGE_SIZE).map(m => m.id);
     el('rpStep1Continue').disabled = true;
+    renderRpSelectionPreview();
     renderRpGrid();
   }
 
@@ -3956,7 +3921,7 @@
       tile.classList.remove('rp-selected');
       tile.removeAttribute('data-rp-order');
     } else {
-      if(rpSelected.length >= 4) return;
+      if(rpSelected.length >= 3) return;
       rpSelected.push(id);
       tile.classList.add('rp-selected');
     }
@@ -3967,11 +3932,27 @@
       if(order > -1) t.dataset.rpOrder = order + 1;
     });
     updateRpTileStates();
-    el('rpStep1Continue').disabled = rpSelected.length !== 4;
+    renderRpSelectionPreview();
+    el('rpStep1Continue').disabled = rpSelected.length !== 3;
+  }
+
+  function renderRpSelectionPreview(){
+    const slots = document.querySelectorAll('#rpSelectionPreview .rp-preview-slot');
+    slots.forEach((slot, i) => {
+      const id = rpSelected[i];
+      const movie = id ? rpFullLibrary.find(m => m.id === id) : null;
+      if(movie){
+        slot.classList.remove('rp-empty');
+        slot.innerHTML = `<img src="${escapeHtml(movie.poster||'')}" alt="">`;
+      } else {
+        slot.classList.add('rp-empty');
+        slot.innerHTML = '';
+      }
+    });
   }
 
   function updateRpTileStates(){
-    const atCap = rpSelected.length >= 4;
+    const atCap = rpSelected.length >= 3;
     document.querySelectorAll('.rp-library-tile').forEach(t => {
       t.classList.toggle('rp-disabled', atCap && !t.classList.contains('rp-selected'));
     });
@@ -3992,99 +3973,19 @@
     renderRpGrid();
   });
 
+  let rpPool = [];
+
   el('rpStep1Continue').addEventListener('click', () => {
-    const rpPoolMovies = rpSelected.map(id => movies.find(m => m.id === id)).filter(Boolean);
-    rpPool = rpPoolMovies;
+    rpPool = rpSelected.map(id => movies.find(m => m.id === id)).filter(Boolean);
     el('rpStep1').style.display = 'none';
     el('rpStep1ActionBar').style.display = 'none';
     window.scrollTo(0, 0);
-    if(rpPool.length <= 2){
-      showRpStep3();
-    } else {
-      el('rpStep2').style.display = 'block';
-      setUpRpDuelQueue();
-      runRpDuelRound();
-    }
+    showRpStep3();
   });
-
-  el('rpReseedBtn').addEventListener('click', () => {
-    // Reseeding should only reshuffle whichever movies haven't fought yet —
-    // it must never discard duels already decided (rpWinners/rpByes stay
-    // exactly as they are), or "don't love this matchup" would wipe out
-    // real progress instead of just changing the current pairing.
-    const stillUndecided = rpDuelQueue.flat();
-    if(stillUndecided.length >= 2){
-      const sorted = [...stillUndecided].sort((a, b) => (b.score||5) - (a.score||5));
-      const pairCount = Math.floor(sorted.length / 2);
-      const topHalf = sorted.slice(0, pairCount);
-      const bottomHalf = sorted.slice(sorted.length - pairCount).sort(() => Math.random() - 0.5);
-      const leftover = sorted.slice(pairCount, sorted.length - pairCount);
-      rpByes.push(...leftover); // only happens with an odd undecided count
-      rpDuelQueue = topHalf.map((m, i) => [m, bottomHalf[i]]);
-    }
-    runRpDuelRound();
-  });
-
-  let rpPool = [];
-  let rpDuelQueue = [];   // pairs still to fight, seeded strongest-vs-weakest
-  let rpByes = [];        // movies that skip the duel round entirely
-  let rpWinners = [];
-
-  // Seeds duels by score instead of pairing at random — strongest vs
-  // weakest, 2nd-strongest vs 2nd-weakest, etc. This means your top picks
-  // are matched against your weakest ones first, so two genuine favorites
-  // can never accidentally knock each other out in round one. The people
-  // in the genuinely uncertain middle of the pack are what the duel
-  // actually needs to settle.
-  function setUpRpDuelQueue(){
-    const sorted = [...rpPool].sort((a, b) => (b.score||5) - (a.score||5));
-    const duelsNeeded = sorted.length - 2;
-    const byeCount = sorted.length - (duelsNeeded * 2);
-    rpByes = sorted.slice(duelsNeeded, duelsNeeded + byeCount);
-    const topHalf = sorted.slice(0, duelsNeeded);
-    // The bottom (weaker) half is shuffled before pairing — a strong pick
-    // never faces another strong pick either way, but which specific weak
-    // pick it's matched against varies each time, so "Reseed" actually
-    // produces a different bracket rather than repeating the same one.
-    const bottomHalf = sorted.slice(duelsNeeded + byeCount).sort(() => Math.random() - 0.5);
-    rpDuelQueue = topHalf.map((m, i) => [m, bottomHalf[i]]);
-    rpWinners = [];
-  }
-
-  function runRpDuelRound(){
-    if(rpDuelQueue.length === 0){
-      rpPool = [...rpByes, ...rpWinners];
-      el('rpStep2').style.display = 'none';
-      window.scrollTo(0, 0);
-      showRpStep3();
-      return;
-    }
-    const remaining = rpDuelQueue.length;
-    el('rpStep2Progress').textContent = `${remaining} more comparison${remaining === 1 ? '' : 's'} to narrow it down`;
-    const [movieA, movieB] = rpDuelQueue[0];
-    const tA = el('rpTicketA'), tB = el('rpTicketB');
-    tA.innerHTML = `
-      ${movieA.poster ? `<img src="${escapeHtml(movieA.poster)}" alt="">` : ''}
-      <div class="rp-duel-ticket-title">${escapeHtml(movieA.title)}</div>
-      ${movieA.year ? `<div class="rp-duel-ticket-year">${escapeHtml(movieA.year)}</div>` : ''}
-    `;
-    tB.innerHTML = `
-      ${movieB.poster ? `<img src="${escapeHtml(movieB.poster)}" alt="">` : ''}
-      <div class="rp-duel-ticket-title">${escapeHtml(movieB.title)}</div>
-      ${movieB.year ? `<div class="rp-duel-ticket-year">${escapeHtml(movieB.year)}</div>` : ''}
-    `;
-    tA.onclick = () => flashDuelPick(tA, () => resolveRpDuel(movieA));
-    tB.onclick = () => flashDuelPick(tB, () => resolveRpDuel(movieB));
-  }
-
-  function resolveRpDuel(winner){
-    rpDuelQueue.shift();
-    rpWinners.push(winner);
-    runRpDuelRound();
-  }
 
   let rpFinalistA = null;
   let rpFinalistB = null;
+  let rpFinalistC = null;
 
   async function showRpStep3(){
     el('rpStep3').style.display = 'block';
@@ -4105,6 +4006,7 @@
 
     rpFinalistA = rpPool[0];
     rpFinalistB = rpPool[1];
+    rpFinalistC = rpPool[2];
     const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
 
     let aiResult;
@@ -4112,7 +4014,8 @@
       const { data, error } = await supabaseClient.functions.invoke('Reelpicker', {
         body: {
           finalistA: { title: rpFinalistA.title, year: rpFinalistA.year, genre: rpFinalistA.genre },
-          finalistB: { title: rpFinalistB.title, year: rpFinalistB.year, genre: rpFinalistB.genre }
+          finalistB: { title: rpFinalistB.title, year: rpFinalistB.year, genre: rpFinalistB.genre },
+          finalistC: { title: rpFinalistC.title, year: rpFinalistC.year, genre: rpFinalistC.genre }
         }
       });
       if(error) throw error;
@@ -4131,43 +4034,56 @@
     // pipeline every other movie on the site goes through, and required to
     // score Good or better. Anything that doesn't resolve to a real,
     // matching title, or that scores below that bar, is silently dropped —
-    // nothing unverified ever reaches the screen.
-    async function verifyList(rawList, fallbackGenre){
+    // nothing unverified ever reaches the screen. claimedTitles/claimedIds
+    // are shared across every list (checked and reserved synchronously,
+    // before the async resolution call) so the same movie can never
+    // appear twice across different rows or as both a row pick and the
+    // wildcard.
+    const claimedTitles = new Set();
+    const claimedIds = new Set();
+    const finalistTitles = new Set([rpFinalistA, rpFinalistB, rpFinalistC].map(f => f.title.trim().toLowerCase()));
+
+    async function verifyList(rawList, fallbackGenre, cap){
       const resolved = [];
       for(const c of (rawList || [])){
         if(!c || !c.title) continue;
         const titleLower = c.title.trim().toLowerCase();
-        if(titleLower === rpFinalistA.title.trim().toLowerCase()) continue;
-        if(titleLower === rpFinalistB.title.trim().toLowerCase()) continue;
+        if(finalistTitles.has(titleLower)) continue;
         if(myRatedTitles.has(titleLower)) continue;
+        if(claimedTitles.has(titleLower)) continue;
+        claimedTitles.add(titleLower);
         const existing = movies.find(m => m.title.toLowerCase() === titleLower);
         const movie = existing || await getOrCreateMovieByTitle(c.title, fallbackGenre, c.year);
-        if(!movie || resolved.some(r => r.id === movie.id)) continue;
+        if(!movie || claimedIds.has(movie.id)) continue;
         if(scoreToTier(movie.score) !== 'Good' && scoreToTier(movie.score) !== 'Great') continue;
+        claimedIds.add(movie.id);
         resolved.push(movie);
+        if(resolved.length >= cap) break;
       }
       resolved.sort((a, b) => (b.score||5) - (a.score||5));
-      return resolved.slice(0, 8);
+      return resolved;
     }
 
-    const [similarToA, similarToB, wildcard] = await Promise.all([
-      verifyList(aiResult.similarToA, rpFinalistA.genre),
-      verifyList(aiResult.similarToB, rpFinalistB.genre),
-      verifyList(aiResult.wildcard, rpFinalistA.genre)
+    const [similarToA, similarToB, similarToC, wildcardList] = await Promise.all([
+      verifyList(aiResult.similarToA, rpFinalistA.genre, 3),
+      verifyList(aiResult.similarToB, rpFinalistB.genre, 3),
+      verifyList(aiResult.similarToC, rpFinalistC.genre, 3),
+      verifyList(aiResult.wildcard, rpFinalistA.genre, 1)
     ]);
 
     const rows = [
       { heading: `Films like ${rpFinalistA.title}`, movies: similarToA },
       { heading: `Films like ${rpFinalistB.title}`, movies: similarToB },
-      { heading: `The Wildcard — a blend of ${rpFinalistA.title} & ${rpFinalistB.title}`, movies: wildcard }
+      { heading: `Films like ${rpFinalistC.title}`, movies: similarToC }
     ].filter(row => row.movies.length > 0);
+    const wildcard = wildcardList[0] || null;
 
-    if(rows.length === 0){
+    if(rows.length === 0 && !wildcard){
       shortlistEl.innerHTML = `<p class="rp-loading">Nothing Good-or-better turned up from these picks — try a different combination.</p>`;
       return;
     }
 
-    shortlistEl.innerHTML = rows.map(row => `
+    const rowsHtml = rows.map(row => `
       <div class="rp-suggestion-row">
         <div class="rp-suggestion-row-heading">
           <span>${escapeHtml(row.heading)}</span>
@@ -4180,16 +4096,28 @@
               <div class="rp-suggestion-tile-score" style="color:${TIER_VISUAL[scoreToTier(m.score)].color};">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
             </div>
           `).join('')}
-          ${row.movies.length > 2 ? `
-            <div class="rp-suggestion-scroll-hint" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-            </div>
-          ` : ''}
         </div>
       </div>
     `).join('');
 
-    shortlistEl.querySelectorAll('.rp-suggestion-tile').forEach(tile => {
+    const wildcardHtml = wildcard ? `
+      <div class="rp-wildcard-row">
+        <div class="rp-suggestion-row-heading">
+          <span>The Wildcard — a blend of ${escapeHtml(rpFinalistA.title)}, ${escapeHtml(rpFinalistB.title)} & ${escapeHtml(rpFinalistC.title)}</span>
+        </div>
+        <div class="rp-wildcard-tile" data-id="${wildcard.id}">
+          <img src="${escapeHtml(wildcard.poster||'')}" alt="">
+          <div>
+            <div class="rp-wildcard-title">${escapeHtml(wildcard.title)}</div>
+            <div class="rp-suggestion-tile-score" style="color:${TIER_VISUAL[scoreToTier(wildcard.score)].color};">${tierIcon(scoreToTier(wildcard.score))}<span>${(wildcard.score||5).toFixed(1)}</span></div>
+          </div>
+        </div>
+      </div>
+    ` : '';
+
+    shortlistEl.innerHTML = rowsHtml + wildcardHtml;
+
+    shortlistEl.querySelectorAll('.rp-suggestion-tile, .rp-wildcard-tile').forEach(tile => {
       tile.addEventListener('click', () => navigateTo(tile.dataset.id));
     });
   }
