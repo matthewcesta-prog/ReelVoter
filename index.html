@@ -494,7 +494,7 @@
   .rp-step1-actionbar{
     position:fixed;left:0;right:0;bottom:0;
     display:flex;gap:10px;justify-content:center;align-items:center;
-    padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+    padding:8px 20px calc(8px + env(safe-area-inset-bottom));
     background:var(--bg);border-top:1px solid var(--line);
     z-index:38;
   }
@@ -503,17 +503,17 @@
   }
   .rp-step-heading{
     text-align:center;font-size:1.15rem;font-weight:800;
-    margin:0 0 8px;color:var(--white);white-space:nowrap;
+    margin:0 0 4px;color:var(--white);white-space:nowrap;
   }
   @media (max-width:400px){
     .rp-step-heading{font-size:0.98rem;}
   }
   .rp-selection-preview{
-    display:flex;justify-content:center;gap:16px;
-    max-width:360px;margin:20px auto 8px;
+    display:flex;justify-content:center;gap:12px;
+    max-width:280px;margin:12px auto 6px;
   }
   .rp-preview-slot{
-    flex:0 0 auto;width:88px;aspect-ratio:2/3;border-radius:6px;overflow:hidden;
+    flex:0 0 auto;width:64px;aspect-ratio:2/3;border-radius:6px;overflow:hidden;
     background:var(--surface);
     border:2px solid transparent;
   }
@@ -528,8 +528,8 @@
     opacity:0.5;
   }
   .rp-library-grid{
-    display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;
-    margin-top:20px;
+    display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;
+    margin-top:10px;
   }
   .rp-library-tile{
     position:relative;cursor:pointer;border-radius:6px;overflow:hidden;
@@ -555,7 +555,7 @@
   .rp-library-tile.rp-disabled{opacity:0.35;cursor:not-allowed;}
   .rp-shortlist{display:flex;flex-direction:column;gap:18px;margin-top:16px;}
   .rp-suggestion-row-heading{
-    display:flex;align-items:center;justify-content:space-between;
+    text-align:center;
     font-weight:700;font-size:0.9rem;color:var(--white);
     margin-bottom:6px;
   }
@@ -586,13 +586,21 @@
     display:flex;align-items:center;gap:4px;margin-top:1px;
     font-size:0.68rem;font-weight:700;
   }
-  .rp-wildcard-row{margin-top:20px;}
+  .rp-wildcard-row{margin-top:20px;text-align:center;}
+  .rp-wildcard-heading{
+    font-weight:800;font-size:0.85rem;letter-spacing:0.08em;
+    color:#d4af37;margin-bottom:2px;
+  }
+  .rp-wildcard-subheading{
+    font-size:0.78rem;color:var(--muted);margin:0 0 10px;font-style:italic;
+  }
   .rp-wildcard-tile{
     display:flex;align-items:center;gap:12px;cursor:pointer;
     max-width:340px;margin:0 auto;
     background:var(--surface);border:1px solid #d4af37;border-radius:8px;
     box-shadow:0 0 10px rgba(212,175,55,0.3);
     padding:10px;
+    text-align:left;
   }
   .rp-wildcard-tile img{
     width:64px;height:92px;object-fit:cover;border-radius:5px;flex-shrink:0;
@@ -1864,7 +1872,7 @@
 
   <!-- REELPICKER PAGE -->
   <div id="page-reelpicker" style="display:none;">
-    <div id="rpStep1" class="rp-step" style="padding-bottom:110px;">
+    <div id="rpStep1" class="rp-step" style="margin-top:14px;padding-bottom:90px;">
       <h2 class="rp-step-heading">Pick 3 movies with tonight's vibe</h2>
       <p class="panel-sub" style="text-align:center;">Hit continue and we'll take it from there.</p>
       <div id="rpSelectionPreview" class="rp-selection-preview">
@@ -4114,9 +4122,8 @@
 
     const wildcardHtml = wildcard ? `
       <div class="rp-wildcard-row">
-        <div class="rp-suggestion-row-heading">
-          <span>The Wildcard — a blend of ${escapeHtml(rpFinalistA.title)}, ${escapeHtml(rpFinalistB.title)} & ${escapeHtml(rpFinalistC.title)}</span>
-        </div>
+        <div class="rp-wildcard-heading">THE WILDCARD</div>
+        <p class="rp-wildcard-subheading">A blend of the above 3 movies</p>
         <div class="rp-wildcard-tile" data-id="${wildcard.id}">
           <img src="${escapeHtml(wildcard.poster||'')}" alt="">
           <div>
