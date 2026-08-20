@@ -663,16 +663,11 @@
   }
   .detail-title-under{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
-    font-weight:800;font-size:1.2rem;color:var(--white);
+    font-weight:800;font-size:1.2rem;line-height:1.25;color:var(--white);
     margin-top:14px;text-align:center;
     max-width:100%;
     word-wrap:break-word;
     overflow-wrap:break-word;
-    display:-webkit-box;
-    -webkit-line-clamp:3;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
-    text-overflow:ellipsis;
   }
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
   .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
@@ -1708,7 +1703,7 @@
 
     <div class="explainer-label intro-reveal-rest" style="margin-top:24px;display:flex;align-items:center;gap:8px;">
       ReelPicker
-      <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick 3 of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, and we'll do the hard part: finding you something actually worth watching. Real ReelVotes plus AI — no random guessing, no doom-scrolling.<br><br>Rate at least 8 movies Good or Great to unlock this feature." aria-label="What is ReelPicker">?</button>
+      <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick 3 of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, and we'll do the hard part: finding you something actually worth watching. ReelVotes + AI — no random guessing, no doom-scrolling.<br><br>Rate at least 8 movies Good or Great to unlock this feature." aria-label="What is ReelPicker">?</button>
     </div>
     <div id="reelPickerTracker" class="reelpicker-tracker"></div>
 
@@ -1721,7 +1716,7 @@
 
   <div class="modal-overlay" id="whyPopupModal" style="display:none;">
     <div class="modal" style="text-align:center;max-width:340px;">
-      <h3 id="whyPopupTitle"></h3>
+      <h3 id="whyPopupTitle" style="white-space:nowrap;"></h3>
       <p class="panel-sub" id="whyPopupText"></p>
       <button class="btn btn-primary" id="whyPopupCloseBtn" style="margin-top:14px;">Got it</button>
     </div>
@@ -2986,6 +2981,25 @@
   const TIER_SUBTITLE = { Bad: 'Skip it.', OK: 'Take it or leave it.', Good: 'Worth a watch.', Great: 'The Reel Deal.' };
   const TIER_ORDER_DESC = ['Great', 'Good', 'OK', 'Bad'];
 
+  // Titles vary wildly in length, so a fixed font-size either wastes space
+  // on short ones or overflows on long ones. Start at the normal size and
+  // step down until the title + year fits within 2 lines, rather than
+  // truncating — the whole point is seeing the full title, just smaller
+  // when it needs to be.
+  function fitDetailTitle(){
+    const titleEl = document.querySelector('.detail-title-under');
+    if(!titleEl) return;
+    const maxLines = 2;
+    let size = 1.2;
+    const minSize = 0.68;
+    titleEl.style.fontSize = size + 'rem';
+    const lineHeightPx = () => parseFloat(getComputedStyle(titleEl).lineHeight);
+    while(titleEl.scrollHeight > (lineHeightPx() * maxLines + 1) && size > minSize){
+      size -= 0.04;
+      titleEl.style.fontSize = size + 'rem';
+    }
+  }
+
   async function openMovieDetail(movie){
     if(!movie) return;
     const modal = el('movieDetailModal');
@@ -3075,6 +3089,7 @@
     modal.style.display = 'block';
     el('closeDetailBtn').style.display = 'inline-block';
     window.scrollTo(0,0);
+    fitDetailTitle();
 
     renderTierCounts(movie.id);
     renderMovieRecommendations(movie);
