@@ -1884,7 +1884,7 @@
   <div id="page-reelpicker" style="display:none;">
     <div id="rpStep1" class="rp-step" style="padding-bottom:110px;">
       <h2 class="rp-step-heading">Pick a few movies with tonight's vibe</h2>
-      <p class="panel-sub" style="text-align:center;">Choose up to 8 of your own rated movies — whatever matches the mood.<br>Hit continue and we'll take it from there.</p>
+      <p class="panel-sub" style="text-align:center;">Pick exactly 4 of your own rated movies — whatever matches the mood.<br>Hit continue and we'll take it from there.</p>
       <div id="rpLibraryGrid" class="rp-library-grid"></div>
     </div>
     <div class="rp-step1-actionbar" id="rpStep1ActionBar">
@@ -3956,7 +3956,7 @@
       tile.classList.remove('rp-selected');
       tile.removeAttribute('data-rp-order');
     } else {
-      if(rpSelected.length >= 8) return;
+      if(rpSelected.length >= 4) return;
       rpSelected.push(id);
       tile.classList.add('rp-selected');
     }
@@ -3967,11 +3967,11 @@
       if(order > -1) t.dataset.rpOrder = order + 1;
     });
     updateRpTileStates();
-    el('rpStep1Continue').disabled = rpSelected.length < 4;
+    el('rpStep1Continue').disabled = rpSelected.length !== 4;
   }
 
   function updateRpTileStates(){
-    const atCap = rpSelected.length >= 8;
+    const atCap = rpSelected.length >= 4;
     document.querySelectorAll('.rp-library-tile').forEach(t => {
       t.classList.toggle('rp-disabled', atCap && !t.classList.contains('rp-selected'));
     });
@@ -3998,7 +3998,7 @@
     el('rpStep1').style.display = 'none';
     el('rpStep1ActionBar').style.display = 'none';
     window.scrollTo(0, 0);
-    if(rpPool.length <= 4){
+    if(rpPool.length <= 2){
       showRpStep3();
     } else {
       el('rpStep2').style.display = 'block';
@@ -4038,7 +4038,7 @@
   // actually needs to settle.
   function setUpRpDuelQueue(){
     const sorted = [...rpPool].sort((a, b) => (b.score||5) - (a.score||5));
-    const duelsNeeded = sorted.length - 4;
+    const duelsNeeded = sorted.length - 2;
     const byeCount = sorted.length - (duelsNeeded * 2);
     rpByes = sorted.slice(duelsNeeded, duelsNeeded + byeCount);
     const topHalf = sorted.slice(0, duelsNeeded);
@@ -4083,8 +4083,8 @@
     runRpDuelRound();
   }
 
-  let rpFinalists = [];
-  let rpFinalistRows = [];
+  let rpFinalistA = null;
+  let rpFinalistB = null;
 
   async function showRpStep3(){
     el('rpStep3').style.display = 'block';
@@ -4103,43 +4103,106 @@
       </div>
     `;
 
-    const finalists = rpPool.slice(0, 4);
-    rpFinalists = finalists;
+    rpFinalistA = rpPool[0];
+    rpFinalistB = rpPool[1];
     const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
 
-    // Build each finalist's own row independently and in parallel — both
-    // for speed (four network round-trips at once instead of one after
-    // another), and because a per-finalist list is far more reliable than
-    // hunting for cross-finalist overlap, which could turn up anywhere
-    // from 0 to 4 results depending on luck. "Films like X" always gets
-    // its own dedicated row of up to 4, sourced from X specifically.
-    rpFinalistRows = await Promise.all(finalists.map(f => buildRpRow(f, myRatedTitles)));
-    renderRpShortlist();
+    let aiResult;
+    try{
+      const { data, error } = await supabaseClient.functions.invoke('Reelpicker', {
+        body: {
+          finalistA: { title: rpFinalistA.title, year: rpFinalistA.year, genre: rpFinalistA.genre },
+          finalistB: { title: rpFinalistB.title, year: rpFinalistB.year, genre: rpFinalistB.genre }
+        }
+      });
+      if(error) throw error;
+      if(data && data.error){
+        shortlistEl.innerHTML = `<p class="rp-loading">${data.error === 'Daily limit reached — try again tomorrow' ? "You've used up today's AI suggestions — try again tomorrow." : "Couldn't get suggestions this time — try again in a moment."}</p>`;
+        return;
+      }
+      aiResult = data;
+    }catch(e){
+      shortlistEl.innerHTML = `<p class="rp-loading">Couldn't reach the suggestion engine — try again in a moment.</p>`;
+      return;
+    }
+
+    // Every title Claude suggests gets verified against real movie data
+    // before it's ever shown — resolved (or created) via the same OMDb
+    // pipeline every other movie on the site goes through, and required to
+    // score Good or better. Anything that doesn't resolve to a real,
+    // matching title, or that scores below that bar, is silently dropped —
+    // nothing unverified ever reaches the screen.
+    async function verifyList(rawList, fallbackGenre){
+      const resolved = [];
+      for(const c of (rawList || [])){
+        if(!c || !c.title) continue;
+        const titleLower = c.title.trim().toLowerCase();
+        if(titleLower === rpFinalistA.title.trim().toLowerCase()) continue;
+        if(titleLower === rpFinalistB.title.trim().toLowerCase()) continue;
+        if(myRatedTitles.has(titleLower)) continue;
+        const existing = movies.find(m => m.title.toLowerCase() === titleLower);
+        const movie = existing || await getOrCreateMovieByTitle(c.title, fallbackGenre, c.year);
+        if(!movie || resolved.some(r => r.id === movie.id)) continue;
+        if(scoreToTier(movie.score) !== 'Good' && scoreToTier(movie.score) !== 'Great') continue;
+        resolved.push(movie);
+      }
+      resolved.sort((a, b) => (b.score||5) - (a.score||5));
+      return resolved.slice(0, 8);
+    }
+
+    const [similarToA, similarToB, wildcard] = await Promise.all([
+      verifyList(aiResult.similarToA, rpFinalistA.genre),
+      verifyList(aiResult.similarToB, rpFinalistB.genre),
+      verifyList(aiResult.wildcard, rpFinalistA.genre)
+    ]);
+
+    const rows = [
+      { heading: `Films like ${rpFinalistA.title}`, movies: similarToA },
+      { heading: `Films like ${rpFinalistB.title}`, movies: similarToB },
+      { heading: `The Wildcard — a blend of ${rpFinalistA.title} & ${rpFinalistB.title}`, movies: wildcard }
+    ].filter(row => row.movies.length > 0);
+
+    if(rows.length === 0){
+      shortlistEl.innerHTML = `<p class="rp-loading">Nothing Good-or-better turned up from these picks — try a different combination.</p>`;
+      return;
+    }
+
+    shortlistEl.innerHTML = rows.map(row => `
+      <div class="rp-suggestion-row">
+        <div class="rp-suggestion-row-heading">
+          <span>${escapeHtml(row.heading)}</span>
+        </div>
+        <div class="rp-suggestion-row-posters">
+          ${row.movies.map(m => `
+            <div class="rp-suggestion-tile" data-id="${m.id}">
+              <img src="${escapeHtml(m.poster||'')}" alt="">
+              <div class="rp-suggestion-tile-title">${escapeHtml(m.title)}</div>
+              <div class="rp-suggestion-tile-score" style="color:${TIER_VISUAL[scoreToTier(m.score)].color};">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
+            </div>
+          `).join('')}
+          ${row.movies.length > 2 ? `
+            <div class="rp-suggestion-scroll-hint" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    shortlistEl.querySelectorAll('.rp-suggestion-tile').forEach(tile => {
+      tile.addEventListener('click', () => navigateTo(tile.dataset.id));
+    });
   }
 
-  // A movie can have a decent score from a handful of voters and still be
-  // something almost nobody's heard of — filter TMDb's "similar" results
-  // for actually-recognized titles (same vote_count threshold used
-  // elsewhere in this feature), and require Good/Great once resolved,
-  // since the whole point is a confident pick, not a coin flip.
   // TMDb's /similar endpoint is collaborative-filtering based — "people who
   // watched X also watched Y" — which is closer to "commercially adjacent"
   // than "actually feels like the same movie." Keywords (real tags like
   // "heist," "grief," "small-town") plus genre give a candidate that
-  // genuinely shares thematic DNA with the finalist, not just audience
-  // overlap. /similar is kept only as a fallback if a finalist has no
-  // usable keywords.
-  // TMDb's /similar endpoint is collaborative-filtering based — "people who
-  // watched X also watched Y" — which is closer to "commercially adjacent"
-  // than "actually feels like the same movie." Keywords (real tags like
-  // "heist," "grief," "small-town") plus genre give a candidate that
-  // genuinely shares thematic DNA with the finalist. Critically, this uses
-  // the movie's own real TMDb genres, not this app's single genre field —
-  // that field is known to sometimes be tagged wrong, and using it here
-  // was very likely why something like The Notebook could show up under a
-  // horror finalist (a mistagged genre would silently corrupt the filter).
-  // Supports pagination so a "Refresh" can pull an actually-new page
-  // instead of quickly running out after the first fetch.
+  // genuinely shares thematic DNA. Critically, this uses the movie's own
+  // real TMDb genres, not this app's single genre field — that field is
+  // known to sometimes be tagged wrong. Still used by "If you liked" on
+  // the movie detail page; ReelPicker's own Step 3 now uses the LLM
+  // backend instead (see showRpStep3 above), not this function directly.
   async function fetchTmdbKeywordMatches(tmdbId, excludeTitle, page){
     if(!tmdbId || !TMDB_KEY) return [];
     try{
@@ -4182,155 +4245,6 @@
         .filter(c => c.count >= 2)
         .sort((a, b) => b.count - a.count);
     }catch(e){ return []; }
-  }
-
-  // TMDb's own separate /recommendations algorithm — a different signal
-  // than /similar — used here to widen the candidate pool, not replace the
-  // stricter keyword-overlap match. A title that shows up via keywords
-  // stays the primary, higher-confidence source; recommendations only fill
-  // in afterward, and only with titles the keyword pass didn't already find.
-  async function fetchTmdbRecommendations(tmdbId, excludeTitle, page){
-    if(!tmdbId || !TMDB_KEY) return [];
-    try{
-      const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/recommendations?api_key=${encodeURIComponent(TMDB_KEY)}&page=${page || 1}`);
-      const data = await r.json();
-      return (data.results || [])
-        .filter(item => item.title && item.title.trim().toLowerCase() !== excludeTitle && (item.vote_count || 0) >= 300)
-        .map(item => ({ title: item.title, year: (item.release_date || '').slice(0, 4) || null }));
-    }catch(e){ return []; }
-  }
-
-  async function buildRpRow(finalist, myRatedTitles){
-    if(!finalist.tmdb_id && finalist.imdb_id && TMDB_KEY){
-      const resolvedTmdb = await fetchTmdbMovieData(finalist.imdb_id);
-      if(resolvedTmdb && resolvedTmdb.tmdbId){
-        finalist.tmdb_id = resolvedTmdb.tmdbId;
-        const realMovie = movies.find(m => m.id === finalist.id);
-        if(realMovie) realMovie.tmdb_id = resolvedTmdb.tmdbId;
-      }
-    }
-
-    const excludeTitle = finalist.title.trim().toLowerCase();
-    let candidates = [];
-    let nextPage = 2; // page 1 already used for the initial fetch below
-    let usingKeywordSource = true;
-
-    if(finalist.tmdb_id && TMDB_KEY){
-      const [keywordMatches, recMatches] = await Promise.all([
-        fetchTmdbKeywordMatches(finalist.tmdb_id, excludeTitle, 1),
-        fetchTmdbRecommendations(finalist.tmdb_id, excludeTitle, 1)
-      ]);
-      const primary = keywordMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
-      const seenTitles = new Set(primary.map(c => c.title.toLowerCase()));
-      const supplementary = recMatches.filter(c => !myRatedTitles.has(c.title.toLowerCase()) && !seenTitles.has(c.title.toLowerCase()));
-      candidates = [...primary, ...supplementary];
-    }
-    if(candidates.length === 0 && finalist.tmdb_id && TMDB_KEY){
-      // No usable keyword or recommendation data — fall back to /similar.
-      usingKeywordSource = false;
-      try{
-        const r = await fetch(`https://api.themoviedb.org/3/movie/${finalist.tmdb_id}/similar?api_key=${encodeURIComponent(TMDB_KEY)}`);
-        const data = await r.json();
-        candidates = (data.results || [])
-          .filter(item => item.title && (item.vote_count || 0) >= 300)
-          .map(item => ({ title: item.title, year: (item.release_date || '').slice(0, 4) || null }))
-          .filter(c => !myRatedTitles.has(c.title.toLowerCase()));
-      }catch(e){ /* fall through to the genre fallback below */ }
-    }
-    if(candidates.length === 0){
-      usingKeywordSource = false;
-      const tmdbPool = await fetchTmdbGenrePool(finalist.genre);
-      candidates = tmdbPool.filter(c => !myRatedTitles.has(c.title.toLowerCase()));
-    }
-
-    const row = {
-      finalist, movies: [], remainingQueue: candidates,
-      myRatedTitles, nextPage, usingKeywordSource, exhausted: false
-    };
-    await fillRpRow(row);
-    return row;
-  }
-
-  async function fillRpRow(row){
-    // Resolve a buffer beyond the 8 needed, then sort by score so a
-    // Great-tier candidate always surfaces ahead of a merely-Good one.
-    const resolved = [];
-    while(resolved.length < 20){
-      if(row.remainingQueue.length === 0){
-        // Out of candidates from the current page — pull a fresh page
-        // instead of just stopping, so "Refresh" has somewhere new to go
-        // rather than running dry after one use.
-        if(!row.usingKeywordSource || !row.finalist.tmdb_id || row.nextPage > 5){
-          row.exhausted = true;
-          break;
-        }
-        const more = await fetchTmdbKeywordMatches(row.finalist.tmdb_id, row.finalist.title.trim().toLowerCase(), row.nextPage);
-        row.nextPage++;
-        const fresh = more.filter(c => !row.myRatedTitles.has(c.title.toLowerCase()));
-        if(fresh.length === 0){
-          if(row.nextPage > 5){ row.exhausted = true; break; }
-          continue;
-        }
-        row.remainingQueue.push(...fresh);
-      }
-      const c = row.remainingQueue.shift();
-      const existing = movies.find(m => m.title.toLowerCase() === c.title.toLowerCase());
-      const movie = existing || await getOrCreateMovieByTitle(c.title, row.finalist.genre, c.year);
-      if(!movie || movie.id === row.finalist.id || resolved.some(r => r.id === movie.id)) continue;
-      if(scoreToTier(movie.score) !== 'Good' && scoreToTier(movie.score) !== 'Great') continue;
-      resolved.push(movie);
-    }
-    resolved.sort((a, b) => (b.score||5) - (a.score||5));
-    row.movies = resolved.slice(0, 8);
-  }
-
-  function renderRpShortlist(){
-    const shortlistEl = el('rpShortlist');
-    const rowsWithResults = rpFinalistRows.filter(row => row.movies.length > 0);
-
-    if(rowsWithResults.length === 0){
-      shortlistEl.innerHTML = `<p class="rp-loading">Nothing Good-or-better turned up from these picks — try a different combination.</p>`;
-      return;
-    }
-
-    shortlistEl.innerHTML = rpFinalistRows.map((row, i) => {
-      if(row.movies.length === 0) return '';
-      return `
-        <div class="rp-suggestion-row">
-          <div class="rp-suggestion-row-heading">
-            <span>Films like ${escapeHtml(row.finalist.title)}</span>
-            ${!row.exhausted ? `<button type="button" class="rp-row-refresh" data-row="${i}">Refresh</button>` : ''}
-          </div>
-          <div class="rp-suggestion-row-posters">
-            ${row.movies.map(m => `
-              <div class="rp-suggestion-tile" data-id="${m.id}">
-                <img src="${escapeHtml(m.poster||'')}" alt="">
-                <div class="rp-suggestion-tile-title">${escapeHtml(m.title)}</div>
-                <div class="rp-suggestion-tile-score" style="color:${TIER_VISUAL[scoreToTier(m.score)].color};">${tierIcon(scoreToTier(m.score))}<span>${(m.score||5).toFixed(1)}</span></div>
-              </div>
-            `).join('')}
-            ${row.movies.length > 2 ? `
-              <div class="rp-suggestion-scroll-hint" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    shortlistEl.querySelectorAll('.rp-suggestion-tile').forEach(tile => {
-      tile.addEventListener('click', () => navigateTo(tile.dataset.id));
-    });
-    shortlistEl.querySelectorAll('.rp-row-refresh').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const row = rpFinalistRows[Number(btn.dataset.row)];
-        btn.disabled = true;
-        btn.textContent = '...';
-        await fillRpRow(row);
-        renderRpShortlist();
-      });
-    });
   }
 
   el('rpStartOver').addEventListener('click', () => {
