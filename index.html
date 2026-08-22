@@ -665,9 +665,8 @@
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
     font-weight:800;font-size:1.2rem;line-height:1.25;color:var(--white);
     margin-top:14px;text-align:center;
-    max-width:100%;
-    word-wrap:break-word;
-    overflow-wrap:break-word;
+    display:block;width:100%;
+    white-space:nowrap;overflow:hidden;
   }
   .detail-year-under{font-weight:500;color:var(--muted);font-size:1rem;}
   .detail-body{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:28px 24px 60px;}
@@ -802,11 +801,11 @@
   }
   .detail-center-col{
     display:flex;flex-direction:column;align-items:center;text-align:center;
-    min-width:220px;max-width:220px;order:2;
+    order:2;
   }
   .detail-poster-block{display:flex;flex-direction:column;align-items:center;}
   .detail-poster-big{
-    width:220px;border-radius:6px;
+    height:280px;width:auto;max-width:100%;border-radius:6px;
     box-shadow:0 12px 34px rgba(0,0,0,0.55);
     filter:grayscale(1) contrast(1.05);
     -webkit-touch-callout:none;
@@ -816,8 +815,21 @@
     user-select:none;
     touch-action:pan-y;
   }
+  .detail-title-row{
+    text-align:center;margin:16px auto 0;max-width:600px;
+  }
+  .detail-genre-vote-row{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    gap:16px;max-width:600px;margin:20px auto 0;
+  }
+  .detail-genre-field{flex:1 1 auto;}
+  .detail-vote-col{flex:0 0 auto;text-align:right;}
+  .detail-vote-col .detail-your-vote{border-top:none;margin-top:0;padding-top:0;opacity:1;}
+  .detail-vote-col .your-vote-row{justify-content:flex-end;}
+  .detail-vote-col .detail-rate-btn{align-self:flex-end;margin-top:0;}
+  .detail-vote-col .detail-update-link{align-self:flex-end;}
   .detail-info-col{
-    flex:0 1 320px;max-width:320px;min-width:240px;order:3;
+    flex:1 1 600px;max-width:600px;min-width:240px;order:3;margin:0 auto;
     display:flex;flex-direction:column;gap:18px;
   }
   .detail-field{font-size:0.92rem;line-height:1.6;color:var(--text);}
@@ -875,14 +887,14 @@
   .detail-rate-widget .detail-rate-btn{align-self:center;}
   @media (max-width:820px){
     .detail-layout{flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:16px;}
-    .detail-center-col{order:1;flex:0 0 auto;min-width:0;max-width:120px;}
+    .detail-center-col{order:1;flex:0 0 auto;min-width:0;}
     .detail-tier-scale{order:2;flex:1 1 140px;gap:12px;min-width:140px;max-width:none;width:auto;}
     #nextSuggestionWrap{order:3;}
     .detail-info-col{order:4;align-items:flex-start;max-width:none;width:100%;flex:1 1 100%;}
     .dts-label{font-size:1.05rem;}
     .dts-sub{font-size:0.6rem;}
     .dts-count{font-size:0.6rem;}
-    .detail-poster-big{width:120px;}
+    .detail-poster-big{height:180px;}
   }
   @media (max-width:480px){
     .detail-tier-scale{min-width:132px;gap:11px;}
@@ -893,7 +905,7 @@
     .dvr-label{font-size:0.6rem;}
     .yv-tier{font-size:0.95rem;}
     .yv-score{font-size:0.85rem;}
-    .detail-poster-big{width:120px;}
+    .detail-poster-big{height:170px;}
     .detail-rate-btn{padding:9px 16px;font-size:0.85rem;}
   }
 
@@ -2291,6 +2303,7 @@
   window.addEventListener('resize', updateTopNavClearance);
   window.addEventListener('load', updateTopNavClearance);
   updateTopNavClearance();
+  window.addEventListener('resize', syncDetailPosterHeight);
 
   function setAuthMode(mode){
     const isCreate = mode === 'create';
@@ -2983,22 +2996,32 @@
   const TIER_ORDER_DESC = ['Great', 'Good', 'OK', 'Bad'];
 
   // Titles vary wildly in length, so a fixed font-size either wastes space
-  // on short ones or overflows on long ones. Start at the normal size and
-  // step down until the title + year fits within 2 lines, rather than
-  // truncating — the whole point is seeing the full title, just smaller
-  // when it needs to be.
+  // on short ones or overflows on long ones. The title now has the full
+  // page width to itself and should never wrap — shrink the font instead,
+  // one line always, down to a legible floor.
   function fitDetailTitle(){
     const titleEl = document.querySelector('.detail-title-under');
     if(!titleEl) return;
-    const maxLines = 2;
     let size = 1.2;
-    const minSize = 0.68;
+    const minSize = 0.55;
     titleEl.style.fontSize = size + 'rem';
-    const lineHeightPx = () => parseFloat(getComputedStyle(titleEl).lineHeight);
-    while(titleEl.scrollHeight > (lineHeightPx() * maxLines + 1) && size > minSize){
-      size -= 0.04;
+    while(titleEl.scrollWidth > titleEl.clientWidth && size > minSize){
+      size -= 0.03;
       titleEl.style.fontSize = size + 'rem';
     }
+  }
+
+  // The poster's height should always match the ReelVote tier column
+  // exactly (top of "ReelVote" to the bottom of the last tier row) rather
+  // than an arbitrary fixed size — measure the actual rendered column and
+  // apply it directly, since that's the only reliable way to keep them in
+  // sync across every screen size and every tier-label line-wrap.
+  function syncDetailPosterHeight(){
+    const tierScale = document.getElementById('detailTierScale');
+    const posterImg = document.getElementById('detailPosterImg');
+    if(!tierScale || !posterImg) return;
+    const h = tierScale.getBoundingClientRect().height;
+    if(h > 0) posterImg.style.height = h + 'px';
   }
 
   async function openMovieDetail(movie){
@@ -3017,7 +3040,7 @@
       <div class="detail-hero-fullbg" style="background-image:url('${escapeHtml(movie.poster||'')}')"></div>
       <div class="detail-body">
         <div class="detail-layout">
-          <div class="detail-tier-scale">
+          <div class="detail-tier-scale" id="detailTierScale">
             <div class="dts-heading">ReelVote</div>
             ${TIER_ORDER_DESC.map(t => `
               <div class="dts-item${t === currentTier ? ' dts-active' : ''}" style="${t===currentTier ? `--tier-color:${TIER_VISUAL[t].color};` : ''}">
@@ -3035,6 +3058,20 @@
                 </div>
               </div>
             `).join('')}
+          </div>
+          <div class="detail-center-col">
+            <div class="detail-poster-block">
+              <img class="detail-poster-big" id="detailPosterImg" src="${escapeHtml(movie.poster||'')}" alt="">
+            </div>
+          </div>
+          <div id="nextSuggestionWrap"></div>
+        </div>
+        <div class="detail-title-row">
+          <div class="detail-title-under">${escapeHtml(movie.title)} <span class="detail-year-under">(${escapeHtml(movie.year||'')})</span></div>
+        </div>
+        <div class="detail-genre-vote-row">
+          <div class="detail-field detail-genre-field"><b>GENRE:</b> <span>${escapeHtml(movie.genre)}</span></div>
+          <div class="detail-vote-col">
             ${myRatings[movie.id] ? `
               <div class="detail-your-vote">
                 <div class="dvr-label">Your Vote</div>
@@ -3044,22 +3081,14 @@
                   <span class="yv-score">${personalVoteScore(movie).toFixed(1)}</span>
                 </div>
               </div>
-            ` : ''}
-            ${myRatings[movie.id] ? `
               <button class="detail-update-link" id="detailRateBtn">Update your rating</button>
             ` : `
               <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">Rate It</button>
             `}
           </div>
-          <div class="detail-center-col">
-            <div class="detail-poster-block">
-              <img class="detail-poster-big" src="${escapeHtml(movie.poster||'')}" alt="">
-              <div class="detail-title-under">${escapeHtml(movie.title)} <span class="detail-year-under">(${escapeHtml(movie.year||'')})</span></div>
-            </div>
-          </div>
-          <div id="nextSuggestionWrap"></div>
+        </div>
+        <div class="detail-layout" style="margin-top:18px;">
           <div class="detail-info-col">
-            <div class="detail-field"><b>GENRE:</b> <span>${escapeHtml(movie.genre)}</span></div>
             <div class="detail-field" id="detailPlotField"><b>BRIEF:</b> <span id="detailPlotText">Loading…</span></div>
             <div class="detail-field" id="detailStarringField"><b>STARRING:</b> <span id="detailStarringText">Loading…</span></div>
             <div class="detail-field" id="detailDirectorField"><b>DIRECTOR:</b> <span id="detailDirectorText">Loading…</span></div>
@@ -3081,6 +3110,7 @@
     el('closeDetailBtn').style.display = 'inline-block';
     window.scrollTo(0,0);
     fitDetailTitle();
+    syncDetailPosterHeight();
 
     renderTierCounts(movie.id);
     renderMovieRecommendations(movie);
