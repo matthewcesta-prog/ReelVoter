@@ -824,7 +824,7 @@
   }
   .detail-genre-field{flex:1 1 auto;}
   .detail-vote-col{flex:0 0 auto;text-align:right;}
-  .detail-vote-col .detail-your-vote{border-top:none;margin-top:0;padding-top:0;opacity:1;}
+  .detail-vote-col .detail-your-vote{border-top:none;margin-top:0;padding-top:0;opacity:0.4;}
   .detail-vote-col .your-vote-row{justify-content:flex-end;}
   .detail-vote-col .detail-rate-btn{align-self:flex-end;margin-top:0;}
   .detail-vote-col .detail-update-link{align-self:flex-end;}
@@ -885,8 +885,14 @@
     .detail-rate-widget{margin:24px 20px 40px;}
   }
   .detail-rate-widget .detail-rate-btn{align-self:center;}
+  .detail-top-divider{display:none;}
   @media (max-width:820px){
     .detail-layout{flex-direction:row;flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:16px;}
+    .detail-top-divider{
+      display:block;width:100%;border-bottom:1px solid var(--line);
+      margin-bottom:16px;
+    }
+    .dts-heading{border-bottom:none;margin-bottom:0;padding-bottom:0;}
     .detail-tier-scale{order:1;flex:1 1 140px;gap:12px;min-width:140px;max-width:none;width:auto;}
     .detail-center-col{order:2;flex:0 0 auto;min-width:0;}
     #nextSuggestionWrap{order:3;}
@@ -3025,8 +3031,21 @@
     const tierScale = document.getElementById('detailTierScale');
     const posterImg = document.getElementById('detailPosterImg');
     if(!tierScale || !posterImg) return;
-    const h = tierScale.getBoundingClientRect().height;
-    if(h > 0) posterImg.style.height = h + 'px';
+    const titleRow = document.querySelector('.detail-title-row');
+    let targetHeight;
+    if(titleRow && window.innerWidth <= 820){
+      // On mobile the poster sits beside the tier list in its own column
+      // and should grow to fill the full space down to the divider under
+      // the title, not just match the tier list's own (often shorter)
+      // height — the tier list and poster don't necessarily end at the
+      // same point once they're side by side rather than stacked.
+      const top = tierScale.getBoundingClientRect().top;
+      const bottom = titleRow.getBoundingClientRect().bottom;
+      targetHeight = bottom - top;
+    } else {
+      targetHeight = tierScale.getBoundingClientRect().height;
+    }
+    if(targetHeight > 0) posterImg.style.height = targetHeight + 'px';
   }
 
   async function openMovieDetail(movie){
@@ -3044,6 +3063,7 @@
     content.innerHTML = `
       <div class="detail-hero-fullbg" style="background-image:url('${escapeHtml(movie.poster||'')}')"></div>
       <div class="detail-body">
+        <div class="detail-top-divider"></div>
         <div class="detail-layout">
           <div class="detail-tier-scale" id="detailTierScale">
             <div class="dts-heading">ReelVote</div>
