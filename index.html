@@ -844,6 +844,7 @@
   .watch-provider-logo{
     width:28px;height:28px;border-radius:6px;object-fit:cover;
   }
+  .watch-provider-link{display:inline-block;line-height:0;}
   .watch-more-link{
     font-size:0.78rem;color:var(--muted);text-decoration:underline;
     margin-top:2px;align-self:flex-start;
@@ -1710,7 +1711,7 @@
     <div class="home-footer-links intro-reveal-rest">
       <a href="https://buy.stripe.com/4gM7sL7UfaWDcwE3lFeME00" target="_blank" rel="noopener">Support ReelVoter</a>
       <span class="home-footer-divider">&middot;</span>
-      <a href="mailto:CONTACT_EMAIL_TBD">Contact</a>
+      <a href="mailto:reelvoter@gmail.com">Contact</a>
     </div>
   </div>
 
@@ -3005,16 +3006,6 @@
     const modal = el('movieDetailModal');
     const content = el('detailContent');
 
-    if(!movie.tmdb_id && movie.imdb_id && TMDB_KEY){
-      fetchTmdbMovieData(movie.imdb_id).then(tmdbData => {
-        if(tmdbData){
-          if(tmdbData.backdrop) movie.backdrop = tmdbData.backdrop;
-          if(tmdbData.tmdbId) movie.tmdb_id = tmdbData.tmdbId;
-          if(currentUser) saveMovies();
-        }
-      });
-    }
-
     const currentTier = scoreToTier(movie.score);
 
     el('detailRateWidget').style.display = 'none';
@@ -3098,9 +3089,23 @@
     const detailPromise = movie.imdb_id
       ? fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(movie.imdb_id)}&plot=short`).then(r => r.json()).catch(() => null)
       : Promise.resolve(null);
-    const watchProvidersPromise = movie.tmdb_id
-      ? fetchWatchProviders(movie.tmdb_id).catch(() => null)
+    // Where to Watch depends on tmdb_id, which is only ever set lazily —
+    // if this movie has never had one resolved, that has to happen here
+    // (and be waited on) before we can know whether to fetch providers at
+    // all, or the section would silently skip itself on a movie's very
+    // first detail-page view regardless of rating status.
+    const tmdbIdPromise = (!movie.tmdb_id && movie.imdb_id && TMDB_KEY)
+      ? fetchTmdbMovieData(movie.imdb_id).then(tmdbData => {
+          if(tmdbData){
+            if(tmdbData.backdrop) movie.backdrop = tmdbData.backdrop;
+            if(tmdbData.tmdbId) movie.tmdb_id = tmdbData.tmdbId;
+            if(currentUser) saveMovies();
+          }
+        }).catch(() => null)
       : Promise.resolve(null);
+    const watchProvidersPromise = tmdbIdPromise.then(() =>
+      movie.tmdb_id ? fetchWatchProviders(movie.tmdb_id).catch(() => null) : null
+    );
 
     const [data, wp] = await Promise.all([detailPromise, watchProvidersPromise]);
 
@@ -3148,9 +3153,18 @@
       const groupsHtml = groups.map(g => `
         <div class="watch-group">
           <span class="watch-group-label">${g.label}:</span>
-          ${g.items.slice(0, 5).map(p => `
-            <img class="watch-provider-logo" src="https://image.tmdb.org/t/p/w92${p.logo_path}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}">
-          `).join('')}
+          ${g.items.slice(0, 5).map(p => {
+            const logo = `<img class="watch-provider-logo" src="https://image.tmdb.org/t/p/w92${p.logo_path}" alt="${escapeHtml(p.provider_name)}" title="${escapeHtml(p.provider_name)}">`;
+            // Only Amazon gets wrapped in an affiliate link — other services
+            // don't run public per-title affiliate programs, so wrapping
+            // them would just be a dead/misleading link for no reason.
+            if(/amazon/i.test(p.provider_name || '')){
+              const query = encodeURIComponent(`${movie.title} ${movie.year || ''}`.trim());
+              const amazonUrl = `https://www.amazon.ca/s?k=${query}&i=instant-video&tag=reelvoter02-20`;
+              return `<a href="${amazonUrl}" target="_blank" rel="noopener sponsored" class="watch-provider-link">${logo}</a>`;
+            }
+            return logo;
+          }).join('')}
         </div>
       `).join('');
       const moreLink = wp.link ? `<a href="${escapeHtml(wp.link)}" target="_blank" rel="noopener" class="watch-more-link">More options</a>` : '';
