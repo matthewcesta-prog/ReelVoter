@@ -2314,7 +2314,20 @@
   window.addEventListener('resize', updateTopNavClearance);
   window.addEventListener('load', updateTopNavClearance);
   updateTopNavClearance();
-  window.addEventListener('resize', syncDetailPosterHeight);
+  // Mobile Safari fires 'resize' on ordinary scrolling too (its address
+  // bar collapses/expands), and re-measuring on every one of those was
+  // creating a runaway feedback loop — a taller poster reflows the
+  // surrounding layout, which shifts the next measurement, which grows
+  // the poster further. Only re-sync on a genuine width change (a real
+  // breakpoint or orientation change), which scroll-triggered resizes
+  // never actually cause.
+  let lastKnownWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if(window.innerWidth !== lastKnownWidth){
+      lastKnownWidth = window.innerWidth;
+      syncDetailPosterHeight();
+    }
+  });
 
   function setAuthMode(mode){
     const isCreate = mode === 'create';
@@ -3032,6 +3045,14 @@
     const posterImg = document.getElementById('detailPosterImg');
     if(!tierScale || !posterImg) return;
     const titleRow = document.querySelector('.detail-title-row');
+    // Reset to the CSS default BEFORE measuring anything — otherwise this
+    // measurement can read a title-row position that was itself pushed
+    // down by the poster's own previous height, creating a feedback loop
+    // where each re-measure (iOS fires these constantly during scroll, as
+    // the address bar collapses/expands) grows the poster a little more
+    // than the last. Measuring from a clean, stable baseline every time
+    // breaks that loop.
+    posterImg.style.height = '';
     let targetHeight;
     if(titleRow && window.innerWidth <= 820){
       // On mobile the poster sits beside the tier list in its own column
