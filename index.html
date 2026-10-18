@@ -833,6 +833,9 @@
   .detail-field{font-size:0.92rem;line-height:1.6;color:var(--text);}
   .word-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
   .word-chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;color:var(--text);font-size:0.85rem;padding:6px 12px;cursor:pointer;transition:transform 0.15s ease, border-color 0.15s ease;}
+  .word-chip .wc-text{font-style:italic;font-family:Georgia,'Times New Roman',serif;font-size:0.95rem;}
+  .word-chip .wc-text q{quotes:none;}
+  .word-chip .wc-q{color:#d4af37;font-style:normal;}
   .word-chip.mine{cursor:default;border-style:dashed;}
   .word-chip .wc-heart{color:var(--muted);font-size:0.85rem;transition:transform 0.2s cubic-bezier(0.2,0.8,0.25,1), color 0.2s ease;}
   .word-chip .wc-count{color:var(--muted);font-size:0.78rem;font-variant-numeric:tabular-nums;}
@@ -1630,8 +1633,9 @@
   .hang{position:relative;width:100%;max-width:300px;margin:0 auto;cursor:text;box-sizing:border-box;
     background:var(--surface-2);border:1.5px solid var(--line);border-radius:12px;padding:14px 14px 12px;transition:border-color 0.15s ease, box-shadow 0.15s ease;}
   .hang:focus-within{border-color:#d4af37;box-shadow:0 0 12px rgba(212,175,55,0.25);}
-  .hang-text{min-height:1.7em;font-size:1.1rem;font-weight:600;color:var(--white);text-align:center;line-height:1.4;word-break:break-word;pointer-events:none;}
+  .hang-text{min-height:1.7em;font-size:1.2rem;font-weight:500;font-style:italic;font-family:Georgia,'Times New Roman',serif;color:var(--white);text-align:center;line-height:1.4;word-break:break-word;pointer-events:none;}
   .hang-text .ph{color:var(--muted);font-weight:400;}
+  .hang-text .q{color:#d4af37;font-size:1.5em;line-height:0;vertical-align:-0.18em;font-style:normal;}
   .hang-text .caret{display:inline-block;width:2px;height:1.1em;background:#d4af37;vertical-align:text-bottom;margin-left:1px;animation:caretBlink 1s steps(1) infinite;}
   @keyframes caretBlink{50%{opacity:0;}}
   .hang-meter{display:flex;gap:3px;margin-top:10px;pointer-events:none;}
@@ -4903,7 +4907,7 @@
       chip.className = 'word-chip' + (mine ? ' mine' : '') + (me && it.likers.has(me) ? ' liked' : '');
       if(!mine) chip.type = 'button';
       const countHtml = it.likers.size > 0 ? `<span class="wc-count">${it.likers.size}</span>` : '';
-      chip.innerHTML = `<span>${escapeHtml(it.word)}</span>` +
+      chip.innerHTML = `<span class="wc-text"><span class="wc-q">“</span>${escapeHtml(it.word)}<span class="wc-q">”</span></span>` +
         (mine ? `<span class="wc-yours">yours</span>` : `<span class="wc-heart">♥</span>`) +
         (mine ? '' : countHtml);
       if(!mine){
@@ -4996,9 +5000,10 @@
       function renderSlots(){
         const v = wordInput.value;
         const focused = document.activeElement === wordInput;
-        el('revealText').innerHTML = v
+        const inner = v
           ? escapeHtml(v) + (focused ? '<span class="caret"></span>' : '')
           : (focused ? '<span class="caret"></span>' : '<span class="ph">Tap to write it</span>');
+        el('revealText').innerHTML = `<span class="q">“</span>${inner}<span class="q">”</span>`;
         let m = '';
         for(let i = 0; i < REVIEW_MAX_CHARS; i++) m += `<span class="${i < v.length ? 'on' : ''}"></span>`;
         slotsEl.innerHTML = m;
