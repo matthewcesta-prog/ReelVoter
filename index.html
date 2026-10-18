@@ -2061,8 +2061,8 @@
       </div>
     </div>
     <div class="reveal-review">
-      <label for="revealWord">Sum it up in one word (optional)</label>
-      <input id="revealWord" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="e.g. gripping">
+      <label for="revealWord">Sum it up in up to 3 words (optional)</label>
+      <input id="revealWord" maxlength="24" autocomplete="off" autocapitalize="none" placeholder="e.g. edge of seat">
       <div class="reveal-chips" id="revealChips"></div>
     </div>
     <button class="btn btn-primary" id="revealDoneBtn">Done</button>
@@ -2736,7 +2736,7 @@
   // by the tier gap itself), and the nudge is capped well inside the tier's
   // own numeric range so it can never cross into a neighboring tier.
   const PERSONAL_NUDGE_STEP = 0.1;
-  const PERSONAL_NUDGE_CAP = 0.4;
+  const PERSONAL_NUDGE_CAP = 0.6;
   function personalVoteScore(movie){
     const tier = myRatings[movie.id];
     if(!tier) return null;
@@ -2878,37 +2878,39 @@
   // (pushing even further in the same direction is more informative than
   // doubling back to search between two points already both confirmed).
   async function decideNextDuel(movie, genre, duelChain){
+    // Always aim for exactly 3 comparisons (fewer only if there simply
+    // aren't enough rated movies in this genre to compare against).
     if(duelChain.length >= 3) return null;
     const excludeIds = [movie.id, ...duelChain.map(c => c.opponent.id)];
+    const excludeSet = new Set([...excludeIds, ...getDismissedSuggestions()]);
+    const excludeTitleSet = getExcludedTitleSet([...excludeSet]);
+    const ratedLeft = movies.filter(m => m.genre === genre && !excludeSet.has(m.id) && !excludeTitleSet.has(m.title.toLowerCase()) && myRatings[m.id]);
+    if(ratedLeft.length === 0) return null;
 
+    const dirOf = r => r === 'win' ? 'higher' : (r === 'lose' ? 'lower' : null);
+    let next = null;
     if(duelChain.length === 1){
-      const { opponent, result } = duelChain[0];
-      if(result === 'tie') return null;
-      const direction = result === 'win' ? 'higher' : 'lower';
-      return await pickDirectionalOpponent(movie, opponent, direction, genre, excludeIds);
-    }
-
-    if(duelChain.length === 2){
+      const d = dirOf(duelChain[0].result);
+      if(d) next = await pickDirectionalOpponent(movie, duelChain[0].opponent, d, genre, excludeIds);
+    } else {
       const [first, second] = duelChain;
-      const firstDirection = first.result === 'win' ? 'higher' : (first.result === 'lose' ? 'lower' : null);
-      if(!firstDirection) return null; // duel 1 was a tie — no direction was ever established
-
-      if(second.result === 'tie'){
-        return await pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
+      const d1 = dirOf(first.result), d2 = dirOf(second.result);
+      if(d1 && d2 && d1 !== d2){
+        // Direction reversed — the true spot is between the two opponents faced.
+        next = await pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
+      } else {
+        const d = d2 || d1;
+        if(d) next = await pickDirectionalOpponent(movie, second.opponent, d, genre, excludeIds);
       }
-
-      const continuedTrend = (firstDirection === 'higher' && second.result === 'win') || (firstDirection === 'lower' && second.result === 'lose');
-      if(continuedTrend){
-        // Still climbing (or falling) — only worth a third duel if duel 2
-        // was itself surprising, and then it should push further in the
-        // same direction, not double back between two confirmed points.
-        return second.upset ? await pickDirectionalOpponent(movie, second.opponent, firstDirection, genre, excludeIds) : null;
-      }
-      // Direction reversed — the true position is bracketed between the two opponents faced.
-      return await pickBetweenOpponent(movie, first.opponent, second.opponent, genre, excludeIds);
     }
-
-    return null;
+    // Only ever compare against movies this person has actually rated; if the
+    // directional pick came up empty (or was a cold-start seed), use the
+    // closest remaining rated movie instead of ending early.
+    if(!next || !myRatings[next.id]){
+      const base = movie.score || 5;
+      next = ratedLeft.reduce((best, m) => Math.abs((m.score||5) - base) < Math.abs((best.score||5) - base) ? m : best, ratedLeft[0]);
+    }
+    return next;
   }
 
   // Applies one duel's real, permanent Elo update and vote log — every duel
@@ -4864,13 +4866,15 @@
 
     const items = Object.values(byWord).sort((a, b) =>
       (b.likers.size - a.likers.size) || (b.users.size - a.users.size) || a.word.localeCompare(b.word)
-    ).slice(0, 6);
+    );
     if(items.length === 0){ field.style.display = 'none'; return; }
 
     field.style.display = '';
     const me = currentUser ? currentUser.id : null;
+    let showAll = false;
+    const paint = () => {
     box.innerHTML = '';
-    items.forEach(it => {
+    (showAll ? items : items.slice(0, 5)).forEach(it => {
       const mine = !!me && it.users.has(me);
       const chip = document.createElement(mine ? 'span' : 'button');
       chip.className = 'word-chip' + (mine ? ' mine' : '') + (me && it.likers.has(me) ? ' liked' : '');
@@ -4903,6 +4907,16 @@
       }
       box.appendChild(chip);
     });
+    if(!showAll && items.length > 5){
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'word-chip';
+      more.textContent = `+${items.length - 5} more`;
+      more.onclick = () => { showAll = true; paint(); };
+      box.appendChild(more);
+    }
+    };
+    paint();
   }
 
   const REVIEW_WORD_CHIPS = {
@@ -4975,7 +4989,7 @@
       async function finish(){
         if(closed) return;
         closed = true;
-        const word = wordInput.value.trim().toLowerCase().replace(/[^a-z'’-]/g, '').slice(0, 20);
+        const word = wordInput.value.toLowerCase().replace(/[^a-z'’ -]/g, '').split(/\s+/).filter(Boolean).slice(0, 3).join(' ').slice(0, 24);
         el('revealOverlay').style.display = 'none';
         if(word && currentUser && !isBlockedWord(word)){
           try{
