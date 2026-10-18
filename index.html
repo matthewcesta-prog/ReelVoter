@@ -832,6 +832,7 @@
   }
   .detail-field{font-size:0.92rem;line-height:1.6;color:var(--text);}
   .detail-words{margin:2px 0 12px;}
+  .dw-heading{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:600;}
   .word-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
   .word-chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;color:var(--text);font-size:0.85rem;padding:6px 12px;cursor:pointer;transition:transform 0.15s ease, border-color 0.15s ease;}
   .word-chip .wc-text{font-style:italic;font-family:Georgia,'Times New Roman',serif;font-size:0.95rem;}
@@ -3290,7 +3291,7 @@
         <div class="detail-title-row">
           <div class="detail-title-under">${escapeHtml(movie.title)} <span class="detail-year-under">(${escapeHtml(movie.year||'')})</span></div>
         </div>
-        <div class="detail-words" id="detailWordsField" style="display:none;"><div class="word-chips" id="detailWordChips"></div></div>
+        <div class="detail-words" id="detailWordsField" style="display:none;"><div class="dw-heading">What ReelVoters say</div><div class="word-chips" id="detailWordChips"></div></div>
         <div class="detail-genre-vote-row">
           <div class="detail-field detail-genre-field"><b>GENRE:</b> <span>${escapeHtml(movie.genre)}</span></div>
           <div class="detail-vote-col">
