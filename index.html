@@ -2610,17 +2610,29 @@
     loadAll();
   });
 
+  // The database API returns at most 1000 rows per request, so a plain
+  // select silently drops everything past that. Page through until done.
+  async function fetchAllRows(table, columns, orderCols){
+    const out = [];
+    const size = 1000;
+    for(let from = 0; ; from += size){
+      let q = supabaseClient.from(table).select(columns);
+      (orderCols || []).forEach(c => { q = q.order(c, { ascending: true }); });
+      const { data, error } = await q.range(from, from + size - 1);
+      if(error) return { data: null, error };
+      out.push(...(data || []));
+      if(!data || data.length < size) break;
+    }
+    return { data: out, error: null };
+  }
+
   async function loadAll(){
-    const { data, error } = await supabaseClient
-      .from('movies')
-      .select('*');
+    const { data, error } = await fetchAllRows('movies', '*', ['id']);
 
     movies = error ? [] : (data || []);
     if(error) console.error('Load error', error);
 
-    const { data: voteRows, error: voteErr } = await supabaseClient
-      .from('votes')
-      .select('user_id, movie_a_id, movie_b_id, winner_id, created_at');
+    const { data: voteRows, error: voteErr } = await fetchAllRows('votes', 'user_id, movie_a_id, movie_b_id, winner_id, created_at', ['created_at', 'movie_a_id', 'movie_b_id', 'user_id']);
     votesLog = voteErr ? [] : (voteRows || []);
     if(voteErr) console.error('Vote log load error', voteErr);
 
@@ -2698,12 +2710,32 @@
     }
   }
 
-  // Saves movie rows. Pass a list of movie ids to save only those (what a
-  // rating actually touches) instead of upserting the whole catalog every time.
-  async function saveMovies(onlyIds){
-    if(!currentUser || movies.length === 0) return;
-    const idSet = onlyIds ? new Set(onlyIds) : null;
-    const rows = movies.filter(m => !idSet || idSet.has(m.id)).map(m => ({
+  // If the database already has a row for this IMDb id under a different id
+  // (e.g. the movie was added by someone else after this page loaded), adopt
+  // the database's row instead of fighting it: same movie object, database id.
+  async function reconcileDuplicateMovies(objs){
+    let fixed = false;
+    for(const local of objs){
+      if(!local.imdb_id) continue;
+      const { data } = await supabaseClient.from('movies').select('*').eq('imdb_id', local.imdb_id).limit(1);
+      const remote = data && data[0];
+      if(!remote || remote.id === local.id) continue;
+      const oldId = local.id;
+      Object.assign(local, remote);
+      if(myRatings[oldId] !== undefined){ myRatings[remote.id] = myRatings[oldId]; delete myRatings[oldId]; }
+      votesLog.forEach(v => {
+        if(v.movie_a_id === oldId) v.movie_a_id = remote.id;
+        if(v.movie_b_id === oldId) v.movie_b_id = remote.id;
+        if(v.winner_id === oldId) v.winner_id = remote.id;
+      });
+      movies = movies.filter(m => m === local || m.id !== remote.id);
+      fixed = true;
+    }
+    return fixed;
+  }
+
+  function movieRow(m){
+    return {
       id: m.id,
       user_id: m.user_id || currentUser.id,
       title: m.title,
@@ -2715,13 +2747,26 @@
       votes: m.votes || 1,
       imdb_id: m.imdb_id || null,
       imdb_rating: (m.imdb_rating != null ? m.imdb_rating : null)
-    }));
-    if(rows.length === 0) return;
-    let { error } = await supabaseClient.from('movies').upsert(rows);
-    if(error){
+    };
+  }
+
+  // Saves movie rows. Pass a list of movie ids to save only those (what a
+  // rating actually touches) instead of upserting the whole catalog every time.
+  async function saveMovies(onlyIds){
+    if(!currentUser || movies.length === 0) return;
+    const idSet = onlyIds ? new Set(onlyIds) : null;
+    const objs = movies.filter(m => !idSet || idSet.has(m.id));
+    if(objs.length === 0) return;
+    let { error } = await supabaseClient.from('movies').upsert(objs.map(movieRow));
+    if(error && error.code === '23505'){
+      // Duplicate IMDb id — adopt the existing database row, then retry.
+      if(await reconcileDuplicateMovies(objs)){
+        ({ error } = await supabaseClient.from('movies').upsert(objs.map(movieRow)));
+      }
+    } else if(error){
       // One quiet retry — a dropped request on mobile often succeeds the second time.
       await new Promise(r => setTimeout(r, 800));
-      ({ error } = await supabaseClient.from('movies').upsert(rows));
+      ({ error } = await supabaseClient.from('movies').upsert(objs.map(movieRow)));
     }
     if(error){
       console.error('Save error', error);
@@ -2960,16 +3005,16 @@
     // of waiting on a full-catalog upsert + a network round trip. The queue
     // keeps writes in order (movies before the votes that reference them).
     if(currentUser){
-      const row = {
+      const mkRow = () => ({
         user_id: currentUser.id,
         movie_a_id: movie.id,
         movie_b_id: opponent.id,
         winner_id: result === 'win' ? movie.id : (result === 'lose' ? opponent.id : null)
-      };
-      votesLog.push({ ...row, created_at: new Date().toISOString() });
+      });
+      votesLog.push({ ...mkRow(), created_at: new Date().toISOString() });
       queueSave(async () => {
         await saveMovies([movie.id, opponent.id]);
-        const { error } = await supabaseClient.from('votes').insert([row]);
+        const { error } = await supabaseClient.from('votes').insert([mkRow()]);
         if(error){
           console.error('Vote log error', error);
           showSaveErrorToast('Your vote didn\'t save — check your connection and try again.');
@@ -3614,6 +3659,19 @@
     return null;
   }
 
+  // Before creating a brand-new movie, make sure the database doesn't already
+  // have it (the local list can be stale or incomplete).
+  async function ensureKnownMovie(imdbID, title){
+    const local = findExistingMovie(imdbID, title);
+    if(local) return local;
+    if(!imdbID) return null;
+    try{
+      const { data } = await supabaseClient.from('movies').select('*').eq('imdb_id', imdbID).limit(1);
+      if(data && data[0]){ movies.push(data[0]); return data[0]; }
+    }catch(e){ /* fall through to creating it */ }
+    return null;
+  }
+
   const pendingMovieCreations = new Map();
 
   async function getOrCreateMovieByTitle(title, fallbackGenre, year){
@@ -3646,7 +3704,7 @@
         // Re-check now that we know the real imdbID, in case a concurrent call
         // (e.g. the trending banner and a live search) already created this
         // exact movie while this fetch was in flight.
-        const alreadyKnown = findExistingMovie(item.imdbID, item.Title);
+        const alreadyKnown = await ensureKnownMovie(item.imdbID, item.Title);
         if(alreadyKnown) return alreadyKnown;
 
         const detailR = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(item.imdbID)}`);
@@ -4629,7 +4687,9 @@
     if(!selectedResult){ return; }
     if(!selectedTier){ return; }
 
-    const { title, year, poster, imdbID, imdbRating, existingMovie } = selectedResult;
+    const { title, year, poster, imdbID, imdbRating } = selectedResult;
+    let existingMovie = selectedResult.existingMovie;
+    if(!existingMovie) existingMovie = await ensureKnownMovie(imdbID, title);
     const genre = el('genreInput').value;
 
     const dismissedSet = new Set(getDismissedSuggestions());
@@ -4761,11 +4821,11 @@
       pending.scoreBefore = (pending.existingMovie && hasRealSignal(pending.existingMovie)) ? pending.existingMovie.score : null;
       pending.movie = setupMovieForRating(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier);
       const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[pending.tier] || null;
-      const savedMovieId = pending.movie.id;
-      if(tierLabel) myRatings[savedMovieId] = tierLabel;
+      const savedMovie = pending.movie;
+      if(tierLabel) myRatings[savedMovie.id] = tierLabel;
       queueSave(async () => {
-        await saveMovies([savedMovieId]);
-        if(tierLabel) await saveUserRating(savedMovieId, tierLabel);
+        await saveMovies([savedMovie.id]);
+        if(tierLabel) await saveUserRating(savedMovie.id, tierLabel);
       });
     }
 
