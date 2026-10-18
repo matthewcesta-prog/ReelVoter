@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -658,8 +657,8 @@
     filter:blur(50px) brightness(0.22) grayscale(1);
     transform:scale(1.2);
     z-index:0;
-    -webkit-mask-image:linear-gradient(to bottom, transparent 0, black 200px, black 100%);
-    mask-image:linear-gradient(to bottom, transparent 0, black 200px, black 100%);
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, black 200px, black calc(100% - 120px), transparent 100%);
+    mask-image:linear-gradient(to bottom, transparent 0, black 200px, black calc(100% - 120px), transparent 100%);
   }
   .detail-title-under{
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
@@ -1573,11 +1572,65 @@
     margin:-4px 0 10px;
   }
 
+  /* --- Smooth vote transitions --- */
+  @keyframes duelStepIn{
+    from{opacity:0;transform:translateX(34px) scale(0.97);}
+    to{opacity:1;transform:translateX(0) scale(1);}
+  }
+  .duel-cards.step-in, .inline-duel-cards.step-in{animation:duelStepIn 0.34s cubic-bezier(0.2,0.8,0.25,1);}
+  .duel-cards.locked, .inline-duel-cards.locked{pointer-events:none;}
+  .ticket, .inline-duel-ticket{transition:transform 0.28s cubic-bezier(0.2,0.8,0.25,1), opacity 0.28s ease, border-color 0.12s ease, box-shadow 0.28s ease;}
+  .ticket.duel-win, .inline-duel-ticket.duel-win{
+    transform:scale(1.05);
+    border-color:#d4af37 !important;
+    box-shadow:0 0 22px rgba(212,175,55,0.55);
+  }
+  .ticket.duel-lose, .inline-duel-ticket.duel-lose{transform:scale(0.92);opacity:0.25;}
+  .duel-dots{display:flex;justify-content:center;gap:7px;margin-top:16px;}
+  .duel-dots span{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background 0.25s ease, transform 0.25s ease;}
+  .duel-dots span.done{background:#d4af37;}
+  .duel-dots span.now{background:#d4af37;transform:scale(1.35);}
+
+  /* Tier pick pop */
+  @keyframes tierPop{0%{transform:scale(1);}45%{transform:scale(1.14);}100%{transform:scale(1.04);}}
+  .tier-options .tier-btn{transition:border-color 0.15s ease, background 0.15s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;}
+  .tier-options:has(.tier-btn.selected) .tier-btn:not(.selected){opacity:0.45;}
+  .tier-btn.selected{
+    transform:scale(1.04);
+    box-shadow:0 0 16px color-mix(in srgb, var(--tier-color, #fff) 45%, transparent);
+    animation:tierPop 0.32s cubic-bezier(0.2,0.8,0.25,1);
+  }
+
+  /* Score reveal card */
+  .reveal-modal{text-align:center;max-width:420px;width:100%;}
+  .reveal-poster{width:110px;height:165px;object-fit:cover;border-radius:6px;box-shadow:0 6px 22px rgba(0,0,0,0.5);animation:modalIn 0.4s cubic-bezier(0.2,0.8,0.25,1);}
+  .reveal-title{font-weight:700;font-size:1.1rem;color:var(--white);margin:12px 0 18px;line-height:1.2;}
+  .reveal-scores{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
+  .reveal-col{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 8px 12px;opacity:0;transform:translateY(10px);animation:fadeSlideIn 0.4s ease forwards;}
+  .reveal-col:nth-child(2){animation-delay:0.15s;}
+  .reveal-label{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .reveal-num{font-size:2.4rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--white);}
+  .reveal-sub{font-size:0.78rem;color:var(--muted);margin-top:8px;min-height:1.1em;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .reveal-delta{font-size:0.78rem;font-weight:700;margin-top:4px;min-height:1.1em;opacity:0;transition:opacity 0.4s ease;}
+  .reveal-delta.show{opacity:1;}
+  .reveal-delta.up{color:#4caf50;}
+  .reveal-delta.down{color:#c0392b;}
+  @keyframes revealLand{0%{transform:scale(1);}40%{transform:scale(1.18);}100%{transform:scale(1);}}
+  .reveal-num.landed{animation:revealLand 0.35s cubic-bezier(0.2,0.8,0.25,1);}
+  .reveal-review{margin-bottom:16px;}
+  .reveal-review label{display:block;font-size:0.75rem;color:var(--muted);margin-bottom:8px;}
+  .reveal-review input{width:100%;box-sizing:border-box;text-align:center;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:1rem;padding:10px;}
+  .reveal-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;}
+  .reveal-chips button{background:none;border:1px solid var(--line);border-radius:16px;color:var(--text);font-size:0.78rem;padding:5px 12px;cursor:pointer;}
+  .reveal-chips button:hover{border-color:var(--muted);}
+  .haptic-switch{position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;}
+
   @media (max-width:520px){
     .duel-cards{grid-template-columns:1fr;}
     .vs-mark{margin:2px 0;}
   }
   @media (prefers-reduced-motion:reduce){
+    .reveal-col{opacity:1 !important;transform:none !important;}
     *{transition:none !important; animation:none !important;}
   }
 </style>
@@ -1982,6 +2035,33 @@
 
 </div>
 
+<!-- SCORE REVEAL -->
+<div class="modal-overlay" id="revealOverlay" style="display:none;">
+  <div class="duel-modal reveal-modal">
+    <img class="reveal-poster" id="revealPoster" alt="">
+    <div class="reveal-title" id="revealTitle"></div>
+    <div class="reveal-scores">
+      <div class="reveal-col">
+        <div class="reveal-label">Your Vote</div>
+        <div class="reveal-num" id="revealYour">0.0</div>
+        <div class="reveal-sub" id="revealTier"></div>
+      </div>
+      <div class="reveal-col">
+        <div class="reveal-label">The Real Vote</div>
+        <div class="reveal-num" id="revealReal">0.0</div>
+        <div class="reveal-sub" id="revealVotes"></div>
+        <div class="reveal-delta" id="revealDelta"></div>
+      </div>
+    </div>
+    <div class="reveal-review">
+      <label for="revealWord">Sum it up in one word (optional)</label>
+      <input id="revealWord" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="e.g. gripping">
+      <div class="reveal-chips" id="revealChips"></div>
+    </div>
+    <button class="btn btn-primary" id="revealDoneBtn">Done</button>
+  </div>
+</div>
+
 <!-- DUEL MODAL -->
 <div class="modal-overlay" id="duelOverlay" style="display:none;">
   <div class="duel-modal">
@@ -2094,11 +2174,41 @@
   // required to run on WebKit, that's a platform-wide gap with no
   // workaround from a website, not something fixable in this code.)
   function flashDuelPick(ticketEl, onDone){
+    haptic('medium');
     if(ticketEl){
-      ticketEl.classList.add('duel-pick-flash');
-      setTimeout(() => ticketEl.classList.remove('duel-pick-flash'), 450);
+      const cards = ticketEl.parentElement;
+      if(cards) cards.classList.add('locked');
+      ticketEl.classList.add('duel-win');
+      if(cards) cards.querySelectorAll('.ticket, .inline-duel-ticket').forEach(t => { if(t !== ticketEl) t.classList.add('duel-lose'); });
     }
-    setTimeout(onDone, 70);
+    setTimeout(onDone, 330);
+  }
+
+  // Best-effort haptics. Android: Vibration API. iOS Safari has no Vibration
+  // API, but toggling a <input type="checkbox" switch> (iOS 17.4+) produces
+  // a system tick — it only fires from inside a user gesture, so ticks that
+  // are delayed by timers may be skipped there.
+  let hapticLabel = null;
+  function haptic(kind){
+    try{
+      if(navigator.vibrate){
+        navigator.vibrate(kind === 'success' ? [18, 40, 28] : (kind === 'medium' ? 18 : 10));
+        return;
+      }
+    }catch(e){}
+    try{
+      if(!hapticLabel){
+        hapticLabel = document.createElement('label');
+        hapticLabel.className = 'haptic-switch';
+        hapticLabel.setAttribute('aria-hidden', 'true');
+        hapticLabel.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+        document.body.appendChild(hapticLabel);
+      }
+      hapticLabel.click();
+      if(kind === 'success'){
+        setTimeout(() => { try{ hapticLabel.click(); }catch(e){} }, 90);
+      }
+    }catch(e){}
   }
 
   function updateAuthUI(){
@@ -3155,7 +3265,6 @@
             <div class="detail-field" id="detailStarringField"><b>STARRING:</b> <span id="detailStarringText">Loading…</span></div>
             <div class="detail-field" id="detailDirectorField"><b>DIRECTOR:</b> <span id="detailDirectorText">Loading…</span></div>
             <div class="detail-field" id="detailWritersField"><b>WRITERS:</b> <span id="detailWritersText">Loading…</span></div>
-            <div class="detail-field" id="detailThemesField" style="display:none;"><b>THEMES:</b> <span id="detailThemesText"></span></div>
             <div class="detail-field" id="detailWatchField">
               <b>WHERE TO WATCH:</b>
               <div id="detailWatchProviders" class="watch-providers"></div>
@@ -3176,7 +3285,6 @@
 
     renderTierCounts(movie.id);
     renderMovieRecommendations(movie);
-    renderMovieThemes(movie);
 
     const detailPromise = movie.imdb_id
       ? fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(OMDB_KEY)}&i=${encodeURIComponent(movie.imdb_id)}&plot=short`).then(r => r.json()).catch(() => null)
@@ -3967,7 +4075,7 @@
         <div class="inline-duel-box">
           <p class="next-suggestion-label cheeky-line">${pickRandomLine(DUEL_HEADING_LINES)}</p>
           ${duelChain.length > 0 ? `<p class="inline-duel-progress">One more comparison to help place it precisely (${duelChain.length + 1} of up to 3)</p>` : ''}
-          <div class="inline-duel-cards">
+          <div class="inline-duel-cards step-in">
             <button class="inline-duel-ticket" id="inlineTicketA">
               <img src="${escapeHtml(movie.poster||'')}" alt="">
               <span>${escapeHtml(movie.title)}</span>
@@ -4335,22 +4443,6 @@
   // Real thematic tags from TMDb, shown alongside (not replacing) this
   // app's own single genre field — an informational enrichment, not a
   // change to how genre powers duel-matching/filtering elsewhere.
-  async function renderMovieThemes(movie){
-    if(!movie.tmdb_id && movie.imdb_id && TMDB_KEY){
-      const resolvedTmdb = await fetchTmdbMovieData(movie.imdb_id);
-      if(resolvedTmdb && resolvedTmdb.tmdbId) movie.tmdb_id = resolvedTmdb.tmdbId;
-    }
-    if(!movie.tmdb_id || !TMDB_KEY) return;
-    try{
-      const r = await fetch(`https://api.themoviedb.org/3/movie/${movie.tmdb_id}/keywords?api_key=${encodeURIComponent(TMDB_KEY)}`);
-      const data = await r.json();
-      const names = (data.keywords || []).slice(0, 6).map(k => k.name);
-      if(names.length === 0) return;
-      el('detailThemesText').textContent = names.map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(', ');
-      el('detailThemesField').style.display = 'block';
-    }catch(e){ /* leave the field hidden on failure */ }
-  }
-
   async function renderMovieRecommendations(movie){
     const wrap = el('movieRecsWrap');
     if(!wrap) return;
@@ -4467,6 +4559,7 @@
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
+      haptic('light');
       selectedTier = btn.dataset.tier;
       updateContinueState();
     });
@@ -4548,8 +4641,13 @@
     // Defensive: strip any leftover pick-flash from a previous click, since
     // ticketA/ticketB are reused DOM nodes across duel steps, not recreated.
     const tAReset = el('ticketA'), tBReset = el('ticketB');
-    if(tAReset) tAReset.classList.remove('duel-pick-flash');
-    if(tBReset) tBReset.classList.remove('duel-pick-flash');
+    [tAReset, tBReset].forEach(t => { if(t) t.classList.remove('duel-pick-flash', 'duel-win', 'duel-lose'); });
+    const cardsEl = document.querySelector('#duelOverlay .duel-cards');
+    if(cardsEl){
+      cardsEl.classList.remove('locked', 'step-in');
+      void cardsEl.offsetWidth; // restart the slide-in animation
+      cardsEl.classList.add('step-in');
+    }
     const opponent = pending.opponent;
 
     el('duelGenreLabel').textContent = pending.genre;
@@ -4590,9 +4688,9 @@
       handleDuelOutcome('tie');
     };
 
-    el('duelProgress').textContent = pending.duelChain.length > 0
-      ? `One more comparison to help place it precisely (${pending.duelChain.length + 1} of up to 3)`
-      : '';
+    const stepNow = pending.duelChain.length;
+    el('duelProgress').innerHTML = `<div class="duel-dots">${[0,1,2].map(i => `<span class="${i < stepNow ? 'done' : (i === stepNow ? 'now' : '')}"></span>`).join('')}</div>` +
+      (stepNow > 0 ? `One more comparison to help place it precisely` : '');
     el('duelOverlay').style.display = 'flex';
   }
 
@@ -4604,6 +4702,7 @@
     // First duel in the chain: create/save the movie and apply the tier
     // rating once, before any Elo comparisons happen.
     if(!pending.movie){
+      pending.scoreBefore = (pending.existingMovie && hasRealSignal(pending.existingMovie)) ? pending.existingMovie.score : null;
       pending.movie = setupMovieForRating(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier);
       await saveMovies();
       const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[pending.tier] || null;
@@ -4622,8 +4721,11 @@
       runDuelStep();
     } else {
       const movie = pending.movie;
+      const scoreBefore = pending.scoreBefore;
       el('duelOverlay').style.display = 'none';
       pending = null;
+      render();
+      await showRatingReveal(movie, scoreBefore);
       await completeRatingFlow(movie);
     }
   }
@@ -4686,6 +4788,7 @@
     el('duelOverlay').style.display = 'none';
     pending = null;
 
+    const scoreBefore = (existingMovie && hasRealSignal(existingMovie)) ? existingMovie.score : null;
     const movie = setupMovieForRating(title, year, genre, poster, imdbID, imdbRating, existingMovie, tierKey);
     await saveMovies();
 
@@ -4696,7 +4799,97 @@
       await applyDuelResult(movie, comparison.opponent, comparison.result);
     }
 
+    render();
+    await showRatingReveal(movie, scoreBefore);
     await completeRatingFlow(movie);
+  }
+
+  // ---- Score reveal: "Your Vote" vs "The Real Vote", plus optional one-word review ----
+  const REVIEW_WORD_CHIPS = {
+    Great: ['Masterpiece', 'Gripping', 'Rewatchable', 'Perfect'],
+    Good:  ['Fun', 'Solid', 'Charming', 'Gripping'],
+    OK:    ['Fine', 'Mid', 'Forgettable', 'Watchable'],
+    Bad:   ['Boring', 'Messy', 'Painful', 'Awful']
+  };
+
+  function countUp(node, to, ms, done){
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      node.textContent = to.toFixed(1);
+      if(done) done();
+      return;
+    }
+    const start = performance.now();
+    function frame(now){
+      const t = Math.min(1, (now - start) / ms);
+      const eased = 1 - Math.pow(1 - t, 3);
+      node.textContent = (to * eased).toFixed(1);
+      if(t < 1) requestAnimationFrame(frame);
+      else { node.textContent = to.toFixed(1); if(done) done(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function showRatingReveal(movie, scoreBefore){
+    return new Promise(resolve => {
+      const tier = myRatings[movie.id] || scoreToTier(movie.score);
+      const color = (TIER_VISUAL[tier] || {}).color || '#fff';
+      const yourScore = personalVoteScore(movie);
+      const realScore = movie.score != null ? movie.score : 5.0;
+
+      el('revealPoster').src = movie.poster || '';
+      el('revealPoster').style.display = movie.poster ? '' : 'none';
+      el('revealTitle').textContent = movie.title + (movie.year ? ` (${movie.year})` : '');
+      el('revealTier').innerHTML = `${tierIcon(tier)}<span style="color:${color};font-weight:700;">${escapeHtml(tier)}</span>`;
+      el('revealVotes').textContent = formatVoteCount(uniqueVoterCount(movie.id));
+      el('revealYour').style.color = color;
+      el('revealYour').textContent = '0.0';
+      el('revealReal').textContent = '0.0';
+      const delta = el('revealDelta');
+      delta.className = 'reveal-delta';
+      delta.textContent = '';
+      const wordInput = el('revealWord');
+      wordInput.value = '';
+
+      el('revealChips').innerHTML = (REVIEW_WORD_CHIPS[tier] || []).map(w => `<button type="button">${w}</button>`).join('');
+      el('revealChips').querySelectorAll('button').forEach(b => {
+        b.onclick = () => { wordInput.value = b.textContent.toLowerCase(); haptic('light'); };
+      });
+
+      el('revealOverlay').style.display = 'flex';
+
+      setTimeout(() => countUp(el('revealYour'), yourScore != null ? yourScore : realScore, 900), 250);
+      setTimeout(() => countUp(el('revealReal'), realScore, 1100, () => {
+        const n = el('revealReal');
+        n.classList.add('landed');
+        haptic('success');
+        if(scoreBefore != null){
+          const d = realScore - scoreBefore;
+          if(Math.abs(d) >= 0.05){
+            delta.textContent = (d > 0 ? '+' : '−') + Math.abs(d).toFixed(1) + ' from your vote';
+            delta.classList.add('show', d > 0 ? 'up' : 'down');
+          }
+        }
+      }), 450);
+
+      let closed = false;
+      async function finish(){
+        if(closed) return;
+        closed = true;
+        const word = wordInput.value.trim().toLowerCase().replace(/[^a-z'’-]/g, '').slice(0, 20);
+        el('revealOverlay').style.display = 'none';
+        if(word && currentUser){
+          try{
+            const { error } = await supabaseClient.from('user_ratings')
+              .update({ review_word: word })
+              .eq('user_id', currentUser.id).eq('movie_id', movie.id);
+            if(error) console.error('Review word save error', error);
+          }catch(e){ console.error(e); }
+        }
+        resolve();
+      }
+      el('revealDoneBtn').onclick = finish;
+      wordInput.onkeydown = (e) => { if(e.key === 'Enter'){ e.preventDefault(); finish(); } };
+    });
   }
 
   // ---- Top search (instant, ungated ReelVote lookup) ----
