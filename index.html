@@ -562,19 +562,18 @@
     color:var(--muted);font-size:0.8rem;font-style:italic;margin:0;
   }
   .rp-suggestion-row-posters{
-    display:flex;gap:10px;justify-content:center;
+    display:grid;grid-template-columns:repeat(4, minmax(0, 100px));gap:8px;justify-content:center;
   }
-  .rp-suggestion-tile{flex:0 0 auto;width:100px;cursor:pointer;}
+  .rp-suggestion-tile{min-width:0;width:100%;cursor:pointer;}
   .rp-suggestion-tile img{
-    width:100px;height:144px;object-fit:cover;border-radius:6px;
+    width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:6px;
     filter:grayscale(1) contrast(1.05);display:block;
     border:2px solid transparent;
     -webkit-touch-callout:none;-webkit-user-drag:none;user-drag:none;
     -webkit-user-select:none;user-select:none;
   }
   @media (max-width:480px){
-    .rp-suggestion-tile{width:82px;}
-    .rp-suggestion-tile img{width:82px;height:118px;}
+
   }
   .rp-suggestion-tile:hover img{border-color:#d4af37;}
   .rp-suggestion-tile-title{
@@ -832,6 +831,15 @@
     display:flex;flex-direction:column;gap:18px;
   }
   .detail-field{font-size:0.92rem;line-height:1.6;color:var(--text);}
+  .word-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .word-chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;color:var(--text);font-size:0.85rem;padding:6px 12px;cursor:pointer;transition:transform 0.15s ease, border-color 0.15s ease;}
+  .word-chip.mine{cursor:default;border-style:dashed;}
+  .word-chip .wc-heart{color:var(--muted);font-size:0.85rem;transition:transform 0.2s cubic-bezier(0.2,0.8,0.25,1), color 0.2s ease;}
+  .word-chip .wc-count{color:var(--muted);font-size:0.78rem;font-variant-numeric:tabular-nums;}
+  .word-chip .wc-yours{color:var(--muted);font-size:0.68rem;letter-spacing:0.06em;text-transform:uppercase;}
+  .word-chip.liked{border-color:#d4af37;}
+  .word-chip.liked .wc-heart{color:#d4af37;transform:scale(1.25);}
+  .word-chip:active:not(.mine){transform:scale(0.94);}
   /* Reserve realistic space for async-loaded fields up front so the real
      text swapping in doesn't grow the page height mid-scroll — a short
      placeholder like "Loading…" isn't enough, since the actual text (e.g.
@@ -1500,7 +1508,7 @@
       radial-gradient(circle at 100% 18px, var(--bg) 5px, transparent 5.5px);
     background-repeat:no-repeat;
   }
-  .ticket:hover{transform:translateY(-3px);border-color:var(--ink);}
+  @media (hover:hover){ .ticket:hover{transform:translateY(-3px);border-color:var(--ink);} }
   .ticket:active{transform:scale(0.97);}
   .ticket:focus-visible{outline:none;border-color:var(--ink);}
   .ticket img{
@@ -1577,9 +1585,9 @@
     from{opacity:0;transform:translateX(34px) scale(0.97);}
     to{opacity:1;transform:translateX(0) scale(1);}
   }
-  .duel-cards.step-in, .inline-duel-cards.step-in{animation:duelStepIn 0.34s cubic-bezier(0.2,0.8,0.25,1);}
+  .duel-cards.step-in, .inline-duel-cards.step-in{animation:duelStepIn 0.26s cubic-bezier(0.2,0.8,0.25,1);}
   .duel-cards.locked, .inline-duel-cards.locked{pointer-events:none;}
-  .ticket, .inline-duel-ticket{transition:transform 0.28s cubic-bezier(0.2,0.8,0.25,1), opacity 0.28s ease, border-color 0.12s ease, box-shadow 0.28s ease;}
+  .ticket, .inline-duel-ticket{transition:transform 0.2s cubic-bezier(0.2,0.8,0.25,1), opacity 0.2s ease, border-color 0.12s ease, box-shadow 0.2s ease;}
   .ticket.duel-win, .inline-duel-ticket.duel-win{
     transform:scale(1.05);
     border-color:#d4af37 !important;
@@ -1789,7 +1797,7 @@
 
     <div class="explainer-label intro-reveal-rest" style="margin-top:24px;display:flex;align-items:center;gap:8px;">
       ReelPicker
-      <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick 3 of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, and we'll do the hard part: finding you something actually worth watching. ReelVotes + AI — no random guessing, no doom-scrolling.<br><br>Rate at least 8 movies Good or Great to unlock this feature." aria-label="What is ReelPicker">?</button>
+      <button class="et-why-trigger" style="position:static;" data-why-title="Don't Know What to Watch?" data-why-text="Pick 2 of your own <strong><em>Good</em></strong> or <strong><em>Great</em></strong> rated movies that match tonight's mood, and we'll do the hard part: finding you something actually worth watching. ReelVotes + AI — no random guessing, no doom-scrolling.<br><br>Rate at least 8 movies Good or Great to unlock this feature." aria-label="What is ReelPicker">?</button>
     </div>
     <div id="reelPickerTracker" class="reelpicker-tracker"></div>
 
@@ -1963,10 +1971,9 @@
   <!-- REELPICKER PAGE -->
   <div id="page-reelpicker" style="display:none;">
     <div id="rpStep1" class="rp-step" style="margin-top:14px;padding-bottom:90px;">
-      <h2 class="rp-step-heading">Pick 3 movies with tonight's vibe</h2>
+      <h2 class="rp-step-heading">Pick 2 movies with tonight's vibe</h2>
       <p class="panel-sub" style="text-align:center;">Hit continue and we'll take it from there.</p>
       <div id="rpSelectionPreview" class="rp-selection-preview">
-        <div class="rp-preview-slot rp-empty"></div>
         <div class="rp-preview-slot rp-empty"></div>
         <div class="rp-preview-slot rp-empty"></div>
       </div>
@@ -2181,7 +2188,7 @@
       ticketEl.classList.add('duel-win');
       if(cards) cards.querySelectorAll('.ticket, .inline-duel-ticket').forEach(t => { if(t !== ticketEl) t.classList.add('duel-lose'); });
     }
-    setTimeout(onDone, 330);
+    setTimeout(onDone, 220);
   }
 
   // Best-effort haptics. Android: Vibration API. iOS Safari has no Vibration
@@ -2199,10 +2206,10 @@
     try{
       if(!hapticLabel){
         hapticLabel = document.createElement('label');
-        hapticLabel.className = 'haptic-switch';
         hapticLabel.setAttribute('aria-hidden', 'true');
-        hapticLabel.innerHTML = '<input type="checkbox" switch tabindex="-1">';
-        document.body.appendChild(hapticLabel);
+        hapticLabel.style.display = 'none';
+        hapticLabel.innerHTML = '<input type="checkbox" switch>';
+        document.head.appendChild(hapticLabel);
       }
       hapticLabel.click();
       if(kind === 'success'){
@@ -2915,16 +2922,35 @@
       applyEloUpdate(movie, opponent, won);
       opponent.votes = (opponent.votes || 1) + 1;
     }
-    await saveMovies();
+    // Persist in the background so the next duel appears instantly instead
+    // of waiting on a full-catalog upsert + a network round trip. The queue
+    // keeps writes in order (movies before the votes that reference them).
     if(currentUser){
-      await logVotes([{
+      const row = {
         user_id: currentUser.id,
         movie_a_id: movie.id,
         movie_b_id: opponent.id,
         winner_id: result === 'win' ? movie.id : (result === 'lose' ? opponent.id : null)
-      }]);
+      };
+      votesLog.push({ ...row, created_at: new Date().toISOString() });
+      queueSave(async () => {
+        await saveMovies();
+        const { error } = await supabaseClient.from('votes').insert([row]);
+        if(error){
+          console.error('Vote log error', error);
+          showSaveErrorToast('Your vote didn\'t save — check your connection and try again.');
+        }
+      });
+    } else {
+      queueSave(() => saveMovies());
     }
     return upset;
+  }
+
+  let saveChain = Promise.resolve();
+  function queueSave(fn){
+    saveChain = saveChain.then(fn).catch(e => console.error('Queued save error', e));
+    return saveChain;
   }
 
   async function logVotes(rows){
@@ -3262,6 +3288,7 @@
         <div class="detail-layout" style="margin-top:18px;">
           <div class="detail-info-col">
             <div class="detail-field" id="detailPlotField"><b>BRIEF:</b> <span id="detailPlotText">Loading…</span></div>
+            <div class="detail-field detail-words" id="detailWordsField" style="display:none;"><b>WHAT PEOPLE SAY:</b><div class="word-chips" id="detailWordChips"></div></div>
             <div class="detail-field" id="detailStarringField"><b>STARRING:</b> <span id="detailStarringText">Loading…</span></div>
             <div class="detail-field" id="detailDirectorField"><b>DIRECTOR:</b> <span id="detailDirectorText">Loading…</span></div>
             <div class="detail-field" id="detailWritersField"><b>WRITERS:</b> <span id="detailWritersText">Loading…</span></div>
@@ -3276,6 +3303,7 @@
     `;
 
     el('detailRateBtn').onclick = () => startRateFromDetail(movie);
+    renderWordChips(movie);
     if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     modal.style.display = 'block';
     el('closeDetailBtn').style.display = 'inline-block';
@@ -4095,7 +4123,6 @@
     `;
 
     async function finishDuel(result){
-      wrap.innerHTML = `<p class="next-suggestion-loading">Saving...</p>`;
       const upset = await applyDuelResult(movie, opponent, result);
       duelChain.push({ opponent, result, upset });
       render();
@@ -4172,7 +4199,7 @@
       tile.classList.remove('rp-selected');
       tile.removeAttribute('data-rp-order');
     } else {
-      if(rpSelected.length >= 3) return;
+      if(rpSelected.length >= 2) return;
       rpSelected.push(id);
       tile.classList.add('rp-selected');
     }
@@ -4184,7 +4211,7 @@
     });
     updateRpTileStates();
     renderRpSelectionPreview();
-    el('rpStep1Continue').disabled = rpSelected.length !== 3;
+    el('rpStep1Continue').disabled = rpSelected.length !== 2;
   }
 
   function renderRpSelectionPreview(){
@@ -4203,7 +4230,7 @@
   }
 
   function updateRpTileStates(){
-    const atCap = rpSelected.length >= 3;
+    const atCap = rpSelected.length >= 2;
     document.querySelectorAll('.rp-library-tile').forEach(t => {
       t.classList.toggle('rp-disabled', atCap && !t.classList.contains('rp-selected'));
     });
@@ -4236,7 +4263,6 @@
 
   let rpFinalistA = null;
   let rpFinalistB = null;
-  let rpFinalistC = null;
 
   async function showRpStep3(){
     el('rpStep3').style.display = 'block';
@@ -4257,7 +4283,6 @@
 
     rpFinalistA = rpPool[0];
     rpFinalistB = rpPool[1];
-    rpFinalistC = rpPool[2];
     const myRatedTitles = new Set(movies.filter(m => myRatings[m.id]).map(m => m.title.toLowerCase()));
 
     let aiResult;
@@ -4265,8 +4290,7 @@
       const { data, error } = await supabaseClient.functions.invoke('Reelpicker', {
         body: {
           finalistA: { title: rpFinalistA.title, year: rpFinalistA.year, genre: rpFinalistA.genre },
-          finalistB: { title: rpFinalistB.title, year: rpFinalistB.year, genre: rpFinalistB.genre },
-          finalistC: { title: rpFinalistC.title, year: rpFinalistC.year, genre: rpFinalistC.genre }
+          finalistB: { title: rpFinalistB.title, year: rpFinalistB.year, genre: rpFinalistB.genre }
         }
       });
       if(error) throw error;
@@ -4292,7 +4316,7 @@
     // wildcard.
     const claimedTitles = new Set();
     const claimedIds = new Set();
-    const finalistTitles = new Set([rpFinalistA, rpFinalistB, rpFinalistC].map(f => f.title.trim().toLowerCase()));
+    const finalistTitles = new Set([rpFinalistA, rpFinalistB].map(f => f.title.trim().toLowerCase()));
 
     async function verifyList(rawList, fallbackGenre, cap){
       const resolved = [];
@@ -4315,17 +4339,15 @@
       return resolved;
     }
 
-    const [similarToA, similarToB, similarToC, wildcardList] = await Promise.all([
-      verifyList(aiResult.similarToA, rpFinalistA.genre, 3),
-      verifyList(aiResult.similarToB, rpFinalistB.genre, 3),
-      verifyList(aiResult.similarToC, rpFinalistC.genre, 3),
+    const [similarToA, similarToB, wildcardList] = await Promise.all([
+      verifyList(aiResult.similarToA, rpFinalistA.genre, 4),
+      verifyList(aiResult.similarToB, rpFinalistB.genre, 4),
       verifyList(aiResult.wildcard, rpFinalistA.genre, 1)
     ]);
 
     const rows = [
       { heading: `Films like ${rpFinalistA.title}`, movies: similarToA },
-      { heading: `Films like ${rpFinalistB.title}`, movies: similarToB },
-      { heading: `Films like ${rpFinalistC.title}`, movies: similarToC }
+      { heading: `Films like ${rpFinalistB.title}`, movies: similarToB }
     ];
     const wildcard = wildcardList[0] || null;
 
@@ -4361,7 +4383,7 @@
     const wildcardHtml = wildcard ? `
       <div class="rp-wildcard-row">
         <div class="rp-wildcard-heading">THE WILDCARD</div>
-        <p class="rp-wildcard-subheading">A blend of the above 3 movies</p>
+        <p class="rp-wildcard-subheading">A blend of the above 2 movies</p>
         <div class="rp-wildcard-tile" data-id="${wildcard.id}">
           <img src="${escapeHtml(wildcard.poster||'')}" alt="">
           <div>
@@ -4704,9 +4726,13 @@
     if(!pending.movie){
       pending.scoreBefore = (pending.existingMovie && hasRealSignal(pending.existingMovie)) ? pending.existingMovie.score : null;
       pending.movie = setupMovieForRating(pending.title, pending.year, pending.genre, pending.poster, pending.imdbID, pending.imdbRating, pending.existingMovie, pending.tier);
-      await saveMovies();
       const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[pending.tier] || null;
-      if(tierLabel) await saveUserRating(pending.movie.id, tierLabel);
+      const savedMovieId = pending.movie.id;
+      if(tierLabel) myRatings[savedMovieId] = tierLabel;
+      queueSave(async () => {
+        await saveMovies();
+        if(tierLabel) await saveUserRating(savedMovieId, tierLabel);
+      });
     }
 
     const upset = await applyDuelResult(pending.movie, opponent, result);
@@ -4805,6 +4831,80 @@
   }
 
   // ---- Score reveal: "Your Vote" vs "The Real Vote", plus optional one-word review ----
+  // ---- One-word reviews on the movie page: chips with likes ----
+  const BLOCKED_WORD_PARTS = ['fuck','shit','cunt','nigg','fagg','bitch','whore','slut','rape','retard','dick','cock','pussy','nazi','kike','spic','chink','tranny'];
+  function isBlockedWord(w){
+    const x = (w || '').toLowerCase();
+    return BLOCKED_WORD_PARTS.some(b => x.includes(b));
+  }
+
+  async function renderWordChips(movie){
+    const field = el('detailWordsField');
+    const box = el('detailWordChips');
+    if(!field || !box) return;
+    let rows = [], likes = [];
+    try{
+      const [r1, r2] = await Promise.all([
+        supabaseClient.from('user_ratings').select('user_id, review_word').eq('movie_id', movie.id).not('review_word', 'is', null),
+        supabaseClient.from('word_likes').select('user_id, word').eq('movie_id', movie.id)
+      ]);
+      if(r1.error) throw r1.error;
+      rows = r1.data || [];
+      likes = (r2.error ? [] : (r2.data || []));
+    }catch(e){ field.style.display = 'none'; return; }
+
+    const byWord = {};
+    rows.forEach(r => {
+      const w = (r.review_word || '').trim().toLowerCase();
+      if(!w || isBlockedWord(w)) return;
+      byWord[w] = byWord[w] || { word: w, users: new Set(), likers: new Set() };
+      byWord[w].users.add(r.user_id);
+    });
+    likes.forEach(l => { if(byWord[l.word]) byWord[l.word].likers.add(l.user_id); });
+
+    const items = Object.values(byWord).sort((a, b) =>
+      (b.likers.size - a.likers.size) || (b.users.size - a.users.size) || a.word.localeCompare(b.word)
+    ).slice(0, 6);
+    if(items.length === 0){ field.style.display = 'none'; return; }
+
+    field.style.display = '';
+    const me = currentUser ? currentUser.id : null;
+    box.innerHTML = '';
+    items.forEach(it => {
+      const mine = !!me && it.users.has(me);
+      const chip = document.createElement(mine ? 'span' : 'button');
+      chip.className = 'word-chip' + (mine ? ' mine' : '') + (me && it.likers.has(me) ? ' liked' : '');
+      if(!mine) chip.type = 'button';
+      const countHtml = it.likers.size > 0 ? `<span class="wc-count">${it.likers.size}</span>` : '';
+      chip.innerHTML = `<span>${escapeHtml(it.word)}</span>` +
+        (mine ? `<span class="wc-yours">yours</span>` : `<span class="wc-heart">♥</span>`) +
+        (mine ? '' : countHtml);
+      if(!mine){
+        chip.onclick = async () => {
+          if(!currentUser){ openSignInModal(); return; }
+          const liked = it.likers.has(me);
+          haptic('light');
+          if(liked) it.likers.delete(me); else it.likers.add(me);
+          chip.classList.toggle('liked', !liked);
+          const c = chip.querySelector('.wc-count');
+          if(it.likers.size > 0){
+            if(c) c.textContent = it.likers.size;
+            else chip.insertAdjacentHTML('beforeend', `<span class="wc-count">${it.likers.size}</span>`);
+          } else if(c) c.remove();
+          const q = supabaseClient.from('word_likes');
+          const { error } = liked
+            ? await q.delete().eq('user_id', me).eq('movie_id', movie.id).eq('word', it.word)
+            : await q.insert([{ user_id: me, movie_id: movie.id, word: it.word }]);
+          if(error){
+            console.error('Word like error', error);
+            showSaveErrorToast('That like didn\'t save — check your connection.');
+          }
+        };
+      }
+      box.appendChild(chip);
+    });
+  }
+
   const REVIEW_WORD_CHIPS = {
     Great: ['Masterpiece', 'Gripping', 'Rewatchable', 'Perfect'],
     Good:  ['Fun', 'Solid', 'Charming', 'Gripping'],
@@ -4877,8 +4977,9 @@
         closed = true;
         const word = wordInput.value.trim().toLowerCase().replace(/[^a-z'’-]/g, '').slice(0, 20);
         el('revealOverlay').style.display = 'none';
-        if(word && currentUser){
+        if(word && currentUser && !isBlockedWord(word)){
           try{
+            await saveChain;
             const { error } = await supabaseClient.from('user_ratings')
               .update({ review_word: word })
               .eq('user_id', currentUser.id).eq('movie_id', movie.id);
