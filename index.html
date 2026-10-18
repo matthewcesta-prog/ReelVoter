@@ -1627,7 +1627,13 @@
   .reveal-num.landed{animation:revealLand 0.35s cubic-bezier(0.2,0.8,0.25,1);}
   .reveal-review{margin-bottom:16px;}
   .reveal-review label{display:block;font-size:0.75rem;color:var(--muted);margin-bottom:8px;}
-  .reveal-review input{width:100%;box-sizing:border-box;text-align:center;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:1rem;padding:10px;}
+  .hang{position:relative;width:286px;max-width:100%;margin:0 auto;cursor:text;}
+  .hang-slots{display:flex;flex-wrap:wrap;gap:8px 4px;justify-content:center;pointer-events:none;}
+  .hang-slot{width:18px;height:26px;border-bottom:2px solid var(--muted);text-align:center;font-size:1.15rem;line-height:24px;color:var(--white);font-weight:600;box-sizing:border-box;}
+  .hang-slot.gap{border-bottom-color:transparent;}
+  .hang-slot.now{border-bottom-color:#d4af37;}
+  .hang input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;padding:0;background:none;color:transparent;}
+  .hang-note{font-size:0.7rem;color:var(--muted);margin-top:8px;}
   .reveal-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;}
   .reveal-chips button{background:none;border:1px solid var(--line);border-radius:16px;color:var(--text);font-size:0.78rem;padding:5px 12px;cursor:pointer;}
   .reveal-chips button:hover{border-color:var(--muted);}
@@ -2061,8 +2067,12 @@
       </div>
     </div>
     <div class="reveal-review">
-      <label for="revealWord">Sum it up in up to 3 words (optional)</label>
-      <input id="revealWord" maxlength="24" autocomplete="off" autocapitalize="none" placeholder="e.g. edge of seat">
+      <label for="revealWord">Say it in a few words. No essays.</label>
+      <div class="hang" id="revealHang">
+        <div class="hang-slots" id="revealSlots" aria-hidden="true"></div>
+        <input id="revealWord" maxlength="25" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Your review, 25 characters maximum">
+      </div>
+      <div class="hang-note">Optional · 25 characters, tops.</div>
       <div class="reveal-chips" id="revealChips"></div>
     </div>
     <button class="btn btn-primary" id="revealDoneBtn">Done</button>
@@ -4834,10 +4844,17 @@
 
   // ---- Score reveal: "Your Vote" vs "The Real Vote", plus optional one-word review ----
   // ---- One-word reviews on the movie page: chips with likes ----
-  const BLOCKED_WORD_PARTS = ['fuck','shit','cunt','nigg','fagg','bitch','whore','slut','rape','retard','dick','cock','pussy','nazi','kike','spic','chink','tranny'];
+  const BLOCKED_SEVERE = ['fuck','fck','shit','cunt','nigg','fagg','bitch','retard','kike','chink','tranny','whore'];
+  const BLOCKED_EXACT = ['rape','rapes','rapist','dick','cock','pussy','slut','nazi','spic','coon'];
   function isBlockedWord(w){
-    const x = (w || '').toLowerCase();
-    return BLOCKED_WORD_PARTS.some(b => x.includes(b));
+    const raw = (w || '').toLowerCase();
+    if(/https?:|www\.|\.(com|net|org|io|ca|co)\b/.test(raw)) return true;
+    // Undo look-alike characters (sh1t, f*ck, $hit) before checking.
+    const leet = raw.replace(/[@4]/g,'a').replace(/3/g,'e').replace(/[1!|]/g,'i').replace(/0/g,'o').replace(/[5$]/g,'s').replace(/7/g,'t');
+    const tokens = leet.split(/\s+/).map(t => t.replace(/[^a-z]/g, '')).filter(Boolean);
+    const collapsed = tokens.join('');
+    if(BLOCKED_SEVERE.some(b => collapsed.includes(b))) return true;
+    return tokens.some(t => BLOCKED_EXACT.includes(t));
   }
 
   async function renderWordChips(movie){
@@ -4919,6 +4936,12 @@
     paint();
   }
 
+  const REVIEW_MAX_CHARS = 25;
+  const REVIEW_DISALLOWED = /[^A-Za-z0-9 !?,.'’\-&:;()$%+\/]/g;
+  function cleanReviewText(t){
+    return (t || '').toLowerCase().replace(REVIEW_DISALLOWED, '').replace(/\s+/g, ' ').trim().slice(0, REVIEW_MAX_CHARS).trim();
+  }
+
   const REVIEW_WORD_CHIPS = {
     Great: ['Masterpiece', 'Gripping', 'Rewatchable', 'Perfect'],
     Good:  ['Fun', 'Solid', 'Charming', 'Gripping'],
@@ -4963,10 +4986,31 @@
       delta.textContent = '';
       const wordInput = el('revealWord');
       wordInput.value = '';
+      const slotsEl = el('revealSlots');
+      function renderSlots(){
+        const v = wordInput.value;
+        const focused = document.activeElement === wordInput;
+        let html = '';
+        for(let i = 0; i < REVIEW_MAX_CHARS; i++){
+          const ch = v[i];
+          const cls = 'hang-slot' + (ch === ' ' ? ' gap' : '') + (focused && i === v.length ? ' now' : '');
+          html += `<span class="${cls}">${ch && ch !== ' ' ? escapeHtml(ch) : ''}</span>`;
+        }
+        slotsEl.innerHTML = html;
+      }
+      wordInput.oninput = () => {
+        const clean = wordInput.value.replace(REVIEW_DISALLOWED, '').replace(/^\s+/, '').replace(/\s{2,}/g, ' ').slice(0, REVIEW_MAX_CHARS);
+        if(clean !== wordInput.value) wordInput.value = clean;
+        renderSlots();
+      };
+      wordInput.onfocus = renderSlots;
+      wordInput.onblur = renderSlots;
+      el('revealHang').onclick = () => wordInput.focus();
+      renderSlots();
 
       el('revealChips').innerHTML = (REVIEW_WORD_CHIPS[tier] || []).map(w => `<button type="button">${w}</button>`).join('');
       el('revealChips').querySelectorAll('button').forEach(b => {
-        b.onclick = () => { wordInput.value = b.textContent.toLowerCase(); haptic('light'); };
+        b.onclick = () => { wordInput.value = b.textContent.toLowerCase(); haptic('light'); wordInput.oninput(); };
       });
 
       el('revealOverlay').style.display = 'flex';
@@ -4989,7 +5033,7 @@
       async function finish(){
         if(closed) return;
         closed = true;
-        const word = wordInput.value.toLowerCase().replace(/[^a-z'’ -]/g, '').split(/\s+/).filter(Boolean).slice(0, 3).join(' ').slice(0, 24);
+        const word = cleanReviewText(wordInput.value);
         el('revealOverlay').style.display = 'none';
         if(word && currentUser && !isBlockedWord(word)){
           try{
