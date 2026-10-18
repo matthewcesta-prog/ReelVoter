@@ -2698,9 +2698,12 @@
     }
   }
 
-  async function saveMovies(){
+  // Saves movie rows. Pass a list of movie ids to save only those (what a
+  // rating actually touches) instead of upserting the whole catalog every time.
+  async function saveMovies(onlyIds){
     if(!currentUser || movies.length === 0) return;
-    const rows = movies.map(m => ({
+    const idSet = onlyIds ? new Set(onlyIds) : null;
+    const rows = movies.filter(m => !idSet || idSet.has(m.id)).map(m => ({
       id: m.id,
       user_id: m.user_id || currentUser.id,
       title: m.title,
@@ -2713,10 +2716,17 @@
       imdb_id: m.imdb_id || null,
       imdb_rating: (m.imdb_rating != null ? m.imdb_rating : null)
     }));
-    const { error } = await supabaseClient.from('movies').upsert(rows);
+    if(rows.length === 0) return;
+    let { error } = await supabaseClient.from('movies').upsert(rows);
+    if(error){
+      // One quiet retry — a dropped request on mobile often succeeds the second time.
+      await new Promise(r => setTimeout(r, 800));
+      ({ error } = await supabaseClient.from('movies').upsert(rows));
+    }
     if(error){
       console.error('Save error', error);
-      showSaveErrorToast('Something didn\'t save — check your connection and try again.');
+      const detail = [error.code, error.message].filter(Boolean).join(' — ').slice(0, 120);
+      showSaveErrorToast('Something didn\'t save — check your connection and try again.' + (detail ? ` (${detail})` : ''));
     }
   }
 
@@ -2958,7 +2968,7 @@
       };
       votesLog.push({ ...row, created_at: new Date().toISOString() });
       queueSave(async () => {
-        await saveMovies();
+        await saveMovies([movie.id, opponent.id]);
         const { error } = await supabaseClient.from('votes').insert([row]);
         if(error){
           console.error('Vote log error', error);
@@ -2966,7 +2976,7 @@
         }
       });
     } else {
-      queueSave(() => saveMovies());
+      queueSave(() => saveMovies([movie.id, opponent.id]));
     }
     return upset;
   }
@@ -4013,7 +4023,7 @@
       }
     }
     applyRatingAnchor(movie, tierKey);
-    await saveMovies();
+    await saveMovies([movie.id]);
     const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[tierKey] || null;
     if(tierLabel) await saveUserRating(movie.id, tierLabel);
   }
@@ -4754,7 +4764,7 @@
       const savedMovieId = pending.movie.id;
       if(tierLabel) myRatings[savedMovieId] = tierLabel;
       queueSave(async () => {
-        await saveMovies();
+        await saveMovies([savedMovieId]);
         if(tierLabel) await saveUserRating(savedMovieId, tierLabel);
       });
     }
@@ -4840,7 +4850,7 @@
 
     const scoreBefore = (existingMovie && hasRealSignal(existingMovie)) ? existingMovie.score : null;
     const movie = setupMovieForRating(title, year, genre, poster, imdbID, imdbRating, existingMovie, tierKey);
-    await saveMovies();
+    await saveMovies([movie.id]);
 
     const tierLabel = { bad:'Bad', ok:'OK', good:'Good', great:'Great' }[tierKey] || null;
     if(tierLabel) await saveUserRating(movie.id, tierLabel);
