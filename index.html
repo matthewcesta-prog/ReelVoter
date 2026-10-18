@@ -1627,11 +1627,16 @@
   .reveal-num.landed{animation:revealLand 0.35s cubic-bezier(0.2,0.8,0.25,1);}
   .reveal-review{margin-bottom:16px;}
   .reveal-review label{display:block;font-size:0.75rem;color:var(--muted);margin-bottom:8px;}
-  .hang{position:relative;width:286px;max-width:100%;margin:0 auto;cursor:text;}
-  .hang-slots{display:flex;flex-wrap:wrap;gap:8px 4px;justify-content:center;pointer-events:none;}
-  .hang-slot{width:18px;height:26px;border-bottom:2px solid var(--muted);text-align:center;font-size:1.15rem;line-height:24px;color:var(--white);font-weight:600;box-sizing:border-box;}
-  .hang-slot.gap{border-bottom-color:transparent;}
-  .hang-slot.now{border-bottom-color:#d4af37;}
+  .hang{position:relative;width:100%;max-width:300px;margin:0 auto;cursor:text;box-sizing:border-box;
+    background:var(--surface-2);border:1.5px solid var(--line);border-radius:12px;padding:14px 14px 12px;transition:border-color 0.15s ease, box-shadow 0.15s ease;}
+  .hang:focus-within{border-color:#d4af37;box-shadow:0 0 12px rgba(212,175,55,0.25);}
+  .hang-text{min-height:1.7em;font-size:1.1rem;font-weight:600;color:var(--white);text-align:center;line-height:1.4;word-break:break-word;pointer-events:none;}
+  .hang-text .ph{color:var(--muted);font-weight:400;}
+  .hang-text .caret{display:inline-block;width:2px;height:1.1em;background:#d4af37;vertical-align:text-bottom;margin-left:1px;animation:caretBlink 1s steps(1) infinite;}
+  @keyframes caretBlink{50%{opacity:0;}}
+  .hang-meter{display:flex;gap:3px;margin-top:10px;pointer-events:none;}
+  .hang-meter span{flex:1;height:3px;border-radius:2px;background:var(--line);transition:background 0.15s ease;}
+  .hang-meter span.on{background:#d4af37;}
   .hang input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;padding:0;background:none;color:transparent;}
   .hang-note{font-size:0.7rem;color:var(--muted);margin-top:8px;}
   .reveal-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;}
@@ -2069,7 +2074,8 @@
     <div class="reveal-review">
       <label for="revealWord">Say it in a few words. No essays.</label>
       <div class="hang" id="revealHang">
-        <div class="hang-slots" id="revealSlots" aria-hidden="true"></div>
+        <div class="hang-text" id="revealText" aria-hidden="true"></div>
+        <div class="hang-meter" id="revealSlots" aria-hidden="true"></div>
         <input id="revealWord" maxlength="25" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Your review, 25 characters maximum">
       </div>
       <div class="hang-note">Optional · 25 characters, tops.</div>
@@ -4990,13 +4996,12 @@
       function renderSlots(){
         const v = wordInput.value;
         const focused = document.activeElement === wordInput;
-        let html = '';
-        for(let i = 0; i < REVIEW_MAX_CHARS; i++){
-          const ch = v[i];
-          const cls = 'hang-slot' + (ch === ' ' ? ' gap' : '') + (focused && i === v.length ? ' now' : '');
-          html += `<span class="${cls}">${ch && ch !== ' ' ? escapeHtml(ch) : ''}</span>`;
-        }
-        slotsEl.innerHTML = html;
+        el('revealText').innerHTML = v
+          ? escapeHtml(v) + (focused ? '<span class="caret"></span>' : '')
+          : (focused ? '<span class="caret"></span>' : '<span class="ph">Tap to write it</span>');
+        let m = '';
+        for(let i = 0; i < REVIEW_MAX_CHARS; i++) m += `<span class="${i < v.length ? 'on' : ''}"></span>`;
+        slotsEl.innerHTML = m;
       }
       wordInput.oninput = () => {
         const clean = wordInput.value.replace(REVIEW_DISALLOWED, '').replace(/^\s+/, '').replace(/\s{2,}/g, ' ').slice(0, REVIEW_MAX_CHARS);
