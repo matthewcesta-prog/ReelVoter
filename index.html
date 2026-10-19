@@ -1619,11 +1619,16 @@
   .reveal-poster{width:110px;height:165px;object-fit:cover;border-radius:6px;box-shadow:0 6px 22px rgba(0,0,0,0.5);animation:modalIn 0.4s cubic-bezier(0.2,0.8,0.25,1);}
   .reveal-title{font-weight:700;font-size:1.1rem;color:var(--white);margin:12px 0 18px;line-height:1.2;}
   .reveal-scores{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
-  .reveal-col{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 8px 12px;opacity:0;transform:translateY(10px);animation:fadeSlideIn 0.4s ease forwards;}
+  .reveal-col{display:flex;flex-direction:column;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 8px 12px;opacity:0;transform:translateY(10px);animation:fadeSlideIn 0.4s ease forwards;}
   .reveal-col:nth-child(2){animation-delay:0.15s;}
+  .movie-row.row-flash{animation:rowFlash 2.2s ease-out;}
+  @keyframes rowFlash{0%{box-shadow:0 0 0 2px #d4af37, 0 0 22px rgba(212,175,55,0.65);}100%{box-shadow:0 0 0 2px rgba(212,175,55,0), 0 0 0 rgba(212,175,55,0);}}
   .reveal-label{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
   .reveal-num{font-size:2.4rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--white);}
   .reveal-sub{font-size:0.78rem;color:var(--muted);margin-top:8px;min-height:1.1em;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .reveal-listbtn{margin-top:auto;padding:12px 0 0;background:none;border:0;font-size:0.72rem;letter-spacing:0.04em;color:var(--muted);text-decoration:underline;cursor:pointer;font-family:inherit;}
+  .reveal-listbtn:hover{color:var(--text);}
+  .reveal-votes{margin-top:auto;padding-top:12px;font-size:0.72rem;color:var(--muted);letter-spacing:0.04em;}
   .reveal-delta{font-size:0.78rem;font-weight:700;margin-top:4px;min-height:1.1em;opacity:0;transition:opacity 0.4s ease;}
   .reveal-delta.show{opacity:1;}
   .reveal-delta.up{color:#4caf50;}
@@ -2065,16 +2070,17 @@
     <img class="reveal-poster" id="revealPoster" alt="">
     <div class="reveal-title" id="revealTitle"></div>
     <div class="reveal-scores">
-      <div class="reveal-col">
+      <div class="reveal-col" id="revealYourCol">
         <div class="reveal-label">Your Vote</div>
         <div class="reveal-num" id="revealYour">0.0</div>
         <div class="reveal-sub" id="revealTier"></div>
+        <button type="button" class="reveal-listbtn" id="revealListBtn">View in my list</button>
       </div>
       <div class="reveal-col">
-        <div class="reveal-label">The Real Vote</div>
+        <div class="reveal-label">ReelVote</div>
         <div class="reveal-num" id="revealReal">0.0</div>
-        <div class="reveal-sub" id="revealVotes"></div>
-        <div class="reveal-delta" id="revealDelta"></div>
+        <div class="reveal-sub" id="revealRealTier"></div>
+        <div class="reveal-votes" id="revealVotes"></div>
       </div>
     </div>
     <div class="reveal-review">
@@ -3105,6 +3111,7 @@
     flatList.forEach((m, idx) => {
       const row = document.createElement('div');
       row.className = 'movie-row';
+      row.dataset.movieId = m.id;
       const posterHtml = m.poster
         ? `<img class="poster-thumb" src="${escapeHtml(m.poster)}" alt="">`
         : `<div class="poster-thumb placeholder">n/a</div>`;
@@ -3360,6 +3367,7 @@
                 </div>
               </div>
               <button class="detail-update-link" id="detailRateBtn">Update your rating</button>
+              <button class="detail-update-link" id="detailListBtn">View in my list</button>
             ` : `
               <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">Rate It</button>
             `}
@@ -3383,6 +3391,7 @@
 
     el('detailRateBtn').onclick = () => startRateFromDetail(movie);
     renderWordChips(movie);
+    if(el('detailListBtn')) el('detailListBtn').onclick = () => viewInMyList(movie);
     if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     modal.style.display = 'block';
     el('closeDetailBtn').style.display = 'inline-block';
@@ -3432,6 +3441,7 @@
       }
       if(data.Actors && data.Actors !== 'N/A'){
         el('detailStarringText').textContent = data.Actors;
+        el('detailStarringText').style.minHeight = '0';
       } else {
         el('detailStarringField').style.display = 'none';
       }
@@ -3442,6 +3452,7 @@
       }
       if(data.Writer && data.Writer !== 'N/A'){
         el('detailWritersText').textContent = data.Writer;
+        el('detailWritersText').style.minHeight = '0';
       } else {
         el('detailWritersField').style.display = 'none';
       }
@@ -4845,8 +4856,9 @@
       el('duelOverlay').style.display = 'none';
       pending = null;
       render();
-      await showRatingReveal(movie, scoreBefore);
-      await completeRatingFlow(movie);
+      const dest = await showRatingReveal(movie, scoreBefore);
+      if(dest === 'list'){ resetSearchPanel(); viewInMyList(movie); }
+      else await completeRatingFlow(movie);
     }
   }
 
@@ -4920,8 +4932,31 @@
     }
 
     render();
-    await showRatingReveal(movie, scoreBefore);
-    await completeRatingFlow(movie);
+    const dest = await showRatingReveal(movie, scoreBefore);
+    if(dest === 'list'){ resetSearchPanel(); viewInMyList(movie); }
+    else await completeRatingFlow(movie);
+  }
+
+  // Jump to My List, scrolled to this movie's row with a brief gold highlight.
+  function viewInMyList(movie){
+    if(myRatingsGenreFilter !== 'all' && myRatingsGenreFilter !== movie.genre){
+      myRatingsGenreFilter = 'all';
+      el('genreFilter').value = 'all';
+    }
+    render();
+    navigateTo('my-ratings');
+    let tries = 0;
+    (function findRow(){
+      const row = document.querySelector(`#genreContainer .movie-row[data-movie-id="${movie.id}"]`);
+      if(row && row.offsetParent !== null){
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.remove('row-flash');
+        void row.offsetWidth;
+        row.classList.add('row-flash');
+      } else if(tries++ < 15){
+        setTimeout(findRow, 80);
+      }
+    })();
   }
 
   // ---- Score reveal: "Your Vote" vs "The Real Vote", plus optional one-word review ----
@@ -5059,13 +5094,15 @@
       el('revealPoster').style.display = movie.poster ? '' : 'none';
       el('revealTitle').textContent = movie.title + (movie.year ? ` (${movie.year})` : '');
       el('revealTier').innerHTML = `${tierIcon(tier)}<span style="color:${color};font-weight:700;">${escapeHtml(tier)}</span>`;
+      const realTier = scoreToTier(realScore);
+      const realColor = (TIER_VISUAL[realTier] || {}).color || '#fff';
+      el('revealRealTier').innerHTML = `${tierIcon(realTier)}<span style="color:${realColor};font-weight:700;">${escapeHtml(realTier)}</span>`;
+      el('revealReal').style.color = realColor;
       el('revealVotes').textContent = formatVoteCount(uniqueVoterCount(movie.id));
       el('revealYour').style.color = color;
+      el('revealYourCol').style.borderColor = color;
       el('revealYour').textContent = '0.0';
       el('revealReal').textContent = '0.0';
-      const delta = el('revealDelta');
-      delta.className = 'reveal-delta';
-      delta.textContent = '';
       const wordInput = el('revealWord');
       wordInput.value = '';
       const slotsEl = el('revealSlots');
@@ -5102,17 +5139,10 @@
         const n = el('revealReal');
         n.classList.add('landed');
         haptic('success');
-        if(scoreBefore != null){
-          const d = realScore - scoreBefore;
-          if(Math.abs(d) >= 0.05){
-            delta.textContent = (d > 0 ? '+' : '−') + Math.abs(d).toFixed(1) + ' from your vote';
-            delta.classList.add('show', d > 0 ? 'up' : 'down');
-          }
-        }
       }), 450);
 
       let closed = false;
-      async function finish(){
+      async function finish(dest){
         if(closed) return;
         closed = true;
         const word = cleanReviewText(wordInput.value);
@@ -5126,10 +5156,11 @@
             if(error) console.error('Review word save error', error);
           }catch(e){ console.error(e); }
         }
-        resolve();
+        resolve(dest || 'done');
       }
-      el('revealDoneBtn').onclick = finish;
-      wordInput.onkeydown = (e) => { if(e.key === 'Enter'){ e.preventDefault(); finish(); } };
+      el('revealDoneBtn').onclick = () => finish('done');
+      el('revealListBtn').onclick = () => finish('list');
+      wordInput.onkeydown = (e) => { if(e.key === 'Enter'){ e.preventDefault(); finish('done'); } };
     });
   }
 
