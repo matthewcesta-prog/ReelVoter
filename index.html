@@ -671,7 +671,7 @@
   @media (max-width:700px){
     .detail-body{padding-top:24px;}
   }
-  #nextSuggestionWrap{flex-basis:100%;order:1;}
+  #nextSuggestionWrap{width:100%;margin-top:14px;}
   #nextSuggestionWrap:empty{display:none;flex-basis:0;}
   .next-suggestion{
     max-width:480px;margin:36px auto 0;
@@ -874,6 +874,15 @@
     margin-top:2px;align-self:flex-start;
   }
   .detail-rate-btn{margin-top:8px;align-self:flex-start;}
+  .detail-btn{
+    display:block;align-self:stretch;width:100%;box-sizing:border-box;margin-top:8px;
+    padding:9px 14px;background:transparent;border:1px solid rgba(255,255,255,0.55);border-radius:8px;
+    color:var(--text);font-size:0.8rem;font-weight:600;text-align:center;cursor:pointer;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    transition:background 0.15s ease, border-color 0.15s ease;
+  }
+  .detail-btn.secondary{border-color:var(--line);color:var(--muted);font-weight:500;}
+  .detail-btn:active{background:rgba(255,255,255,0.08);}
   .detail-update-link{
     background:none;border:none;
     color:var(--muted);font-size:0.75rem;
@@ -915,7 +924,6 @@
     .dts-heading{display:none;}
     .detail-tier-scale{order:1;flex:0 0 185px;gap:12px;min-width:185px;max-width:185px;width:185px;justify-content:space-between;}
     .detail-center-col{order:2;flex:0 0 auto;min-width:0;justify-content:center;}
-    #nextSuggestionWrap{order:3;}
     .detail-info-col{order:4;align-items:flex-start;max-width:none;width:100%;flex:1 1 100%;}
     .dts-label{font-size:1.3rem;white-space:nowrap;}
     .dts-sub{font-size:0.75rem;white-space:nowrap;}
@@ -1626,8 +1634,9 @@
   .reveal-label{font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
   .reveal-num{font-size:2.4rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--white);}
   .reveal-sub{font-size:0.78rem;color:var(--muted);margin-top:8px;min-height:1.1em;display:flex;align-items:center;justify-content:center;gap:6px;}
-  .reveal-listbtn{margin-top:auto;padding:12px 0 0;background:none;border:0;font-size:0.72rem;letter-spacing:0.04em;color:var(--muted);text-decoration:underline;cursor:pointer;font-family:inherit;}
-  .reveal-listbtn:hover{color:var(--text);}
+  .reveal-listbtn{margin-top:auto;padding:8px 10px;background:transparent;border:1px solid rgba(255,255,255,0.55);border-radius:8px;font-size:0.74rem;font-weight:600;letter-spacing:0.02em;color:var(--text);cursor:pointer;font-family:inherit;transition:background 0.15s ease;}
+  .reveal-listbtn:active{background:rgba(255,255,255,0.08);}
+  .reveal-col .reveal-sub{margin-bottom:12px;}
   .reveal-votes{margin-top:auto;padding-top:12px;font-size:0.72rem;color:var(--muted);letter-spacing:0.04em;}
   .reveal-delta{font-size:0.78rem;font-weight:700;margin-top:4px;min-height:1.1em;opacity:0;transition:opacity 0.4s ease;}
   .reveal-delta.show{opacity:1;}
@@ -1640,15 +1649,15 @@
   .hang{position:relative;width:100%;max-width:300px;margin:0 auto;cursor:text;box-sizing:border-box;
     background:var(--surface-2);border:1.5px solid var(--line);border-radius:12px;padding:14px 14px 12px;transition:border-color 0.15s ease, box-shadow 0.15s ease;}
   .hang:focus-within{border-color:#d4af37;box-shadow:0 0 12px rgba(212,175,55,0.25);}
-  .hang-text{min-height:1.7em;font-size:1.2rem;font-weight:500;font-style:italic;font-family:Georgia,'Times New Roman',serif;color:var(--white);text-align:center;line-height:1.4;word-break:break-word;pointer-events:none;}
-  .hang-text .ph{color:var(--muted);font-weight:400;}
-  .hang-text .q{color:#d4af37;font-size:1.5em;line-height:0;vertical-align:-0.18em;font-style:normal;}
-  .hang-text .caret{display:inline-block;width:2px;height:1.1em;background:#d4af37;vertical-align:text-bottom;margin-left:1px;animation:caretBlink 1s steps(1) infinite;}
-  @keyframes caretBlink{50%{opacity:0;}}
+  .hang-row{display:flex;justify-content:center;align-items:baseline;min-height:1.7em;}
+  .hang-row .q{color:#d4af37;font-size:1.5em;line-height:0;vertical-align:-0.18em;font-style:normal;font-family:Georgia,'Times New Roman',serif;font-size:1.8rem;}
+  .hang input, .hang-mirror{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:500;font-size:1.2rem;}
+  .hang input{width:9ch;max-width:calc(100% - 44px);min-width:0;text-align:center;background:none;border:0;outline:none;padding:0 2px;color:var(--white);caret-color:#d4af37;}
+  .hang input::placeholder{color:var(--muted);font-weight:400;}
+  .hang-mirror{position:absolute;visibility:hidden;white-space:pre;pointer-events:none;left:0;top:0;}
   .hang-meter{display:flex;gap:3px;margin-top:10px;pointer-events:none;}
   .hang-meter span{flex:1;height:3px;border-radius:2px;background:var(--line);transition:background 0.15s ease;}
   .hang-meter span.on{background:#d4af37;}
-  .hang input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;padding:0;background:none;color:transparent;}
   .hang-note{font-size:0.7rem;color:var(--muted);margin-top:8px;}
   .reveal-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;}
   .reveal-chips button{background:none;border:1px solid var(--line);border-radius:16px;color:var(--text);font-size:0.78rem;padding:5px 12px;cursor:pointer;}
@@ -2086,9 +2095,9 @@
     <div class="reveal-review">
       <label for="revealWord">What’s your take? Say it in a few words.</label>
       <div class="hang" id="revealHang">
-        <div class="hang-text" id="revealText" aria-hidden="true"></div>
+        <div class="hang-row"><span class="q">“</span><input id="revealWord" maxlength="25" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Tap to write it" aria-label="Your review, 25 characters maximum"><span class="q">”</span></div>
+        <span class="hang-mirror" id="revealMirror" aria-hidden="true"></span>
         <div class="hang-meter" id="revealSlots" aria-hidden="true"></div>
-        <input id="revealWord" maxlength="25" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Your review, 25 characters maximum">
       </div>
       <div class="hang-note">Optional · 25 characters, tops.</div>
       <div class="reveal-chips" id="revealChips"></div>
@@ -3348,7 +3357,6 @@
               <img class="detail-poster-big" id="detailPosterImg" src="${escapeHtml(movie.poster||'')}" alt="">
             </div>
           </div>
-          <div id="nextSuggestionWrap"></div>
         </div>
         <div class="detail-title-row">
           <div class="detail-title-under">${escapeHtml(movie.title)} <span class="detail-year-under">(${escapeHtml(movie.year||'')})</span></div>
@@ -3366,13 +3374,14 @@
                   <span class="yv-score">${personalVoteScore(movie).toFixed(1)}</span>
                 </div>
               </div>
-              <button class="detail-update-link" id="detailRateBtn">Update your rating</button>
-              <button class="detail-update-link" id="detailListBtn">View in my list</button>
+              <button class="detail-btn" id="detailListBtn">View in my list</button>
+              <button class="detail-btn secondary" id="detailRateBtn">Update your rating</button>
             ` : `
               <button class="btn btn-primary detail-rate-btn" id="detailRateBtn">Rate It</button>
             `}
           </div>
         </div>
+        <div id="nextSuggestionWrap"></div>
         <div class="detail-layout" style="margin-top:18px;">
           <div class="detail-info-col">
             <div class="detail-field" id="detailPlotField"><b>BRIEF:</b> <span id="detailPlotText">Loading…</span></div>
@@ -5108,23 +5117,27 @@
       const slotsEl = el('revealSlots');
       function renderSlots(){
         const v = wordInput.value;
-        const focused = document.activeElement === wordInput;
-        const inner = v
-          ? escapeHtml(v) + (focused ? '<span class="caret"></span>' : '')
-          : (focused ? '<span class="caret"></span>' : '<span class="ph">Tap to write it</span>');
-        el('revealText').innerHTML = `<span class="q">“</span>${inner}<span class="q">”</span>`;
+        const mirror = el('revealMirror');
+        mirror.textContent = v || wordInput.placeholder;
+        wordInput.style.width = (Math.ceil(mirror.getBoundingClientRect().width) + 8) + 'px';
         let m = '';
         for(let i = 0; i < REVIEW_MAX_CHARS; i++) m += `<span class="${i < v.length ? 'on' : ''}"></span>`;
         slotsEl.innerHTML = m;
       }
       wordInput.oninput = () => {
-        const clean = wordInput.value.replace(REVIEW_DISALLOWED, '').replace(/^\s+/, '').replace(/\s{2,}/g, ' ').slice(0, REVIEW_MAX_CHARS);
-        if(clean !== wordInput.value) wordInput.value = clean;
+        const before = wordInput.value;
+        const pos = wordInput.selectionStart;
+        const clean = before.replace(REVIEW_DISALLOWED, '').replace(/^\s+/, '').replace(/\s{2,}/g, ' ').slice(0, REVIEW_MAX_CHARS);
+        if(clean !== before){
+          wordInput.value = clean;
+          const np = Math.max(0, Math.min(clean.length, (pos == null ? clean.length : pos) - (before.length - clean.length)));
+          try{ wordInput.setSelectionRange(np, np); }catch(e){}
+        }
         renderSlots();
       };
       wordInput.onfocus = renderSlots;
       wordInput.onblur = renderSlots;
-      el('revealHang').onclick = () => wordInput.focus();
+      el('revealHang').onclick = (e) => { if(e.target !== wordInput) wordInput.focus(); };
       renderSlots();
 
       el('revealChips').innerHTML = (REVIEW_WORD_CHIPS[tier] || []).map(w => `<button type="button">${w}</button>`).join('');
